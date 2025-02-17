@@ -1,10 +1,5 @@
-[package]
-name = "tpchgen-rs"
-version = "0.1.0"
-edition = "2021"
-
 [workspace]
-members = [ "tpchgen" ]
 
-[dependencies]
-tpchgen = { path = "tpchgen" }
+members = [ "tpchgen" , "tpchgen-cli"]
+
+resolver = "2"
