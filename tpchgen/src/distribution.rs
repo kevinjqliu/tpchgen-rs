@@ -3,7 +3,7 @@ use std::io::{self, BufRead};
 use thiserror::Error;
 
 /// Embedded TPCH distributions seed file as found in dbgen's implementation.
-const DISTS_SEED: &'static str = include_str!("dists.dss");
+const DISTS_SEED: &str = include_str!("dists.dss");
 
 #[derive(Error, Debug)]
 pub enum DistParserError {
@@ -172,7 +172,7 @@ impl DistributionParser {
         lines: &[String],
     ) -> Result<(), DistParserError> {
         // Set distribution type based on name
-        dist.dist_type = self.determine_distribution_type(&dist.name.as_str());
+        dist.dist_type = self.determine_distribution_type(dist.name.as_str());
 
         if lines.is_empty() {
             return Err(DistParserError::EmptyDistribution(dist.name));
@@ -207,7 +207,7 @@ impl DistributionParser {
 
                     let entry = DistributionEntry {
                         value: parts[0].to_string(),
-                        weight: weight,
+                        weight,
                     };
                     dist.entries.push(entry);
                 }

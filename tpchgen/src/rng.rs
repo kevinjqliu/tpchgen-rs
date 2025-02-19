@@ -1,6 +1,5 @@
 //! Implementation of a random number generator compatible with `dbgen`.
 
-use std::arch::aarch64::vaddlv_s16;
 
 #[derive(Default, Debug, Clone, Copy)]
 pub struct TpchRng {
@@ -77,7 +76,7 @@ impl TpchRng {
             if count % 2 != 0 {
                 self.seed = (multiplier * self.seed) % Self::MODULUS;
             }
-            count = count / 2;
+            count /= 2;
             multiplier = (multiplier * multiplier) % Self::MODULUS;
         }
     }
@@ -106,7 +105,7 @@ impl TpchAlphanumRng {
     /// Create a new random alphanumeric string generator.
     pub fn new(seed: i64, avg_len: usize) -> Self {
         Self {
-            seed: seed,
+            seed,
             min_len: (avg_len as f64 * Self::LOW_LENGTH_MULTIPLIER).trunc() as usize,
             max_len: (avg_len as f64 * Self::HIGH_LENGTH_MULTIPLIER).trunc() as usize,
         }
