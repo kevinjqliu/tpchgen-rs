@@ -1,33 +1,85 @@
 //! Implementation of a random number generator compatible with `dbgen`.
 
-/// Constants as defined in https://github.com/electrum/tpch-dbgen/blob/master/rnd.h
-const MULTIPLIER: i64 = 16807;
-const MODULUS: i64 = 2147483647;
-const DEFAULT_SEED: i64 = 19650218;
+use std::arch::aarch64::vaddlv_s16;
 
 #[derive(Default, Debug, Clone, Copy)]
 pub struct TpchRng {
     seed: i64,
+    uses: i64,
+    uses_per_row: i64,
 }
 
 impl TpchRng {
-    pub fn new(seed: i64) -> Self {
-        Self { seed }
+    /// Constants as defined in https://github.com/electrum/tpch-dbgen/blob/master/rnd.h
+    const MULTIPLIER: i64 = 16807;
+    const MODULUS: i64 = 2147483647;
+    const DEFAULT_SEED: i64 = 19650218;
+
+    /// Creates a new random number generator with a given initial seed
+    /// and the number of random values per row.
+    pub fn new(seed: i64, uses: i64) -> Self {
+        Self {
+            seed,
+            uses: 0,
+            uses_per_row: uses,
+        }
     }
 
-    /// Returns the next random number.
-    pub fn next(&mut self) -> i64 {
-        self.seed = (self.seed * MULTIPLIER) % MODULUS;
+    /// Returns a random value uniformly picked from the range specified by
+    /// `lower_bound` and `upper_bound` both inclusive.
+    fn random(&mut self, lower_bound: i32, upper_bound: i32) -> i32 {
+        let _ = self.next_seed();
+
+        // This code is buggy but must be this way because we aim to have
+        // bug-for-bug with the original C implementation; thanks to the Trino
+        // OG's for pointing the way; Lisan al Gaib.
+        let range = (upper_bound - lower_bound + 1) as f64;
+        let value_in_range = ((1. * self.seed as f64) / Self::MODULUS as f64) * range;
+
+        lower_bound + value_in_range as i32
+    }
+
+    /// Updates the random number generator internal state by updating its internal
+    /// seed and incrementing the usage counter.
+    fn next_seed(&mut self) -> i64 {
+        debug_assert!(
+            self.uses >= self.uses_per_row,
+            "expected random to be used at most {} times per row",
+            self.uses_per_row
+        );
+        self.seed = (self.seed * Self::MULTIPLIER) % Self::MODULUS;
+        // Increment the "use" counter for the rng.
+        self.uses += 1;
         self.seed
     }
 
-    /// Returns a random value sampled uniformly from the specified range.
-    pub fn uniform(&mut self, min: i64, max: i64) -> i64 {
-        debug_assert!(
-            min <= max,
-            "min {min} must be less than or equal to max {max}"
-        );
-        min + (self.next() % (max - min + 1))
+    /// Advance the seed by a specific number of rows, essentially bumps
+    /// the rng state to next partition.
+    fn prepare_next_partition(&mut self, partition_size: i64) {
+        if self.uses != 0 {
+            self.prepare_next_row();
+        }
+
+        self.advance(self.uses_per_row * partition_size);
+    }
+
+    /// Advances the seed to start the sequence for the next row.
+    fn prepare_next_row(&mut self) {
+        self.advance(self.uses_per_row - self.uses);
+        self.uses = 0;
+    }
+
+    /// Advance the seed after `count` calls.
+    fn advance(&mut self, count: i64) {
+        let mut count = count;
+        let mut multiplier = Self::MULTIPLIER;
+        while count > 0 {
+            if count % 2 != 0 {
+                self.seed = (multiplier * self.seed) % Self::MODULUS;
+            }
+            count = count / 2;
+            multiplier = (multiplier * multiplier) % Self::MODULUS;
+        }
     }
 }
 
