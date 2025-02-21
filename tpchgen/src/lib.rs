@@ -1,5 +1,6 @@
 mod distribution;
 mod rng;
+mod textgen;
 mod tpch;
 
 pub fn add(left: u64, right: u64) -> u64 {

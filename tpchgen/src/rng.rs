@@ -1,6 +1,5 @@
 //! Implementation of a random number generator compatible with `dbgen`.
 
-
 #[derive(Default, Debug, Clone, Copy)]
 pub struct TpchRng {
     seed: i64,
@@ -26,7 +25,7 @@ impl TpchRng {
 
     /// Returns a random value uniformly picked from the range specified by
     /// `lower_bound` and `upper_bound` both inclusive.
-    fn random(&mut self, lower_bound: i32, upper_bound: i32) -> i32 {
+    pub fn random(&mut self, lower_bound: i32, upper_bound: i32) -> i32 {
         let _ = self.next_seed();
 
         // This code is buggy but must be this way because we aim to have
@@ -42,9 +41,10 @@ impl TpchRng {
     /// seed and incrementing the usage counter.
     fn next_seed(&mut self) -> i64 {
         debug_assert!(
-            self.uses >= self.uses_per_row,
-            "expected random to be used at most {} times per row",
-            self.uses_per_row
+            self.uses <= self.uses_per_row,
+            "expected random to be used at most {} times per row but it was used {} times",
+            self.uses_per_row,
+            self.uses
         );
         self.seed = (self.seed * Self::MULTIPLIER) % Self::MODULUS;
         // Increment the "use" counter for the rng.
@@ -113,4 +113,18 @@ impl TpchAlphanumRng {
 
     /// Returns the next random string.
     pub fn next(&self) {}
+}
+
+#[cfg(test)]
+mod tests {
+    use super::TpchRng;
+
+    #[test]
+    fn can_build_a_valid_rng() {
+        let mut rng = TpchRng::new(933588178, i32::MAX as i64);
+
+        for _ in 0..1024 {
+            rng.random(0, 1024);
+        }
+    }
 }

@@ -1,9 +1,10 @@
 use std::collections::HashMap;
+use std::hash::Hash;
 use std::io::{self, BufRead};
 use thiserror::Error;
 
 /// Embedded TPCH distributions seed file as found in dbgen's implementation.
-const DISTS_SEED: &str = include_str!("dists.dss");
+pub(crate) const DISTS_SEED: &str = include_str!("dists.dss");
 
 #[derive(Error, Debug)]
 pub enum DistParserError {
@@ -66,6 +67,27 @@ impl std::fmt::Display for Distribution {
 }
 
 impl Distribution {
+    /// Returns the weight assigned to the entry at `index` if the entry
+    /// does not exist returns `None`
+    pub fn get_weight(&self, index: usize) -> Option<i32> {
+        self.entries
+            .get(index as usize)
+            .and_then(|entry| Some(entry.weight))
+    }
+
+    /// Returns the value assigned to the entry at `index` if the entry
+    /// does not exist returns `None`.
+    pub fn get_value(&self, index: usize) -> Option<&String> {
+        self.entries
+            .get(index as usize)
+            .and_then(|entry| Some(&entry.value))
+    }
+
+    /// Returns the number of entries in the distribution.
+    pub fn size(&self) -> usize {
+        self.entries.len()
+    }
+
     pub fn sample<R: rand::Rng>(&self, rng: &mut R) -> &str {
         match self.dist_type {
             DistributionType::Regular | DistributionType::Restricted => self.sample_weighted(rng),
@@ -164,6 +186,10 @@ impl DistributionParser {
         }
 
         Ok(())
+    }
+
+    pub fn distributions(&self) -> &HashMap<String, Distribution> {
+        &self.distributions
     }
 
     fn validate_and_store_distribution(
@@ -633,6 +659,6 @@ END test_invalid
         parser
             .distributions
             .iter()
-            .for_each(|dist| println!("Distribution:\n {}", dist.1));
+            .for_each(|dist| println!("Distribution {} : {} ", dist.0, dist.1.name));
     }
 }
