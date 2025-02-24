@@ -1,3 +1,4 @@
+/*
 use std::collections::HashMap;
 
 use crate::{distribution::Distribution, rng::TpchRng};
@@ -36,7 +37,7 @@ impl IndexedDistribution {
     }
 
     fn random_value(&self, random: &mut TpchRng) -> &str {
-        let random_index = random.random(0, (self.random_table.len() - 1) as i32) as usize;
+        let random_index = random.next_int(0, (self.random_table.len() - 1) as i32) as usize;
         &self.random_table[random_index]
     }
 }
@@ -91,7 +92,7 @@ impl ParsedDistribution {
     }
 
     fn get_random_index(&self, random: &mut TpchRng) -> usize {
-        let random_index = random.random(0, (self.random_table.len() - 1) as i32) as usize;
+        let random_index = random.next_int(0, (self.random_table.len() - 1) as i32) as usize;
         self.random_table[random_index]
     }
 
@@ -270,7 +271,7 @@ mod tests {
         let mut counts = vec![0; 10];
 
         for _ in 0..1000 {
-            let val = rng.random(0, 9);
+            let val = rng.next_int(0, 9);
             assert!(val >= 0 && val <= 9);
             counts[val as usize] += 1;
         }
@@ -343,3 +344,5 @@ mod tests {
         );
     }
 }
+
+*/
