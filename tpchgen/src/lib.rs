@@ -1,5 +1,4 @@
 mod distribution;
-mod nations;
 mod rng;
 mod textgen;
 mod tpch;
