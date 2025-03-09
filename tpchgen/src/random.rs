@@ -47,9 +47,11 @@ impl RowRandomInt {
     pub fn next_int(&mut self, lower_bound: i32, upper_bound: i32) -> i32 {
         let _ = self.next_rand();
 
-        // This is buggy but the implementation relies on that fact.
-        let range = upper_bound - lower_bound + 1;
-        let value = ((1.0 * self.seed as f64 / Self::MODULUS as f64) * range as f64) as i32;
+        // This is buggy because it can overflow e.g in `RandomAlphaNumeric` when
+        // `upper_bound` is `i32::MAX` and `lower_bound` is 0 so to replicate
+        // the overflow behaviour we need to wrap around to `i32::MIN`.
+        let range = (upper_bound - lower_bound).wrapping_add(1) as f64;
+        let value = ((1.0 * (self.seed as f64) / Self::MODULUS as f64) * range) as i32;
 
         lower_bound + value
     }
@@ -175,7 +177,7 @@ impl RowRandomLong {
 
 /// Random number generator for bounded values.
 #[derive(Default, Debug, Clone, Copy)]
-struct RandomBoundedInt {
+pub struct RandomBoundedInt {
     lower_bound: i32,
     upper_bound: i32,
     random_int: RowRandomInt,
@@ -209,6 +211,15 @@ impl RandomBoundedInt {
     /// Returns a random value between the lower and upper bounds (both inclusive).
     pub fn next_value(&mut self) -> i32 {
         self.random_int.next_int(self.lower_bound, self.upper_bound)
+    }
+
+    /// Advance the inner random number generator by the specified number of rows.
+    pub fn advance_rows(&mut self, row_count: i64) {
+        self.random_int.advance_rows(row_count);
+    }
+
+    pub fn row_finished(&mut self) {
+        self.random_int.row_finished();
     }
 }
 
@@ -266,6 +277,15 @@ impl RandomAlphaNumeric {
         // This is safe because ALPHA_NUMERIC contains only valid ASCII
         String::from_utf8(buffer).unwrap()
     }
+
+    /// Advance the inner random number generator by the specified number of rows.
+    pub fn advance_rows(&mut self, row_count: i64) {
+        self.inner.advance_rows(row_count);
+    }
+
+    pub fn row_finished(&mut self) {
+        self.inner.row_finished();
+    }
 }
 
 /// Generates phone numbers according to TPC-H spec
@@ -299,6 +319,15 @@ impl RandomPhoneNumber {
             country_code, local1, local2, local3
         )
     }
+
+    /// Advance the inner random number generator by the specified number of rows.
+    pub fn advance_rows(&mut self, row_count: i64) {
+        self.inner.advance_rows(row_count);
+    }
+
+    pub fn row_finished(&mut self) {
+        self.inner.row_finished();
+    }
 }
 
 /// Fetches random strings from a distribution.
@@ -326,6 +355,15 @@ impl RandomString {
 
     pub fn next_value(&mut self) -> String {
         self.distribution.random_value(&mut self.inner).to_string()
+    }
+
+    /// Advance the inner random number generator by the given number of rows.
+    pub fn advance_rows(&mut self, row_count: i64) {
+        self.inner.advance_rows(row_count);
+    }
+
+    pub fn row_finished(&mut self) {
+        self.inner.row_finished();
     }
 }
 
@@ -378,6 +416,15 @@ impl RandomStringSequence {
         // Join the first 'count' values with spaces
         values[0..self.count as usize].join(" ")
     }
+
+    /// Advance the inner random number generator by the given number of rows.
+    pub fn advance_rows(&mut self, row_count: i64) {
+        self.inner.advance_rows(row_count);
+    }
+
+    pub fn row_finished(&mut self) {
+        self.inner.row_finished();
+    }
 }
 
 /// Generates random text according to TPC-H spec
@@ -418,6 +465,10 @@ impl RandomText {
         let lenght = self.inner.next_int(self.min_length, self.max_length);
 
         self.text_pool.text(offset, offset + lenght)
+    }
+
+    pub fn advance_rows(&mut self, row_count: i64) {
+        self.inner.advance_rows(row_count);
     }
 
     pub fn row_finished(&mut self) {

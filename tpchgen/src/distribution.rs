@@ -1,7 +1,5 @@
-use std::collections::HashMap;
-use std::hash::Hash;
-
 use crate::random::RowRandomInt;
+use indexmap::IndexMap;
 
 /// TPC-H distributions seed file.
 pub(crate) const DISTS_SEED: &str = include_str!("dists.dss");
@@ -19,22 +17,25 @@ pub struct Distribution {
 
 impl Distribution {
     /// Creates a new Distribution with the given name and weighted values.
-    pub fn new(name: String, distribution: BTreeMap<String, i32>) -> Self {
+    pub fn new(name: String, distribution: IndexMap<String, i32>) -> Self {
         let mut values = Vec::new();
-        let mut weights = Vec::with_capacity(distribution.len());
+        let mut weights = vec![0; distribution.len()];
 
         let mut running_weight = 0;
         let mut is_valid_distribution = true;
+        let mut index = 0;
 
         // Process each value and its weight
         for (value, weight) in &distribution {
             values.push(value.clone());
 
             running_weight += weight;
-            weights.push(running_weight);
+            weights[index] = running_weight;
 
             // A valid distribution requires all weights to be positive
             is_valid_distribution &= *weight > 0;
+
+            index += 1;
         }
 
         // Only create the full distribution array for valid distributions
@@ -45,13 +46,9 @@ impl Distribution {
 
             let mut index = 0;
             for (value_index, value) in values.iter().enumerate() {
-                let count = if value_index == 0 {
-                    weights[0]
-                } else {
-                    weights[value_index] - weights[value_index - 1]
-                };
+                let count = distribution.get(value).unwrap();
 
-                for _ in 0..count {
+                for _ in 0..*count {
                     dist[index] = value.clone();
                     index += 1;
                 }
@@ -101,7 +98,6 @@ impl Distribution {
     }
 }
 
-use std::collections::BTreeMap;
 use std::io::{self, BufRead};
 
 use regex::Regex;
@@ -117,7 +113,7 @@ impl DistributionLoader {
     /// - Distributions start with "BEGIN <name>"
     /// - Distribution entries are formatted as "value|weight"
     /// - Distributions end with "END"
-    pub fn load_distributions<I>(lines: I) -> io::Result<BTreeMap<String, Distribution>>
+    pub fn load_distributions<I>(lines: I) -> io::Result<IndexMap<String, Distribution>>
     where
         I: Iterator<Item = io::Result<String>>,
     {
@@ -138,11 +134,11 @@ impl DistributionLoader {
     /// Internal method to load distributions from pre-filtered lines.
     fn load_distributions_from_filtered_lines<I>(
         lines: I,
-    ) -> io::Result<BTreeMap<String, Distribution>>
+    ) -> io::Result<IndexMap<String, Distribution>>
     where
         I: Iterator<Item = String>,
     {
-        let mut distributions = BTreeMap::new();
+        let mut distributions = IndexMap::new();
         let mut lines_iter = lines.peekable();
 
         while let Some(line) = lines_iter.next() {
@@ -166,7 +162,7 @@ impl DistributionLoader {
         I: Iterator<Item = String>,
     {
         let regex_separator = Regex::new(r"\|").unwrap();
-        let mut members = BTreeMap::new();
+        let mut members = IndexMap::new();
         let mut count = -1;
 
         while let Some(line) = lines.next() {
@@ -221,17 +217,17 @@ impl DistributionLoader {
 /// Distributions wraps all TPC-H distributions and provides methods to access them.
 #[derive(Debug, Clone)]
 pub struct Distributions {
-    distributions: BTreeMap<String, Distribution>,
+    distributions: IndexMap<String, Distribution>,
 }
 
 impl Distributions {
     /// Creates a new distributions wrapper.
-    pub fn new(distributions: BTreeMap<String, Distribution>) -> Self {
+    pub fn new(distributions: IndexMap<String, Distribution>) -> Self {
         Distributions { distributions }
     }
 
     /// Loads the default distributions from `DISTS_SEED`.
-    pub fn load_default() -> Self {
+    pub fn default() -> Self {
         let cursor = io::Cursor::new(DISTS_SEED);
         let lines = cursor.lines();
         let distributions = DistributionLoader::load_distributions(lines).unwrap();

@@ -45,7 +45,7 @@ impl GenerateUtils {
     ) -> i64 {
         let total_row_count = (scale_base as f64 * scale_factor) as i64;
         let rows_per_part = total_row_count / part_count as i64;
-        rows_per_part * (part - 1) as i64
+        rows_per_part * (part as i64 - 1)
     }
 }
 

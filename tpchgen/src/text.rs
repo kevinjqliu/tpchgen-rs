@@ -25,7 +25,7 @@ impl TextPool {
 
     /// Returns the default text pool.
     pub fn default() -> Self {
-        Self::new(Self::DEFAULT_TEXT_POOL_SIZE, &Distributions::load_default())
+        Self::new(Self::DEFAULT_TEXT_POOL_SIZE, &Distributions::default())
     }
 
     /// Returns a new text pool with a predefined size and set of distributions.
