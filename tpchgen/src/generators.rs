@@ -807,9 +807,9 @@ mod tests {
     fn test_calculate_part_price() {
         // Test with a few part keys
         assert_eq!(PartGeneratorIterator::calculate_part_price(1), 90100);
-        assert_eq!(PartGeneratorIterator::calculate_part_price(10), 91000);
-        assert_eq!(PartGeneratorIterator::calculate_part_price(100), 100000);
-        assert_eq!(PartGeneratorIterator::calculate_part_price(1000), 190000);
+        assert_eq!(PartGeneratorIterator::calculate_part_price(10), 91001);
+        assert_eq!(PartGeneratorIterator::calculate_part_price(100), 100010);
+        assert_eq!(PartGeneratorIterator::calculate_part_price(1000), 90100);
     }
 
     #[test]
