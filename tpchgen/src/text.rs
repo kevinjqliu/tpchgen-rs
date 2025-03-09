@@ -222,17 +222,17 @@ impl TextPoolGenerator {
     pub fn new(size: usize, distributions: &Distributions) -> Self {
         TextPoolGenerator {
             size,
-            grammars: ParsedDistribution::new(&distributions.grammar()),
-            noun_phrases: ParsedDistribution::new(&distributions.noun_phrase()),
-            verb_phrases: ParsedDistribution::new(&distributions.verb_phrase()),
-            prepositions: IndexedDistribution::new(&distributions.prepositions()),
-            terminators: IndexedDistribution::new(&distributions.terminators()),
-            adverbs: IndexedDistribution::new(&distributions.adverbs()),
-            verbs: IndexedDistribution::new(&distributions.verbs()),
-            auxiliaries: IndexedDistribution::new(&distributions.auxiliaries()),
-            articles: IndexedDistribution::new(&distributions.articles()),
-            adjectives: IndexedDistribution::new(&distributions.adjectives()),
-            nouns: IndexedDistribution::new(&distributions.nouns()),
+            grammars: ParsedDistribution::new(distributions.grammar()),
+            noun_phrases: ParsedDistribution::new(distributions.noun_phrase()),
+            verb_phrases: ParsedDistribution::new(distributions.verb_phrase()),
+            prepositions: IndexedDistribution::new(distributions.prepositions()),
+            terminators: IndexedDistribution::new(distributions.terminators()),
+            adverbs: IndexedDistribution::new(distributions.adverbs()),
+            verbs: IndexedDistribution::new(distributions.verbs()),
+            auxiliaries: IndexedDistribution::new(distributions.auxiliaries()),
+            articles: IndexedDistribution::new(distributions.articles()),
+            adjectives: IndexedDistribution::new(distributions.adjectives()),
+            nouns: IndexedDistribution::new(distributions.nouns()),
         }
     }
 
@@ -269,7 +269,7 @@ impl TextPoolGenerator {
                 _ => panic!("Unknown token '{}'", token),
             }
 
-            if builder.chars().last().unwrap() != ' ' {
+            if !builder.ends_with(' ') {
                 builder.push(' ');
             }
         }
@@ -286,7 +286,7 @@ impl TextPoolGenerator {
             }
 
             // string may end with a comma or such
-            builder.push_str(&self.verb_phrases.get_bonus_text(index));
+            builder.push_str(self.verb_phrases.get_bonus_text(index));
 
             // add a space
             builder.push(' ');
@@ -305,7 +305,7 @@ impl TextPoolGenerator {
             }
 
             // string may end with a comma or such
-            builder.push_str(&self.noun_phrases.get_bonus_text(index));
+            builder.push_str(self.noun_phrases.get_bonus_text(index));
 
             // add a space
             builder.push(' ');

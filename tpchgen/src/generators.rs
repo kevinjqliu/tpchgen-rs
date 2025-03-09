@@ -1,5 +1,4 @@
 use core::fmt;
-use std::vec::IntoIter;
 
 use crate::distribution::Distribution;
 use crate::distribution::Distributions;
@@ -16,6 +15,12 @@ use crate::random::{RandomBoundedInt, RandomString, RandomStringSequence, Random
 pub struct NationGenerator {
     distributions: Distributions,
     text_pool: TextPool,
+}
+
+impl Default for NationGenerator {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl NationGenerator {
@@ -160,6 +165,12 @@ impl Region {
 pub struct RegionGenerator {
     distributions: Distributions,
     text_pool: TextPool,
+}
+
+impl Default for RegionGenerator {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl RegionGenerator {
@@ -433,7 +444,9 @@ impl PartGeneratorIterator {
         let manufacturer = self.manufacturer_random.next_value();
         let brand = manufacturer * 10 + self.brand_random.next_value();
 
-        let part = Part {
+        
+
+        Part {
             p_partkey: part_key,
             p_name: name,
             p_mfgr: format!("Manufacturer#{}", manufacturer),
@@ -443,9 +456,7 @@ impl PartGeneratorIterator {
             p_container: self.container_random.next_value(),
             p_retailprice: Self::calculate_part_price(part_key) as f64 / 100.0,
             p_comment: self.comment_random.next_value(),
-        };
-
-        part
+        }
     }
 
     /// Calculates the price for a part
@@ -684,7 +695,7 @@ impl SupplierGeneratorIterator {
         // Add supplier complaints or commendation to the comment
         let bbb_comment_random_value = self.bbb_comment_random.next_value();
         if bbb_comment_random_value <= SupplierGenerator::BBB_COMMENTS_PER_SCALE_BASE {
-            let mut buffer = comment.clone();
+            let buffer = comment.clone();
 
             // select random place for BBB comment
             let noise = self.bbb_junk_random.next_int(

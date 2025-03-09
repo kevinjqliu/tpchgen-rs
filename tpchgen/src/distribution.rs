@@ -165,7 +165,7 @@ impl DistributionLoader {
         let mut members = IndexMap::new();
         let mut count = -1;
 
-        while let Some(line) = lines.next() {
+        for line in lines.by_ref() {
             if Self::is_end(&line) {
                 return Ok(Distribution::new(name.to_string(), members));
             }
@@ -208,9 +208,7 @@ impl DistributionLoader {
     /// Checks if a line is an END marker.
     fn is_end(line: &str) -> bool {
         let parts: Vec<&str> = line.split_whitespace().collect();
-        parts
-            .get(0)
-            .map_or(false, |p| p.eq_ignore_ascii_case("END"))
+        parts.first().is_some_and(|p| p.eq_ignore_ascii_case("END"))
     }
 }
 

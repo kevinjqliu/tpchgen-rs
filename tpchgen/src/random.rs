@@ -38,7 +38,7 @@ impl RowRandomInt {
     pub fn new_with_column_number(column_number: i32, seed: i64, seeds_per_row: i32) -> Self {
         Self {
             seed: seed + column_number as i64 * (Self::MODULUS / 799),
-            seeds_per_row: seeds_per_row,
+            seeds_per_row,
             usage: 0,
         }
     }
@@ -169,7 +169,7 @@ impl RowRandomLong {
             }
 
             // Integer division, truncates
-            count = count / 2;
+            count /= 2;
             multiplier = (multiplier * multiplier) % Self::MODULUS_32;
         }
     }
@@ -260,7 +260,7 @@ impl RandomAlphaNumeric {
     pub fn next_value(&mut self) -> String {
         let length = self
             .inner
-            .next_int(self.min_length as i32, self.max_length as i32) as usize;
+            .next_int(self.min_length, self.max_length) as usize;
         let mut buffer = vec![0u8; length];
 
         let mut char_index = 0;
@@ -406,7 +406,7 @@ impl RandomStringSequence {
             // Pick a random position to swap with
             let swap_position = self
                 .inner
-                .next_int(current_position as i32, values.len() as i32 - 1)
+                .next_int(current_position, values.len() as i32 - 1)
                 as usize;
 
             // Swap the elements

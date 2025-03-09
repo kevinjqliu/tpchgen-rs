@@ -1,4 +1,4 @@
-use chrono::{Date, NaiveDate, TimeZone, Utc};
+use chrono::NaiveDate;
 use lazy_static::lazy_static;
 
 /// The value of 1970-01-01 in the date generator system
@@ -133,8 +133,8 @@ fn make_date(index: i32) -> NaiveDate {
         d - MONTH_YEAR_DAY_START[(m - 1) as usize] - if is_leap_year(y) && m > 2 { 1 } else { 0 };
 
     // Create date from year, month, day
-    let naive_date = NaiveDate::from_ymd_opt(1900 + y, m as u32, dy as u32).unwrap();
-    naive_date
+    
+    NaiveDate::from_ymd_opt(1900 + y, m as u32, dy as u32).unwrap()
 }
 
 /// Helpers duplicated to avoid circular references
