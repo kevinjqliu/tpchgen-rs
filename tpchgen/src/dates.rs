@@ -1,5 +1,6 @@
 use chrono::NaiveDate;
 use lazy_static::lazy_static;
+use std::fmt::{Display, Formatter};
 
 /// The value of 1970-01-01 in the date generator system
 pub const GENERATED_DATE_EPOCH_OFFSET: i32 = 83966;
@@ -49,16 +50,30 @@ impl GenerateUtils {
     }
 }
 
-pub struct DateUtils;
+/// Represents a date (day/year)
+///
+/// Example display: 1992-01-01
+#[derive(Debug, Clone, PartialEq)]
+pub struct TPCHDate {
+    inner: NaiveDate,
+}
 
-impl DateUtils {
+impl Display for TPCHDate {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.inner)
+    }
+}
+
+impl TPCHDate {
     /// Converts a generated date to an epoch date
-    pub fn to_epoch_date(generated_date: i32) -> NaiveDate {
-        Self::format_date(generated_date - GENERATED_DATE_EPOCH_OFFSET)
+    pub fn new(generated_date: i32) -> Self {
+        Self {
+            inner: Self::format_date(generated_date - GENERATED_DATE_EPOCH_OFFSET),
+        }
     }
 
     /// Formats a date from epoch date format
-    pub fn format_date(epoch_date: i32) -> NaiveDate {
+    fn format_date(epoch_date: i32) -> NaiveDate {
         let idx = epoch_date - (MIN_GENERATE_DATE - GENERATED_DATE_EPOCH_OFFSET);
         DATE_INDEX[idx as usize]
     }
@@ -88,11 +103,6 @@ impl DateUtils {
         result + offset
     }
 
-    /// Format money value (convert to decimal)
-    pub fn format_money(value: i64) -> String {
-        format!("{:.2}", value as f64 / 100.0)
-    }
-
     /// Check if a year is a leap year
     fn is_leap_year(year: i32) -> bool {
         year % 4 == 0 && year % 100 != 0
@@ -110,7 +120,7 @@ fn make_date_index() -> Vec<NaiveDate> {
     dates
 }
 
-/// Create a date from an index
+/// Create a chrono date from an index
 fn make_date(index: i32) -> NaiveDate {
     let y = julian(index + MIN_GENERATE_DATE - 1) / 1000;
     let d = julian(index + MIN_GENERATE_DATE - 1) % 1000;
