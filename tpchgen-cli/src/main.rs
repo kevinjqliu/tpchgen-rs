@@ -86,7 +86,6 @@ fn main() -> io::Result<()> {
 
     // Generate each table
     for table in tables {
-        println!("Generating table: {:?}", table);
         match table {
             Table::Nation => generate_nation(&cli)?,
             Table::Region => generate_region(&cli)?,
@@ -106,8 +105,9 @@ fn main() -> io::Result<()> {
 fn new_table_writer(cli: &Cli, filename: &str) -> io::Result<Box<dyn Write>> {
     let path = cli.output_dir.join(filename);
     let file = File::create(path)?;
+    let writer = BufWriter::with_capacity(32 * 1024, file);
 
-    Ok(Box::new(BufWriter::new(file)))
+    Ok(Box::new(writer))
 }
 
 fn generate_nation(cli: &Cli) -> io::Result<()> {
@@ -122,8 +122,7 @@ fn generate_nation(cli: &Cli) -> io::Result<()> {
             nation.n_nationkey, nation.n_name, nation.n_regionkey, nation.n_comment
         )?;
     }
-
-    Ok(())
+    writer.flush()
 }
 
 fn generate_region(cli: &Cli) -> io::Result<()> {
@@ -138,15 +137,14 @@ fn generate_region(cli: &Cli) -> io::Result<()> {
             region.r_regionkey, region.r_name, region.r_comment
         )?;
     }
-
-    Ok(())
+    writer.flush()
 }
 
 fn generate_part(cli: &Cli) -> io::Result<()> {
     let filename = "part.tbl";
     let mut writer = new_table_writer(cli, filename)?;
 
-    let generator = PartGenerator::new(cli.scale_factor as f64, cli.part, cli.parts);
+    let generator = PartGenerator::new(cli.scale_factor, cli.part, cli.parts);
     for part in generator.iter() {
         writeln!(
             writer,
@@ -162,15 +160,14 @@ fn generate_part(cli: &Cli) -> io::Result<()> {
             part.p_comment
         )?;
     }
-
-    Ok(())
+    writer.flush()
 }
 
 fn generate_supplier(cli: &Cli) -> io::Result<()> {
     let filename = "supplier.tbl";
     let mut writer = new_table_writer(cli, filename)?;
 
-    let generator = SupplierGenerator::new(cli.scale_factor as f64, cli.part, cli.parts);
+    let generator = SupplierGenerator::new(cli.scale_factor, cli.part, cli.parts);
     for supplier in generator.iter() {
         writeln!(
             writer,
@@ -184,15 +181,14 @@ fn generate_supplier(cli: &Cli) -> io::Result<()> {
             supplier.s_comment
         )?;
     }
-
-    Ok(())
+    writer.flush()
 }
 
 fn generate_partsupp(cli: &Cli) -> io::Result<()> {
     let filename = "partsupp.tbl";
     let mut writer = new_table_writer(cli, filename)?;
 
-    let generator = PartSupplierGenerator::new(cli.scale_factor as f64, cli.part, cli.parts);
+    let generator = PartSupplierGenerator::new(cli.scale_factor, cli.part, cli.parts);
     for ps in generator.iter() {
         writeln!(
             writer,
@@ -200,15 +196,14 @@ fn generate_partsupp(cli: &Cli) -> io::Result<()> {
             ps.ps_partkey, ps.ps_suppkey, ps.ps_availqty, ps.ps_supplycost, ps.ps_comment
         )?;
     }
-
-    Ok(())
+    writer.flush()
 }
 
 fn generate_customer(cli: &Cli) -> io::Result<()> {
     let filename = "customer.tbl";
     let mut writer = new_table_writer(cli, filename)?;
 
-    let generator = CustomerGenerator::new(cli.scale_factor as f64, cli.part, cli.parts);
+    let generator = CustomerGenerator::new(cli.scale_factor, cli.part, cli.parts);
     for customer in generator.iter() {
         writeln!(
             writer,
@@ -223,15 +218,14 @@ fn generate_customer(cli: &Cli) -> io::Result<()> {
             customer.c_comment
         )?;
     }
-
-    Ok(())
+    writer.flush()
 }
 
 fn generate_orders(cli: &Cli) -> io::Result<()> {
     let filename = "orders.tbl";
     let mut writer = new_table_writer(cli, filename)?;
 
-    let generator = OrderGenerator::new(cli.scale_factor as f64, cli.part, cli.parts);
+    let generator = OrderGenerator::new(cli.scale_factor, cli.part, cli.parts);
     for order in generator.iter() {
         writeln!(
             writer,
@@ -247,15 +241,14 @@ fn generate_orders(cli: &Cli) -> io::Result<()> {
             order.o_comment
         )?;
     }
-
-    Ok(())
+    writer.flush()
 }
 
 fn generate_lineitem(cli: &Cli) -> io::Result<()> {
     let filename = "lineitem.tbl";
     let mut writer = new_table_writer(cli, filename)?;
 
-    let generator = LineItemGenerator::new(cli.scale_factor as f64, cli.part, cli.parts);
+    let generator = LineItemGenerator::new(cli.scale_factor, cli.part, cli.parts);
     for item in generator.iter() {
         writeln!(
             writer,
@@ -278,6 +271,5 @@ fn generate_lineitem(cli: &Cli) -> io::Result<()> {
             item.l_comment
         )?;
     }
-
-    Ok(())
+    writer.flush()
 }
