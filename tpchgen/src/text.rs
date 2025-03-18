@@ -9,7 +9,7 @@ use crate::{
     distribution::{Distribution, Distributions},
     random::RowRandomInt,
 };
-use std::sync::{Arc, OnceLock};
+use std::sync::OnceLock;
 
 /// Pool of random text that follows TPC-H grammar.
 #[derive(Debug, Clone)]
@@ -20,7 +20,7 @@ pub struct TextPool {
 
 /// The default global text pool is lazily initialized once and shared across
 /// all the table generators.
-static DEFAULT_TEXT_POOL: OnceLock<Arc<TextPool>> = OnceLock::new();
+static DEFAULT_TEXT_POOL: OnceLock<TextPool> = OnceLock::new();
 
 impl TextPool {
     /// Default text pool size.
@@ -30,13 +30,9 @@ impl TextPool {
 
     /// Returns the default text pool or initializes for the first time if
     /// that's not already the case.
-    pub fn get_or_init_default() -> Arc<Self> {
-        Arc::clone(DEFAULT_TEXT_POOL.get_or_init(|| {
-            Arc::new(Self::new(
-                Self::DEFAULT_TEXT_POOL_SIZE,
-                &Distributions::default(),
-            ))
-        }))
+    pub fn get_or_init_default() -> &'static Self {
+        DEFAULT_TEXT_POOL
+            .get_or_init(|| Self::new(Self::DEFAULT_TEXT_POOL_SIZE, &Distributions::default()))
     }
 
     /// Returns a new text pool with a predefined size and set of distributions.

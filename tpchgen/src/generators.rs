@@ -8,24 +8,23 @@ use crate::random::RandomBoundedLong;
 use crate::random::RandomPhoneNumber;
 use crate::random::RowRandomInt;
 use crate::text::TextPool;
-use std::sync::Arc;
 
 use crate::dates::{GenerateUtils, TPCHDate};
 use crate::random::{RandomBoundedInt, RandomString, RandomStringSequence, RandomText};
 
 /// Generator for Nation table data
-pub struct NationGenerator {
+pub struct NationGenerator<'a> {
     distributions: Distributions,
-    text_pool: Arc<TextPool>,
+    text_pool: &'a TextPool,
 }
 
-impl Default for NationGenerator {
+impl<'a> Default for NationGenerator<'a> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl NationGenerator {
+impl<'a> NationGenerator<'a> {
     /// Creates a new NationGenerator with default distributions and text pool
     pub fn new() -> Self {
         Self::new_with_distributions_and_text_pool(
@@ -37,7 +36,7 @@ impl NationGenerator {
     /// Creates a NationGenerator with the specified distributions and text pool
     pub fn new_with_distributions_and_text_pool(
         distributions: Distributions,
-        text_pool: Arc<TextPool>,
+        text_pool: &'a TextPool,
     ) -> Self {
         NationGenerator {
             distributions,
@@ -51,7 +50,7 @@ impl NationGenerator {
     }
 }
 
-impl<'a> IntoIterator for &'a NationGenerator {
+impl<'a> IntoIterator for &'a NationGenerator<'a> {
     type Item = Nation;
     type IntoIter = NationGeneratorIterator<'a>;
 
@@ -177,18 +176,18 @@ impl Region {
 }
 
 /// Generator for Region table data
-pub struct RegionGenerator {
+pub struct RegionGenerator<'a> {
     distributions: Distributions,
-    text_pool: Arc<TextPool>,
+    text_pool: &'a TextPool,
 }
 
-impl Default for RegionGenerator {
+impl<'a> Default for RegionGenerator<'a> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl RegionGenerator {
+impl<'a> RegionGenerator<'a> {
     /// Creates a new RegionGenerator with default distributions and text pool
     pub fn new() -> Self {
         Self::new_with_distributions_and_text_pool(
@@ -200,7 +199,7 @@ impl RegionGenerator {
     /// Creates a RegionGenerator with the specified distributions and text pool
     pub fn new_with_distributions_and_text_pool(
         distributions: Distributions,
-        text_pool: Arc<TextPool>,
+        text_pool: &'a TextPool,
     ) -> Self {
         RegionGenerator {
             distributions,
@@ -214,7 +213,7 @@ impl RegionGenerator {
     }
 }
 
-impl<'a> IntoIterator for &'a RegionGenerator {
+impl<'a> IntoIterator for &'a RegionGenerator<'a> {
     type Item = Region;
     type IntoIter = RegionGeneratorIterator<'a>;
 
@@ -309,15 +308,15 @@ impl fmt::Display for Part {
 }
 
 /// Generator for Part table data
-pub struct PartGenerator {
+pub struct PartGenerator<'a> {
     scale_factor: f64,
     part: i32,
     part_count: i32,
     distributions: Distributions,
-    text_pool: Arc<TextPool>,
+    text_pool: &'a TextPool,
 }
 
-impl PartGenerator {
+impl<'a> PartGenerator<'a> {
     /// Base scale for part generation
     const SCALE_BASE: i32 = 200_000;
 
@@ -347,7 +346,7 @@ impl PartGenerator {
         part: i32,
         part_count: i32,
         distributions: Distributions,
-        text_pool: Arc<TextPool>,
+        text_pool: &'a TextPool,
     ) -> Self {
         PartGenerator {
             scale_factor,
@@ -379,7 +378,7 @@ impl PartGenerator {
     }
 }
 
-impl<'a> IntoIterator for &'a PartGenerator {
+impl<'a> IntoIterator for &'a PartGenerator<'a> {
     type Item = Part;
     type IntoIter = PartGeneratorIterator<'a>;
 
@@ -547,15 +546,15 @@ impl fmt::Display for Supplier {
 }
 
 /// Generator for Supplier table data
-pub struct SupplierGenerator {
+pub struct SupplierGenerator<'a> {
     scale_factor: f64,
     part: i32,
     part_count: i32,
     distributions: Distributions,
-    text_pool: Arc<TextPool>,
+    text_pool: &'a TextPool,
 }
 
-impl SupplierGenerator {
+impl<'a> SupplierGenerator<'a> {
     /// Base scale for supplier generation
     const SCALE_BASE: i32 = 10_000;
 
@@ -566,9 +565,9 @@ impl SupplierGenerator {
     const COMMENT_AVERAGE_LENGTH: i32 = 63;
 
     // Better Business Bureau comment constants
-    pub const BBB_BASE_TEXT: &str = "Customer ";
-    pub const BBB_COMPLAINT_TEXT: &str = "Complaints";
-    pub const BBB_RECOMMEND_TEXT: &str = "Recommends";
+    pub const BBB_BASE_TEXT: &'static str = "Customer ";
+    pub const BBB_COMPLAINT_TEXT: &'static str = "Complaints";
+    pub const BBB_RECOMMEND_TEXT: &'static str = "Recommends";
     pub const BBB_COMMENT_LENGTH: usize =
         Self::BBB_BASE_TEXT.len() + Self::BBB_COMPLAINT_TEXT.len();
     pub const BBB_COMMENTS_PER_SCALE_BASE: i32 = 10;
@@ -591,7 +590,7 @@ impl SupplierGenerator {
         part: i32,
         part_count: i32,
         distributions: Distributions,
-        text_pool: Arc<TextPool>,
+        text_pool: &'a TextPool,
     ) -> Self {
         SupplierGenerator {
             scale_factor,
@@ -623,7 +622,7 @@ impl SupplierGenerator {
     }
 }
 
-impl<'a> IntoIterator for &'a SupplierGenerator {
+impl<'a> IntoIterator for &'a SupplierGenerator<'a> {
     type Item = Supplier;
     type IntoIter = SupplierGeneratorIterator<'a>;
 
@@ -827,15 +826,15 @@ impl fmt::Display for Customer {
 }
 
 /// Generator for Customer table data
-pub struct CustomerGenerator {
+pub struct CustomerGenerator<'a> {
     scale_factor: f64,
     part: i32,
     part_count: i32,
     distributions: Distributions,
-    text_pool: Arc<TextPool>,
+    text_pool: &'a TextPool,
 }
 
-impl CustomerGenerator {
+impl<'a> CustomerGenerator<'a> {
     /// Base scale for customer generation
     const SCALE_BASE: i32 = 150_000;
 
@@ -862,7 +861,7 @@ impl CustomerGenerator {
         part: i32,
         part_count: i32,
         distributions: Distributions,
-        text_pool: Arc<TextPool>,
+        text_pool: &'a TextPool,
     ) -> Self {
         CustomerGenerator {
             scale_factor,
@@ -894,7 +893,7 @@ impl CustomerGenerator {
     }
 }
 
-impl<'a> IntoIterator for &'a CustomerGenerator {
+impl<'a> IntoIterator for &'a CustomerGenerator<'a> {
     type Item = Customer;
     type IntoIter = CustomerGeneratorIterator<'a>;
 
@@ -1028,14 +1027,14 @@ impl fmt::Display for PartSupp {
 }
 
 /// Generator for PartSupplier table data
-pub struct PartSupplierGenerator {
+pub struct PartSupplierGenerator<'a> {
     scale_factor: f64,
     part: i32,
     part_count: i32,
-    text_pool: Arc<TextPool>,
+    text_pool: &'a TextPool,
 }
 
-impl PartSupplierGenerator {
+impl<'a> PartSupplierGenerator<'a> {
     /// Base scale for part-supplier generation
     const SUPPLIERS_PER_PART: i32 = 4;
 
@@ -1061,7 +1060,7 @@ impl PartSupplierGenerator {
         scale_factor: f64,
         part: i32,
         part_count: i32,
-        text_pool: Arc<TextPool>,
+        text_pool: &'a TextPool,
     ) -> Self {
         PartSupplierGenerator {
             scale_factor,
@@ -1095,7 +1094,7 @@ impl PartSupplierGenerator {
     }
 }
 
-impl<'a> IntoIterator for &'a PartSupplierGenerator {
+impl<'a> IntoIterator for &'a PartSupplierGenerator<'a> {
     type Item = PartSupp;
     type IntoIter = PartSupplierGeneratorIterator<'a>;
 
@@ -1254,15 +1253,15 @@ impl fmt::Display for Order {
 }
 
 /// Generator for Order table data
-pub struct OrderGenerator {
+pub struct OrderGenerator<'a> {
     scale_factor: f64,
     part: i32,
     part_count: i32,
     distributions: Distributions,
-    text_pool: Arc<TextPool>,
+    text_pool: &'a TextPool,
 }
 
-impl OrderGenerator {
+impl<'a> OrderGenerator<'a> {
     /// Base scale for order generation
     pub const SCALE_BASE: i32 = 1_500_000;
 
@@ -1297,7 +1296,7 @@ impl OrderGenerator {
         part: i32,
         part_count: i32,
         distributions: Distributions,
-        text_pool: Arc<TextPool>,
+        text_pool: &'a TextPool,
     ) -> Self {
         OrderGenerator {
             scale_factor,
@@ -1353,7 +1352,7 @@ impl OrderGenerator {
     }
 }
 
-impl<'a> IntoIterator for &'a OrderGenerator {
+impl<'a> IntoIterator for &'a OrderGenerator<'a> {
     type Item = Order;
     type IntoIter = OrderGeneratorIterator<'a>;
 
@@ -1605,15 +1604,15 @@ impl fmt::Display for LineItem {
 }
 
 /// Generator for LineItem table data
-pub struct LineItemGenerator {
+pub struct LineItemGenerator<'a> {
     scale_factor: f64,
     part: i32,
     part_count: i32,
     distributions: Distributions,
-    text_pool: Arc<TextPool>,
+    text_pool: &'a TextPool,
 }
 
-impl LineItemGenerator {
+impl<'a> LineItemGenerator<'a> {
     // Constants for line item generation
     const QUANTITY_MIN: i32 = 1;
     const QUANTITY_MAX: i32 = 50;
@@ -1651,7 +1650,7 @@ impl LineItemGenerator {
         part: i32,
         part_count: i32,
         distributions: Distributions,
-        text_pool: Arc<TextPool>,
+        text_pool: &'a TextPool,
     ) -> Self {
         LineItemGenerator {
             scale_factor,
@@ -1737,7 +1736,7 @@ impl LineItemGenerator {
     }
 }
 
-impl<'a> IntoIterator for &'a LineItemGenerator {
+impl<'a> IntoIterator for &'a LineItemGenerator<'a> {
     type Item = LineItem;
     type IntoIter = LineItemGeneratorIterator<'a>;
 
