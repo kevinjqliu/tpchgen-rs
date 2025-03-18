@@ -10,7 +10,7 @@ use crate::random::RowRandomInt;
 use crate::text::TextPool;
 use std::sync::Arc;
 
-use crate::dates::GenerateUtils;
+use crate::dates::{GenerateUtils, TPCHDate};
 use crate::random::{RandomBoundedInt, RandomString, RandomStringSequence, RandomText};
 
 /// Generator for Nation table data
@@ -1213,7 +1213,7 @@ pub struct Order {
     /// Order total price
     pub o_totalprice: f64,
     /// Order date
-    pub o_orderdate: String, // Could use a date type instead
+    pub o_orderdate: TPCHDate,
     /// Order priority
     pub o_orderpriority: String,
     /// Clerk who processed the order
@@ -1475,7 +1475,7 @@ impl OrderGeneratorIterator {
             total_price += ((discounted_price / 100) * (100 + tax as i64)) / 100;
 
             let ship_date = self.line_ship_date_random.next_value() + order_date;
-            if dates::DateUtils::is_in_past(ship_date) {
+            if TPCHDate::is_in_past(ship_date) {
                 shipped_count += 1;
             }
         }
@@ -1493,7 +1493,7 @@ impl OrderGeneratorIterator {
             o_custkey: customer_key,
             o_orderstatus: order_status,
             o_totalprice: total_price as f64 / 100.,
-            o_orderdate: dates::DateUtils::to_epoch_date(order_date).to_string(),
+            o_orderdate: TPCHDate::new(order_date),
             o_orderpriority: self.order_priority_random.next_value().to_string(),
             o_clerk: format!("Clerk#{:09}", self.clerk_random.next_value()),
             o_shippriority: 0, // Fixed value per TPC-H spec
@@ -1555,11 +1555,11 @@ pub struct LineItem {
     /// Line status (O=ordered, F=fulfilled)
     pub l_linestatus: String,
     /// Date shipped
-    pub l_shipdate: String, // Could use a date type instead
+    pub l_shipdate: TPCHDate,
     /// Date committed to ship
-    pub l_commitdate: String, // Could use a date type instead
+    pub l_commitdate: TPCHDate,
     /// Date received
-    pub l_receiptdate: String, // Could use a date type instead
+    pub l_receiptdate: TPCHDate,
     /// Shipping instructions
     pub l_shipinstruct: String,
     /// Shipping mode
@@ -1906,13 +1906,13 @@ impl LineItemGeneratorIterator {
         let mut receipt_date = self.receipt_date_random.next_value();
         receipt_date += ship_date;
 
-        let returned_flag = if dates::DateUtils::is_in_past(receipt_date) {
+        let returned_flag = if TPCHDate::is_in_past(receipt_date) {
             self.returned_flag_random.next_value().to_string()
         } else {
             "N".to_string()
         };
 
-        let status = if dates::DateUtils::is_in_past(ship_date) {
+        let status = if TPCHDate::is_in_past(ship_date) {
             "F".to_string() // Fulfilled
         } else {
             "O".to_string() // Open
@@ -1933,9 +1933,9 @@ impl LineItemGeneratorIterator {
             l_tax: tax as f64 / 100.0,
             l_returnflag: returned_flag,
             l_linestatus: status,
-            l_shipdate: dates::DateUtils::to_epoch_date(ship_date).to_string(),
-            l_commitdate: dates::DateUtils::to_epoch_date(commit_date).to_string(),
-            l_receiptdate: dates::DateUtils::to_epoch_date(receipt_date).to_string(),
+            l_shipdate: TPCHDate::new(ship_date),
+            l_commitdate: TPCHDate::new(commit_date),
+            l_receiptdate: TPCHDate::new(receipt_date),
             l_shipinstruct: ship_instructions.to_string(),
             l_shipmode: ship_mode.to_string(),
             l_comment: comment.to_string(),
