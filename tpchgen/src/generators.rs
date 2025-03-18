@@ -51,7 +51,7 @@ impl<'a> NationGenerator<'a> {
 }
 
 impl<'a> IntoIterator for &'a NationGenerator<'a> {
-    type Item = Nation;
+    type Item = Nation<'a>;
     type IntoIter = NationGeneratorIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -61,7 +61,7 @@ impl<'a> IntoIterator for &'a NationGenerator<'a> {
 
 /// The NATION table
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Nation {
+pub struct Nation<'a> {
     /// Primary key (0-24)
     pub n_nationkey: i64,
     /// Nation name
@@ -69,10 +69,10 @@ pub struct Nation {
     /// Foreign key to REGION
     pub n_regionkey: i64,
     /// Variable length comment
-    pub n_comment: String,
+    pub n_comment: &'a str,
 }
 
-impl fmt::Display for Nation {
+impl fmt::Display for Nation<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
@@ -82,14 +82,14 @@ impl fmt::Display for Nation {
     }
 }
 
-impl Nation {
+impl<'a> Nation<'a> {
     /// Create a new `nation` record with the specified values.
-    pub fn new(n_nationkey: i64, n_name: &str, n_regionkey: i64, n_comment: &str) -> Self {
+    pub fn new(n_nationkey: i64, n_name: &str, n_regionkey: i64, n_comment: &'a str) -> Self {
         Nation {
             n_nationkey,
             n_name: n_name.to_string(),
             n_regionkey,
-            n_comment: n_comment.to_string(),
+            n_comment,
         }
     }
 }
@@ -118,7 +118,7 @@ impl<'a> NationGeneratorIterator<'a> {
 }
 
 impl<'a> Iterator for NationGeneratorIterator<'a> {
-    type Item = Nation;
+    type Item = Nation<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index >= self.nations.size() {
@@ -133,7 +133,7 @@ impl<'a> Iterator for NationGeneratorIterator<'a> {
             // n_regionkey
             n_regionkey: self.nations.get_weight(self.index) as i64,
             // n_comment
-            n_comment: self.comment_random.next_value().to_string(),
+            n_comment: self.comment_random.next_value(),
         };
 
         self.comment_random.row_finished();
@@ -145,16 +145,16 @@ impl<'a> Iterator for NationGeneratorIterator<'a> {
 
 /// The REGION table
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Region {
+pub struct Region<'a> {
     /// Primary key (0-4)
     pub r_regionkey: i64,
     /// Region name (AFRICA, AMERICA, ASIA, EUROPE, MIDDLE EAST)
     pub r_name: String,
     /// Variable length comment
-    pub r_comment: String,
+    pub r_comment: &'a str,
 }
 
-impl fmt::Display for Region {
+impl fmt::Display for Region<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -164,13 +164,13 @@ impl fmt::Display for Region {
     }
 }
 
-impl Region {
+impl<'a> Region<'a> {
     /// Creates a new `region` record with the specified values.
-    pub fn new(r_regionkey: i64, r_name: &str, r_comment: &str) -> Self {
+    pub fn new(r_regionkey: i64, r_name: &str, r_comment: &'a str) -> Self {
         Region {
             r_regionkey,
             r_name: r_name.to_string(),
-            r_comment: r_comment.to_string(),
+            r_comment,
         }
     }
 }
@@ -214,7 +214,7 @@ impl<'a> RegionGenerator<'a> {
 }
 
 impl<'a> IntoIterator for &'a RegionGenerator<'a> {
-    type Item = Region;
+    type Item = Region<'a>;
     type IntoIter = RegionGeneratorIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -246,7 +246,7 @@ impl<'a> RegionGeneratorIterator<'a> {
 }
 
 impl<'a> Iterator for RegionGeneratorIterator<'a> {
-    type Item = Region;
+    type Item = Region<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index >= self.regions.size() {
@@ -256,7 +256,7 @@ impl<'a> Iterator for RegionGeneratorIterator<'a> {
         let region = Region {
             r_regionkey: self.index as i64,
             r_name: self.regions.get_value(self.index).to_string(),
-            r_comment: self.comment_random.next_value().to_string(),
+            r_comment: self.comment_random.next_value(),
         };
 
         self.comment_random.row_finished();
@@ -268,7 +268,7 @@ impl<'a> Iterator for RegionGeneratorIterator<'a> {
 
 /// The PART table
 #[derive(Debug, Clone, PartialEq)]
-pub struct Part {
+pub struct Part<'a> {
     /// Primary key
     pub p_partkey: i64,
     /// Part name
@@ -286,10 +286,10 @@ pub struct Part {
     /// Part retail price
     pub p_retailprice: f64,
     /// Variable length comment
-    pub p_comment: String,
+    pub p_comment: &'a str,
 }
 
-impl fmt::Display for Part {
+impl fmt::Display for Part<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
@@ -379,7 +379,7 @@ impl<'a> PartGenerator<'a> {
 }
 
 impl<'a> IntoIterator for &'a PartGenerator<'a> {
-    type Item = Part;
+    type Item = Part<'a>;
     type IntoIter = PartGeneratorIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -389,7 +389,7 @@ impl<'a> IntoIterator for &'a PartGenerator<'a> {
 
 /// Iterator that generates Part rows
 pub struct PartGeneratorIterator<'a> {
-    name_random: RandomStringSequence,
+    name_random: RandomStringSequence<'a>,
     manufacturer_random: RandomBoundedInt,
     brand_random: RandomBoundedInt,
     type_random: RandomString,
@@ -404,7 +404,7 @@ pub struct PartGeneratorIterator<'a> {
 
 impl<'a> PartGeneratorIterator<'a> {
     fn new(
-        distributions: &Distributions,
+        distributions: &'a Distributions,
         text_pool: &'a TextPool,
         start_index: i64,
         row_count: i64,
@@ -455,7 +455,7 @@ impl<'a> PartGeneratorIterator<'a> {
     }
 
     /// Creates a part with the given key
-    fn make_part(&mut self, part_key: i64) -> Part {
+    fn make_part(&mut self, part_key: i64) -> Part<'a> {
         let name = self.name_random.next_value();
 
         let manufacturer = self.manufacturer_random.next_value();
@@ -470,7 +470,7 @@ impl<'a> PartGeneratorIterator<'a> {
             p_size: self.size_random.next_value(),
             p_container: self.container_random.next_value().to_string(),
             p_retailprice: Self::calculate_part_price(part_key) as f64 / 100.0,
-            p_comment: self.comment_random.next_value().to_string(),
+            p_comment: self.comment_random.next_value(),
         }
     }
 
@@ -487,7 +487,7 @@ impl<'a> PartGeneratorIterator<'a> {
 }
 
 impl<'a> Iterator for PartGeneratorIterator<'a> {
-    type Item = Part;
+    type Item = Part<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index >= self.row_count {
@@ -1003,7 +1003,7 @@ impl<'a> Iterator for CustomerGeneratorIterator<'a> {
 }
 
 /// The PARTSUPP table
-pub struct PartSupp {
+pub struct PartSupp<'a> {
     /// Primary key, foreign key to PART
     pub ps_partkey: i64,
     /// Primary key, foreign key to SUPPLIER
@@ -1013,10 +1013,10 @@ pub struct PartSupp {
     /// Supplier cost
     pub ps_supplycost: f64,
     /// Variable length comment
-    pub ps_comment: String,
+    pub ps_comment: &'a str,
 }
 
-impl fmt::Display for PartSupp {
+impl fmt::Display for PartSupp<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
@@ -1095,7 +1095,7 @@ impl<'a> PartSupplierGenerator<'a> {
 }
 
 impl<'a> IntoIterator for &'a PartSupplierGenerator<'a> {
-    type Item = PartSupp;
+    type Item = PartSupp<'a>;
     type IntoIter = PartSupplierGeneratorIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -1156,19 +1156,23 @@ impl<'a> PartSupplierGeneratorIterator<'a> {
     }
 
     /// Creates a part-supplier entry with the given part key
-    fn make_part_supplier(&mut self, part_key: i64) -> PartSupp {
+    fn make_part_supplier(&mut self, part_key: i64) -> PartSupp<'a> {
         let supplier_key = Self::select_part_supplier(
             part_key,
             self.part_supplier_number as i64,
             self.scale_factor,
         );
 
+        let ps_availqty = self.available_quantity_random.next_value();
+        let ps_supplycost = self.supply_cost_random.next_value() as f64 / 100.0;
+        let ps_comment = self.comment_random.next_value();
+
         PartSupp {
             ps_partkey: part_key,
             ps_suppkey: supplier_key,
-            ps_availqty: self.available_quantity_random.next_value(),
-            ps_supplycost: self.supply_cost_random.next_value() as f64 / 100.0,
-            ps_comment: self.comment_random.next_value().to_string(),
+            ps_availqty,
+            ps_supplycost,
+            ps_comment,
         }
     }
 
@@ -1187,7 +1191,7 @@ impl<'a> PartSupplierGeneratorIterator<'a> {
 }
 
 impl<'a> Iterator for PartSupplierGeneratorIterator<'a> {
-    type Item = PartSupp;
+    type Item = PartSupp<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index >= self.row_count {
@@ -1213,7 +1217,7 @@ impl<'a> Iterator for PartSupplierGeneratorIterator<'a> {
 }
 
 /// The ORDERS table
-pub struct Order {
+pub struct Order<'a> {
     /// Primary key
     pub o_orderkey: i64,
     /// Foreign key to CUSTOMER
@@ -1231,10 +1235,10 @@ pub struct Order {
     /// Order shipping priority
     pub o_shippriority: i32,
     /// Variable length comment
-    pub o_comment: String,
+    pub o_comment: &'a str,
 }
 
-impl fmt::Display for Order {
+impl fmt::Display for Order<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
@@ -1353,7 +1357,7 @@ impl<'a> OrderGenerator<'a> {
 }
 
 impl<'a> IntoIterator for &'a OrderGenerator<'a> {
-    type Item = Order;
+    type Item = Order<'a>;
     type IntoIter = OrderGeneratorIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -1454,7 +1458,7 @@ impl<'a> OrderGeneratorIterator<'a> {
     }
 
     /// Creates an order with the given index
-    fn make_order(&mut self, index: i64) -> Order {
+    fn make_order(&mut self, index: i64) -> Order<'a> {
         let order_key = OrderGenerator::make_order_key(index);
 
         let order_date = self.order_date_random.next_value();
@@ -1507,13 +1511,13 @@ impl<'a> OrderGeneratorIterator<'a> {
             o_orderpriority: self.order_priority_random.next_value().to_string(),
             o_clerk: format!("Clerk#{:09}", self.clerk_random.next_value()),
             o_shippriority: 0, // Fixed value per TPC-H spec
-            o_comment: self.comment_random.next_value().to_string(),
+            o_comment: self.comment_random.next_value(),
         }
     }
 }
 
 impl<'a> Iterator for OrderGeneratorIterator<'a> {
-    type Item = Order;
+    type Item = Order<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index >= self.row_count {
@@ -1543,7 +1547,7 @@ impl<'a> Iterator for OrderGeneratorIterator<'a> {
 
 /// The LINEITEM table
 #[derive(Debug, Clone, PartialEq)]
-pub struct LineItem {
+pub struct LineItem<'a> {
     /// Foreign key to ORDERS
     pub l_orderkey: i64,
     /// Foreign key to PART
@@ -1563,7 +1567,7 @@ pub struct LineItem {
     /// Return flag (R=returned, A=accepted, null=pending)
     pub l_returnflag: String,
     /// Line status (O=ordered, F=fulfilled)
-    pub l_linestatus: String,
+    pub l_linestatus: &'static str,
     /// Date shipped
     pub l_shipdate: TPCHDate,
     /// Date committed to ship
@@ -1575,10 +1579,10 @@ pub struct LineItem {
     /// Shipping mode
     pub l_shipmode: String,
     /// Variable length comment
-    pub l_comment: String,
+    pub l_comment: &'a str,
 }
 
-impl fmt::Display for LineItem {
+impl fmt::Display for LineItem<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
@@ -1737,7 +1741,7 @@ impl<'a> LineItemGenerator<'a> {
 }
 
 impl<'a> IntoIterator for &'a LineItemGenerator<'a> {
-    type Item = LineItem;
+    type Item = LineItem<'a>;
     type IntoIter = LineItemGeneratorIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -1890,7 +1894,7 @@ impl<'a> LineItemGeneratorIterator<'a> {
     }
 
     /// Creates a line item with the given order index
-    fn make_line_item(&mut self, order_index: i64) -> LineItem {
+    fn make_line_item(&mut self, order_index: i64) -> LineItem<'a> {
         let order_key = OrderGenerator::make_order_key(order_index);
 
         let quantity = self.quantity_random.next_value();
@@ -1923,9 +1927,9 @@ impl<'a> LineItemGeneratorIterator<'a> {
         };
 
         let status = if TPCHDate::is_in_past(ship_date) {
-            "F".to_string() // Fulfilled
+            "F" // Fulfilled
         } else {
-            "O".to_string() // Open
+            "O" // Open
         };
 
         let ship_instructions = self.ship_instructions_random.next_value();
@@ -1948,13 +1952,13 @@ impl<'a> LineItemGeneratorIterator<'a> {
             l_receiptdate: TPCHDate::new(receipt_date),
             l_shipinstruct: ship_instructions.to_string(),
             l_shipmode: ship_mode.to_string(),
-            l_comment: comment.to_string(),
+            l_comment: comment,
         }
     }
 }
 
 impl<'a> Iterator for LineItemGeneratorIterator<'a> {
-    type Item = LineItem;
+    type Item = LineItem<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index >= self.row_count {

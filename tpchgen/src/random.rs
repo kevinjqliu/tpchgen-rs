@@ -461,31 +461,31 @@ impl RandomString {
 }
 
 /// Generates sequences of random sequence of strings from a distribution
-pub struct RandomStringSequence {
+pub struct RandomStringSequence<'a> {
     inner: RowRandomInt,
     count: i32,
-    distribution: Distribution,
+    distribution: &'a Distribution,
 }
 
-impl RandomStringSequence {
-    pub fn new(seed: i64, count: i32, distribution: &Distribution) -> Self {
+impl<'a> RandomStringSequence<'a> {
+    pub fn new(seed: i64, count: i32, distribution: &'a Distribution) -> Self {
         Self::new_with_expected_row_count(seed, count, distribution, 1)
     }
 
     pub fn new_with_expected_row_count(
         seed: i64,
         count: i32,
-        distribution: &Distribution,
+        distribution: &'a Distribution,
         seeds_per_row: i32,
     ) -> Self {
         Self {
             inner: RowRandomInt::new(seed, distribution.size() as i32 * seeds_per_row),
             count,
-            distribution: distribution.clone(),
+            distribution,
         }
     }
 
-    pub fn next_value(&mut self) -> StringSequenceInstance<'_> {
+    pub fn next_value(&mut self) -> StringSequenceInstance<'a> {
         // Get all values from the distribution
         let mut values: Vec<&str> = self
             .distribution
@@ -577,7 +577,7 @@ impl<'a> RandomText<'a> {
         }
     }
 
-    pub fn next_value(&mut self) -> &str {
+    pub fn next_value(&mut self) -> &'a str {
         let offset = self
             .inner
             .next_int(0, self.text_pool.size() - self.max_length);
