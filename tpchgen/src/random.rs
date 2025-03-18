@@ -425,19 +425,19 @@ impl Display for PhoneNumberInstance {
 
 /// Fetches random strings from a distribution.
 #[derive(Debug, Clone)]
-pub struct RandomString {
+pub struct RandomString<'a> {
     inner: RowRandomInt,
-    distribution: Distribution,
+    distribution: &'a Distribution,
 }
 
-impl RandomString {
-    pub fn new(seed: i64, distribution: &Distribution) -> Self {
-        Self::new_with_expected_row_count(seed, distribution.clone(), 1)
+impl<'a> RandomString<'a> {
+    pub fn new(seed: i64, distribution: &'a Distribution) -> Self {
+        Self::new_with_expected_row_count(seed, distribution, 1)
     }
 
     pub fn new_with_expected_row_count(
         seed: i64,
-        distribution: Distribution,
+        distribution: &'a Distribution,
         seeds_per_row: i32,
     ) -> Self {
         Self {
@@ -446,7 +446,7 @@ impl RandomString {
         }
     }
 
-    pub fn next_value(&mut self) -> &str {
+    pub fn next_value(&mut self) -> &'a str {
         self.distribution.random_value(&mut self.inner)
     }
 

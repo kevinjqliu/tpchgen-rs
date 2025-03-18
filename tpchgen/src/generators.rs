@@ -65,7 +65,7 @@ pub struct Nation<'a> {
     /// Primary key (0-24)
     pub n_nationkey: i64,
     /// Nation name
-    pub n_name: String,
+    pub n_name: &'a str,
     /// Foreign key to REGION
     pub n_regionkey: i64,
     /// Variable length comment
@@ -84,10 +84,10 @@ impl fmt::Display for Nation<'_> {
 
 impl<'a> Nation<'a> {
     /// Create a new `nation` record with the specified values.
-    pub fn new(n_nationkey: i64, n_name: &str, n_regionkey: i64, n_comment: &'a str) -> Self {
+    pub fn new(n_nationkey: i64, n_name: &'a str, n_regionkey: i64, n_comment: &'a str) -> Self {
         Nation {
             n_nationkey,
-            n_name: n_name.to_string(),
+            n_name,
             n_regionkey,
             n_comment,
         }
@@ -96,7 +96,7 @@ impl<'a> Nation<'a> {
 
 /// Iterator that generates Nation rows
 pub struct NationGeneratorIterator<'a> {
-    nations: Distribution,
+    nations: &'a Distribution,
     comment_random: RandomText<'a>,
     index: usize,
 }
@@ -104,9 +104,9 @@ pub struct NationGeneratorIterator<'a> {
 impl<'a> NationGeneratorIterator<'a> {
     const COMMENT_AVERAGE_LENGTH: i32 = 72;
 
-    fn new(nations: &Distribution, text_pool: &'a TextPool) -> Self {
+    fn new(nations: &'a Distribution, text_pool: &'a TextPool) -> Self {
         NationGeneratorIterator {
-            nations: nations.clone(),
+            nations,
             comment_random: RandomText::new(
                 606179079,
                 text_pool,
@@ -129,7 +129,7 @@ impl<'a> Iterator for NationGeneratorIterator<'a> {
             // n_nationkey
             n_nationkey: self.index as i64,
             // n_name
-            n_name: self.nations.get_value(self.index).to_string(),
+            n_name: self.nations.get_value(self.index),
             // n_regionkey
             n_regionkey: self.nations.get_weight(self.index) as i64,
             // n_comment
@@ -149,7 +149,7 @@ pub struct Region<'a> {
     /// Primary key (0-4)
     pub r_regionkey: i64,
     /// Region name (AFRICA, AMERICA, ASIA, EUROPE, MIDDLE EAST)
-    pub r_name: String,
+    pub r_name: &'a str,
     /// Variable length comment
     pub r_comment: &'a str,
 }
@@ -166,10 +166,10 @@ impl fmt::Display for Region<'_> {
 
 impl<'a> Region<'a> {
     /// Creates a new `region` record with the specified values.
-    pub fn new(r_regionkey: i64, r_name: &str, r_comment: &'a str) -> Self {
+    pub fn new(r_regionkey: i64, r_name: &'a str, r_comment: &'a str) -> Self {
         Region {
             r_regionkey,
-            r_name: r_name.to_string(),
+            r_name,
             r_comment,
         }
     }
@@ -209,7 +209,7 @@ impl<'a> RegionGenerator<'a> {
 
     /// Returns an iterator over the region rows
     pub fn iter(&self) -> RegionGeneratorIterator {
-        RegionGeneratorIterator::new(self.distributions.regions().clone(), &self.text_pool)
+        RegionGeneratorIterator::new(self.distributions.regions(), &self.text_pool)
     }
 }
 
@@ -224,7 +224,7 @@ impl<'a> IntoIterator for &'a RegionGenerator<'a> {
 
 /// Iterator that generates Region rows
 pub struct RegionGeneratorIterator<'a> {
-    regions: Distribution,
+    regions: &'a Distribution,
     comment_random: RandomText<'a>,
     index: usize,
 }
@@ -232,7 +232,7 @@ pub struct RegionGeneratorIterator<'a> {
 impl<'a> RegionGeneratorIterator<'a> {
     const COMMENT_AVERAGE_LENGTH: i32 = 72;
 
-    fn new(regions: Distribution, text_pool: &'a TextPool) -> Self {
+    fn new(regions: &'a Distribution, text_pool: &'a TextPool) -> Self {
         RegionGeneratorIterator {
             regions,
             comment_random: RandomText::new(
@@ -255,7 +255,7 @@ impl<'a> Iterator for RegionGeneratorIterator<'a> {
 
         let region = Region {
             r_regionkey: self.index as i64,
-            r_name: self.regions.get_value(self.index).to_string(),
+            r_name: self.regions.get_value(self.index),
             r_comment: self.comment_random.next_value(),
         };
 
@@ -278,11 +278,11 @@ pub struct Part<'a> {
     /// Part brand
     pub p_brand: String,
     /// Part type
-    pub p_type: String,
+    pub p_type: &'a str,
     /// Part size
     pub p_size: i32,
     /// Part container
-    pub p_container: String,
+    pub p_container: &'a str,
     /// Part retail price
     pub p_retailprice: f64,
     /// Variable length comment
@@ -392,9 +392,9 @@ pub struct PartGeneratorIterator<'a> {
     name_random: RandomStringSequence<'a>,
     manufacturer_random: RandomBoundedInt,
     brand_random: RandomBoundedInt,
-    type_random: RandomString,
+    type_random: RandomString<'a>,
     size_random: RandomBoundedInt,
-    container_random: RandomString,
+    container_random: RandomString<'a>,
     comment_random: RandomText<'a>,
 
     start_index: i64,
@@ -466,9 +466,9 @@ impl<'a> PartGeneratorIterator<'a> {
             p_name: name.to_string(),
             p_mfgr: format!("Manufacturer#{}", manufacturer),
             p_brand: format!("Brand#{}", brand),
-            p_type: self.type_random.next_value().to_string(),
+            p_type: self.type_random.next_value(),
             p_size: self.size_random.next_value(),
-            p_container: self.container_random.next_value().to_string(),
+            p_container: self.container_random.next_value(),
             p_retailprice: Self::calculate_part_price(part_key) as f64 / 100.0,
             p_comment: self.comment_random.next_value(),
         }
@@ -908,7 +908,7 @@ pub struct CustomerGeneratorIterator<'a> {
     nation_key_random: RandomBoundedInt,
     phone_random: RandomPhoneNumber,
     account_balance_random: RandomBoundedInt,
-    market_segment_random: RandomString,
+    market_segment_random: RandomString<'a>,
     comment_random: RandomText<'a>,
 
     start_index: i64,
@@ -918,7 +918,7 @@ pub struct CustomerGeneratorIterator<'a> {
 
 impl<'a> CustomerGeneratorIterator<'a> {
     fn new(
-        distributions: &Distributions,
+        distributions: &'a Distributions,
         text_pool: &'a TextPool,
         start_index: i64,
         row_count: i64,
@@ -1370,7 +1370,7 @@ pub struct OrderGeneratorIterator<'a> {
     order_date_random: RandomBoundedInt,
     line_count_random: RandomBoundedInt,
     customer_key_random: RandomBoundedLong,
-    order_priority_random: RandomString,
+    order_priority_random: RandomString<'a>,
     clerk_random: RandomBoundedInt,
     comment_random: RandomText<'a>,
 
@@ -1390,7 +1390,7 @@ pub struct OrderGeneratorIterator<'a> {
 
 impl<'a> OrderGeneratorIterator<'a> {
     fn new(
-        distributions: &Distributions,
+        distributions: &'a Distributions,
         text_pool: &'a TextPool,
         scale_factor: f64,
         start_index: i64,
@@ -1565,7 +1565,7 @@ pub struct LineItem<'a> {
     /// Tax percentage
     pub l_tax: f64,
     /// Return flag (R=returned, A=accepted, null=pending)
-    pub l_returnflag: String,
+    pub l_returnflag: &'a str,
     /// Line status (O=ordered, F=fulfilled)
     pub l_linestatus: &'static str,
     /// Date shipped
@@ -1575,9 +1575,9 @@ pub struct LineItem<'a> {
     /// Date received
     pub l_receiptdate: TPCHDate,
     /// Shipping instructions
-    pub l_shipinstruct: String,
+    pub l_shipinstruct: &'a str,
     /// Shipping mode
-    pub l_shipmode: String,
+    pub l_shipmode: &'a str,
     /// Variable length comment
     pub l_comment: &'a str,
 }
@@ -1766,9 +1766,9 @@ pub struct LineItemGeneratorIterator<'a> {
     commit_date_random: RandomBoundedInt,
     receipt_date_random: RandomBoundedInt,
 
-    returned_flag_random: RandomString,
-    ship_instructions_random: RandomString,
-    ship_mode_random: RandomString,
+    returned_flag_random: RandomString<'a>,
+    ship_instructions_random: RandomString<'a>,
+    ship_mode_random: RandomString<'a>,
 
     comment_random: RandomText<'a>,
 
@@ -1784,7 +1784,7 @@ pub struct LineItemGeneratorIterator<'a> {
 
 impl<'a> LineItemGeneratorIterator<'a> {
     fn new(
-        distributions: &Distributions,
+        distributions: &'a Distributions,
         text_pool: &'a TextPool,
         scale_factor: f64,
         start_index: i64,
@@ -1822,17 +1822,17 @@ impl<'a> LineItemGeneratorIterator<'a> {
 
         let mut returned_flag_random = RandomString::new_with_expected_row_count(
             717419739,
-            distributions.return_flags().clone(),
+            distributions.return_flags(),
             OrderGenerator::LINE_COUNT_MAX,
         );
         let mut ship_instructions_random = RandomString::new_with_expected_row_count(
             1371272478,
-            distributions.ship_instructions().clone(),
+            distributions.ship_instructions(),
             OrderGenerator::LINE_COUNT_MAX,
         );
         let mut ship_mode_random = RandomString::new_with_expected_row_count(
             675466456,
-            distributions.ship_modes().clone(),
+            distributions.ship_modes(),
             OrderGenerator::LINE_COUNT_MAX,
         );
         let mut comment_random = RandomText::new_with_expected_row_count(
@@ -1921,9 +1921,9 @@ impl<'a> LineItemGeneratorIterator<'a> {
         receipt_date += ship_date;
 
         let returned_flag = if TPCHDate::is_in_past(receipt_date) {
-            self.returned_flag_random.next_value().to_string()
+            self.returned_flag_random.next_value()
         } else {
-            "N".to_string()
+            "N"
         };
 
         let status = if TPCHDate::is_in_past(ship_date) {
@@ -1950,8 +1950,8 @@ impl<'a> LineItemGeneratorIterator<'a> {
             l_shipdate: TPCHDate::new(ship_date),
             l_commitdate: TPCHDate::new(commit_date),
             l_receiptdate: TPCHDate::new(receipt_date),
-            l_shipinstruct: ship_instructions.to_string(),
-            l_shipmode: ship_mode.to_string(),
+            l_shipinstruct: ship_instructions,
+            l_shipmode: ship_mode,
             l_comment: comment,
         }
     }
