@@ -548,30 +548,30 @@ impl Display for StringSequenceInstance<'_> {
 
 /// Generates random text according to TPC-H spec
 #[derive(Debug, Clone)]
-pub struct RandomText {
+pub struct RandomText<'a> {
     inner: RowRandomInt,
-    text_pool: TextPool,
+    text_pool: &'a TextPool,
     min_length: i32,
     max_length: i32,
 }
 
-impl RandomText {
+impl<'a> RandomText<'a> {
     const LOW_LENGTH_MULTIPLIER: f64 = 0.4;
     const HIGH_LENGTH_MULTIPLIER: f64 = 1.6;
 
-    pub fn new(seed: i64, text_pool: &TextPool, average_text_length: f64) -> Self {
+    pub fn new(seed: i64, text_pool: &'a TextPool, average_text_length: f64) -> Self {
         Self::new_with_expected_row_count(seed, text_pool, average_text_length, 1)
     }
 
     pub fn new_with_expected_row_count(
         seed: i64,
-        text_pool: &TextPool,
+        text_pool: &'a TextPool,
         average_text_length: f64,
         expected_row_count: i32,
     ) -> Self {
         Self {
             inner: RowRandomInt::new(seed, expected_row_count * 2),
-            text_pool: text_pool.clone(),
+            text_pool,
             min_length: (average_text_length * Self::LOW_LENGTH_MULTIPLIER) as i32,
             max_length: (average_text_length * Self::HIGH_LENGTH_MULTIPLIER) as i32,
         }

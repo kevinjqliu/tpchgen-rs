@@ -51,9 +51,9 @@ impl NationGenerator {
     }
 }
 
-impl IntoIterator for NationGenerator {
+impl<'a> IntoIterator for &'a NationGenerator {
     type Item = Nation;
-    type IntoIter = NationGeneratorIterator;
+    type IntoIter = NationGeneratorIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
@@ -96,16 +96,16 @@ impl Nation {
 }
 
 /// Iterator that generates Nation rows
-pub struct NationGeneratorIterator {
+pub struct NationGeneratorIterator<'a> {
     nations: Distribution,
-    comment_random: RandomText,
+    comment_random: RandomText<'a>,
     index: usize,
 }
 
-impl NationGeneratorIterator {
+impl<'a> NationGeneratorIterator<'a> {
     const COMMENT_AVERAGE_LENGTH: i32 = 72;
 
-    fn new(nations: &Distribution, text_pool: &TextPool) -> Self {
+    fn new(nations: &Distribution, text_pool: &'a TextPool) -> Self {
         NationGeneratorIterator {
             nations: nations.clone(),
             comment_random: RandomText::new(
@@ -118,7 +118,7 @@ impl NationGeneratorIterator {
     }
 }
 
-impl Iterator for NationGeneratorIterator {
+impl<'a> Iterator for NationGeneratorIterator<'a> {
     type Item = Nation;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -214,9 +214,9 @@ impl RegionGenerator {
     }
 }
 
-impl IntoIterator for RegionGenerator {
+impl<'a> IntoIterator for &'a RegionGenerator {
     type Item = Region;
-    type IntoIter = RegionGeneratorIterator;
+    type IntoIter = RegionGeneratorIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
@@ -224,16 +224,16 @@ impl IntoIterator for RegionGenerator {
 }
 
 /// Iterator that generates Region rows
-pub struct RegionGeneratorIterator {
+pub struct RegionGeneratorIterator<'a> {
     regions: Distribution,
-    comment_random: RandomText,
+    comment_random: RandomText<'a>,
     index: usize,
 }
 
-impl RegionGeneratorIterator {
+impl<'a> RegionGeneratorIterator<'a> {
     const COMMENT_AVERAGE_LENGTH: i32 = 72;
 
-    fn new(regions: Distribution, text_pool: &TextPool) -> Self {
+    fn new(regions: Distribution, text_pool: &'a TextPool) -> Self {
         RegionGeneratorIterator {
             regions,
             comment_random: RandomText::new(
@@ -246,7 +246,7 @@ impl RegionGeneratorIterator {
     }
 }
 
-impl Iterator for RegionGeneratorIterator {
+impl<'a> Iterator for RegionGeneratorIterator<'a> {
     type Item = Region;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -362,7 +362,7 @@ impl PartGenerator {
     pub fn iter(&self) -> PartGeneratorIterator {
         PartGeneratorIterator::new(
             &self.distributions,
-            self.text_pool.clone(),
+            &self.text_pool,
             GenerateUtils::calculate_start_index(
                 Self::SCALE_BASE,
                 self.scale_factor,
@@ -379,9 +379,9 @@ impl PartGenerator {
     }
 }
 
-impl IntoIterator for PartGenerator {
+impl<'a> IntoIterator for &'a PartGenerator {
     type Item = Part;
-    type IntoIter = PartGeneratorIterator;
+    type IntoIter = PartGeneratorIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
@@ -389,24 +389,24 @@ impl IntoIterator for PartGenerator {
 }
 
 /// Iterator that generates Part rows
-pub struct PartGeneratorIterator {
+pub struct PartGeneratorIterator<'a> {
     name_random: RandomStringSequence,
     manufacturer_random: RandomBoundedInt,
     brand_random: RandomBoundedInt,
     type_random: RandomString,
     size_random: RandomBoundedInt,
     container_random: RandomString,
-    comment_random: RandomText,
+    comment_random: RandomText<'a>,
 
     start_index: i64,
     row_count: i64,
     index: i64,
 }
 
-impl PartGeneratorIterator {
+impl<'a> PartGeneratorIterator<'a> {
     fn new(
         distributions: &Distributions,
-        text_pool: Arc<TextPool>,
+        text_pool: &'a TextPool,
         start_index: i64,
         row_count: i64,
     ) -> Self {
@@ -487,7 +487,7 @@ impl PartGeneratorIterator {
     }
 }
 
-impl Iterator for PartGeneratorIterator {
+impl<'a> Iterator for PartGeneratorIterator<'a> {
     type Item = Part;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -606,7 +606,7 @@ impl SupplierGenerator {
     pub fn iter(&self) -> SupplierGeneratorIterator {
         SupplierGeneratorIterator::new(
             &self.distributions,
-            self.text_pool.clone(),
+            &self.text_pool,
             GenerateUtils::calculate_start_index(
                 Self::SCALE_BASE,
                 self.scale_factor,
@@ -623,9 +623,9 @@ impl SupplierGenerator {
     }
 }
 
-impl IntoIterator for SupplierGenerator {
+impl<'a> IntoIterator for &'a SupplierGenerator {
     type Item = Supplier;
-    type IntoIter = SupplierGeneratorIterator;
+    type IntoIter = SupplierGeneratorIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
@@ -633,12 +633,12 @@ impl IntoIterator for SupplierGenerator {
 }
 
 /// Iterator that generates Supplier rows
-pub struct SupplierGeneratorIterator {
+pub struct SupplierGeneratorIterator<'a> {
     address_random: RandomAlphaNumeric,
     nation_key_random: RandomBoundedInt,
     phone_random: RandomPhoneNumber,
     account_balance_random: RandomBoundedInt,
-    comment_random: RandomText,
+    comment_random: RandomText<'a>,
     bbb_comment_random: RandomBoundedInt,
     bbb_junk_random: RowRandomInt,
     bbb_offset_random: RowRandomInt,
@@ -649,10 +649,10 @@ pub struct SupplierGeneratorIterator {
     index: i64,
 }
 
-impl SupplierGeneratorIterator {
+impl<'a> SupplierGeneratorIterator<'a> {
     fn new(
         distributions: &Distributions,
-        text_pool: Arc<TextPool>,
+        text_pool: &'a TextPool,
         start_index: i64,
         row_count: i64,
     ) -> Self {
@@ -762,7 +762,7 @@ impl SupplierGeneratorIterator {
     }
 }
 
-impl Iterator for SupplierGeneratorIterator {
+impl<'a> Iterator for SupplierGeneratorIterator<'a> {
     type Item = Supplier;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -877,7 +877,7 @@ impl CustomerGenerator {
     pub fn iter(&self) -> CustomerGeneratorIterator {
         CustomerGeneratorIterator::new(
             &self.distributions,
-            self.text_pool.clone(),
+            &self.text_pool,
             GenerateUtils::calculate_start_index(
                 Self::SCALE_BASE,
                 self.scale_factor,
@@ -894,9 +894,9 @@ impl CustomerGenerator {
     }
 }
 
-impl IntoIterator for CustomerGenerator {
+impl<'a> IntoIterator for &'a CustomerGenerator {
     type Item = Customer;
-    type IntoIter = CustomerGeneratorIterator;
+    type IntoIter = CustomerGeneratorIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
@@ -904,23 +904,23 @@ impl IntoIterator for CustomerGenerator {
 }
 
 /// Iterator that generates Customer rows
-pub struct CustomerGeneratorIterator {
+pub struct CustomerGeneratorIterator<'a> {
     address_random: RandomAlphaNumeric,
     nation_key_random: RandomBoundedInt,
     phone_random: RandomPhoneNumber,
     account_balance_random: RandomBoundedInt,
     market_segment_random: RandomString,
-    comment_random: RandomText,
+    comment_random: RandomText<'a>,
 
     start_index: i64,
     row_count: i64,
     index: i64,
 }
 
-impl CustomerGeneratorIterator {
+impl<'a> CustomerGeneratorIterator<'a> {
     fn new(
         distributions: &Distributions,
-        text_pool: Arc<TextPool>,
+        text_pool: &'a TextPool,
         start_index: i64,
         row_count: i64,
     ) -> Self {
@@ -980,7 +980,7 @@ impl CustomerGeneratorIterator {
     }
 }
 
-impl Iterator for CustomerGeneratorIterator {
+impl<'a> Iterator for CustomerGeneratorIterator<'a> {
     type Item = Customer;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1077,7 +1077,7 @@ impl PartSupplierGenerator {
         let scale_base = PartGenerator::SCALE_BASE;
 
         PartSupplierGeneratorIterator::new(
-            self.text_pool.clone(),
+            &self.text_pool,
             self.scale_factor,
             GenerateUtils::calculate_start_index(
                 scale_base,
@@ -1095,9 +1095,9 @@ impl PartSupplierGenerator {
     }
 }
 
-impl IntoIterator for PartSupplierGenerator {
+impl<'a> IntoIterator for &'a PartSupplierGenerator {
     type Item = PartSupp;
-    type IntoIter = PartSupplierGeneratorIterator;
+    type IntoIter = PartSupplierGeneratorIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
@@ -1105,21 +1105,21 @@ impl IntoIterator for PartSupplierGenerator {
 }
 
 /// Iterator that generates PartSupplier rows
-pub struct PartSupplierGeneratorIterator {
+pub struct PartSupplierGeneratorIterator<'a> {
     scale_factor: f64,
     start_index: i64,
     row_count: i64,
 
     available_quantity_random: RandomBoundedInt,
     supply_cost_random: RandomBoundedInt,
-    comment_random: RandomText,
+    comment_random: RandomText<'a>,
 
     index: i64,
     part_supplier_number: i32,
 }
 
-impl PartSupplierGeneratorIterator {
-    fn new(text_pool: Arc<TextPool>, scale_factor: f64, start_index: i64, row_count: i64) -> Self {
+impl<'a> PartSupplierGeneratorIterator<'a> {
+    fn new(text_pool: &'a TextPool, scale_factor: f64, start_index: i64, row_count: i64) -> Self {
         let mut available_quantity_random = RandomBoundedInt::new_with_seeds_per_row(
             1671059989,
             PartSupplierGenerator::AVAILABLE_QUANTITY_MIN,
@@ -1187,7 +1187,7 @@ impl PartSupplierGeneratorIterator {
     }
 }
 
-impl Iterator for PartSupplierGeneratorIterator {
+impl<'a> Iterator for PartSupplierGeneratorIterator<'a> {
     type Item = PartSupp;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1312,7 +1312,7 @@ impl OrderGenerator {
     pub fn iter(&self) -> OrderGeneratorIterator {
         OrderGeneratorIterator::new(
             &self.distributions,
-            self.text_pool.clone(),
+            &self.text_pool,
             self.scale_factor,
             GenerateUtils::calculate_start_index(
                 Self::SCALE_BASE,
@@ -1353,9 +1353,9 @@ impl OrderGenerator {
     }
 }
 
-impl IntoIterator for OrderGenerator {
+impl<'a> IntoIterator for &'a OrderGenerator {
     type Item = Order;
-    type IntoIter = OrderGeneratorIterator;
+    type IntoIter = OrderGeneratorIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
@@ -1363,13 +1363,13 @@ impl IntoIterator for OrderGenerator {
 }
 
 /// Iterator that generates Order rows
-pub struct OrderGeneratorIterator {
+pub struct OrderGeneratorIterator<'a> {
     order_date_random: RandomBoundedInt,
     line_count_random: RandomBoundedInt,
     customer_key_random: RandomBoundedLong,
     order_priority_random: RandomString,
     clerk_random: RandomBoundedInt,
-    comment_random: RandomText,
+    comment_random: RandomText<'a>,
 
     // For line item simulation to determine order status
     line_quantity_random: RandomBoundedInt,
@@ -1385,10 +1385,10 @@ pub struct OrderGeneratorIterator {
     index: i64,
 }
 
-impl OrderGeneratorIterator {
+impl<'a> OrderGeneratorIterator<'a> {
     fn new(
         distributions: &Distributions,
-        text_pool: Arc<TextPool>,
+        text_pool: &'a TextPool,
         scale_factor: f64,
         start_index: i64,
         row_count: i64,
@@ -1513,7 +1513,7 @@ impl OrderGeneratorIterator {
     }
 }
 
-impl Iterator for OrderGeneratorIterator {
+impl<'a> Iterator for OrderGeneratorIterator<'a> {
     type Item = Order;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1666,7 +1666,7 @@ impl LineItemGenerator {
     pub fn iter(&self) -> LineItemGeneratorIterator {
         LineItemGeneratorIterator::new(
             &self.distributions,
-            self.text_pool.clone(),
+            &self.text_pool,
             self.scale_factor,
             GenerateUtils::calculate_start_index(
                 OrderGenerator::SCALE_BASE,
@@ -1737,9 +1737,9 @@ impl LineItemGenerator {
     }
 }
 
-impl IntoIterator for LineItemGenerator {
+impl<'a> IntoIterator for &'a LineItemGenerator {
     type Item = LineItem;
-    type IntoIter = LineItemGeneratorIterator;
+    type IntoIter = LineItemGeneratorIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
@@ -1747,7 +1747,7 @@ impl IntoIterator for LineItemGenerator {
 }
 
 /// Iterator that generates LineItem rows
-pub struct LineItemGeneratorIterator {
+pub struct LineItemGeneratorIterator<'a> {
     order_date_random: RandomBoundedInt,
     line_count_random: RandomBoundedInt,
 
@@ -1767,7 +1767,7 @@ pub struct LineItemGeneratorIterator {
     ship_instructions_random: RandomString,
     ship_mode_random: RandomString,
 
-    comment_random: RandomText,
+    comment_random: RandomText<'a>,
 
     scale_factor: f64,
     start_index: i64,
@@ -1779,10 +1779,10 @@ pub struct LineItemGeneratorIterator {
     line_number: i32,
 }
 
-impl LineItemGeneratorIterator {
+impl<'a> LineItemGeneratorIterator<'a> {
     fn new(
         distributions: &Distributions,
-        text_pool: Arc<TextPool>,
+        text_pool: &'a TextPool,
         scale_factor: f64,
         start_index: i64,
         row_count: i64,
@@ -1954,7 +1954,7 @@ impl LineItemGeneratorIterator {
     }
 }
 
-impl Iterator for LineItemGeneratorIterator {
+impl<'a> Iterator for LineItemGeneratorIterator<'a> {
     type Item = LineItem;
 
     fn next(&mut self) -> Option<Self::Item> {
