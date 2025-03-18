@@ -18,7 +18,7 @@ pub struct NationGenerator<'a> {
     text_pool: &'a TextPool,
 }
 
-impl<'a> Default for NationGenerator<'a> {
+impl Default for NationGenerator<'_> {
     fn default() -> Self {
         Self::new()
     }
@@ -46,7 +46,7 @@ impl<'a> NationGenerator<'a> {
 
     /// Returns an iterator over the nation rows
     pub fn iter(&self) -> NationGeneratorIterator {
-        NationGeneratorIterator::new(self.distributions.nations(), &self.text_pool)
+        NationGeneratorIterator::new(self.distributions.nations(), self.text_pool)
     }
 }
 
@@ -181,7 +181,7 @@ pub struct RegionGenerator<'a> {
     text_pool: &'a TextPool,
 }
 
-impl<'a> Default for RegionGenerator<'a> {
+impl Default for RegionGenerator<'_> {
     fn default() -> Self {
         Self::new()
     }
@@ -209,7 +209,7 @@ impl<'a> RegionGenerator<'a> {
 
     /// Returns an iterator over the region rows
     pub fn iter(&self) -> RegionGeneratorIterator {
-        RegionGeneratorIterator::new(self.distributions.regions(), &self.text_pool)
+        RegionGeneratorIterator::new(self.distributions.regions(), self.text_pool)
     }
 }
 
@@ -361,7 +361,7 @@ impl<'a> PartGenerator<'a> {
     pub fn iter(&self) -> PartGeneratorIterator {
         PartGeneratorIterator::new(
             &self.distributions,
-            &self.text_pool,
+            self.text_pool,
             GenerateUtils::calculate_start_index(
                 Self::SCALE_BASE,
                 self.scale_factor,
@@ -427,7 +427,7 @@ impl<'a> PartGeneratorIterator<'a> {
         let mut container_random = RandomString::new(727633698, distributions.part_containers());
         let mut comment_random = RandomText::new(
             804159733,
-            &text_pool,
+            text_pool,
             PartGenerator::COMMENT_AVERAGE_LENGTH as f64,
         );
 
@@ -605,7 +605,7 @@ impl<'a> SupplierGenerator<'a> {
     pub fn iter(&self) -> SupplierGeneratorIterator {
         SupplierGeneratorIterator::new(
             &self.distributions,
-            &self.text_pool,
+            self.text_pool,
             GenerateUtils::calculate_start_index(
                 Self::SCALE_BASE,
                 self.scale_factor,
@@ -667,7 +667,7 @@ impl<'a> SupplierGeneratorIterator<'a> {
         );
         let mut comment_random = RandomText::new(
             1341315363,
-            &text_pool,
+            text_pool,
             SupplierGenerator::COMMENT_AVERAGE_LENGTH as f64,
         );
         let mut bbb_comment_random =
@@ -761,7 +761,7 @@ impl<'a> SupplierGeneratorIterator<'a> {
     }
 }
 
-impl<'a> Iterator for SupplierGeneratorIterator<'a> {
+impl Iterator for SupplierGeneratorIterator<'_> {
     type Item = Supplier;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -876,7 +876,7 @@ impl<'a> CustomerGenerator<'a> {
     pub fn iter(&self) -> CustomerGeneratorIterator {
         CustomerGeneratorIterator::new(
             &self.distributions,
-            &self.text_pool,
+            self.text_pool,
             GenerateUtils::calculate_start_index(
                 Self::SCALE_BASE,
                 self.scale_factor,
@@ -937,7 +937,7 @@ impl<'a> CustomerGeneratorIterator<'a> {
             RandomString::new(1140279430, distributions.market_segments());
         let mut comment_random = RandomText::new(
             1335826707,
-            &text_pool,
+            text_pool,
             CustomerGenerator::COMMENT_AVERAGE_LENGTH as f64,
         );
 
@@ -979,7 +979,7 @@ impl<'a> CustomerGeneratorIterator<'a> {
     }
 }
 
-impl<'a> Iterator for CustomerGeneratorIterator<'a> {
+impl Iterator for CustomerGeneratorIterator<'_> {
     type Item = Customer;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1076,7 +1076,7 @@ impl<'a> PartSupplierGenerator<'a> {
         let scale_base = PartGenerator::SCALE_BASE;
 
         PartSupplierGeneratorIterator::new(
-            &self.text_pool,
+            self.text_pool,
             self.scale_factor,
             GenerateUtils::calculate_start_index(
                 scale_base,
@@ -1133,7 +1133,7 @@ impl<'a> PartSupplierGeneratorIterator<'a> {
         );
         let mut comment_random = RandomText::new_with_expected_row_count(
             1961692154,
-            &text_pool,
+            text_pool,
             PartSupplierGenerator::COMMENT_AVERAGE_LENGTH as f64,
             PartSupplierGenerator::SUPPLIERS_PER_PART,
         );
@@ -1315,7 +1315,7 @@ impl<'a> OrderGenerator<'a> {
     pub fn iter(&self) -> OrderGeneratorIterator {
         OrderGeneratorIterator::new(
             &self.distributions,
-            &self.text_pool,
+            self.text_pool,
             self.scale_factor,
             GenerateUtils::calculate_start_index(
                 Self::SCALE_BASE,
@@ -1413,7 +1413,7 @@ impl<'a> OrderGeneratorIterator<'a> {
 
         let mut comment_random = RandomText::new(
             276090261,
-            &text_pool,
+            text_pool,
             OrderGenerator::COMMENT_AVERAGE_LENGTH as f64,
         );
 
@@ -1669,7 +1669,7 @@ impl<'a> LineItemGenerator<'a> {
     pub fn iter(&self) -> LineItemGeneratorIterator {
         LineItemGeneratorIterator::new(
             &self.distributions,
-            &self.text_pool,
+            self.text_pool,
             self.scale_factor,
             GenerateUtils::calculate_start_index(
                 OrderGenerator::SCALE_BASE,
@@ -1837,7 +1837,7 @@ impl<'a> LineItemGeneratorIterator<'a> {
         );
         let mut comment_random = RandomText::new_with_expected_row_count(
             1095462486,
-            &text_pool,
+            text_pool,
             LineItemGenerator::COMMENT_AVERAGE_LENGTH as f64,
             OrderGenerator::LINE_COUNT_MAX,
         );
