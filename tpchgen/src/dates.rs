@@ -78,13 +78,18 @@ impl TPCHDate {
         DATE_INDEX[idx as usize]
     }
 
+    /// Format money value (convert to decimal)
+    pub fn format_money(value: i64) -> String {
+        format!("{:.2}", value as f64 / 100.0)
+    }
+
     /// Checks if a date is in the past
-    pub fn is_in_past(date: i32) -> bool {
+    pub const fn is_in_past(date: i32) -> bool {
         Self::julian(date) <= CURRENT_DATE
     }
 
     /// Converts to julian date format
-    fn julian(date: i32) -> i32 {
+    const fn julian(date: i32) -> i32 {
         let mut offset = date - MIN_GENERATE_DATE;
         let mut result = MIN_GENERATE_DATE;
 
@@ -104,7 +109,7 @@ impl TPCHDate {
     }
 
     /// Check if a year is a leap year
-    fn is_leap_year(year: i32) -> bool {
+    const fn is_leap_year(year: i32) -> bool {
         year % 4 == 0 && year % 100 != 0
     }
 }
@@ -121,7 +126,7 @@ fn make_date_index() -> Vec<NaiveDate> {
 }
 
 /// Create a chrono date from an index
-fn make_date(index: i32) -> NaiveDate {
+const fn make_date(index: i32) -> NaiveDate {
     let y = julian(index + MIN_GENERATE_DATE - 1) / 1000;
     let d = julian(index + MIN_GENERATE_DATE - 1) % 1000;
 
@@ -134,12 +139,11 @@ fn make_date(index: i32) -> NaiveDate {
         d - MONTH_YEAR_DAY_START[(m - 1) as usize] - if is_leap_year(y) && m > 2 { 1 } else { 0 };
 
     // Create date from year, month, day
-
     NaiveDate::from_ymd_opt(1900 + y, m as u32, dy as u32).unwrap()
 }
 
 /// Helpers duplicated to avoid circular references
-fn julian(date: i32) -> i32 {
+const fn julian(date: i32) -> i32 {
     let mut offset = date - MIN_GENERATE_DATE;
     let mut result = MIN_GENERATE_DATE;
 
@@ -158,11 +162,11 @@ fn julian(date: i32) -> i32 {
     result + offset
 }
 
-fn is_leap_year(year: i32) -> bool {
+const fn is_leap_year(year: i32) -> bool {
     year % 4 == 0 && year % 100 != 0
 }
 
-fn leap_year_adjustment(year: i32, month: i32) -> i32 {
+const fn leap_year_adjustment(year: i32, month: i32) -> i32 {
     if is_leap_year(year) && month >= 2 {
         1
     } else {

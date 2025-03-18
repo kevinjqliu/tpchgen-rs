@@ -74,7 +74,7 @@ impl fmt::Display for Nation {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}, {}, {}, {}",
+            "{}|{}|{}|{}|",
             self.n_nationkey, self.n_name, self.n_regionkey, self.n_comment
         )
     }
@@ -150,6 +150,16 @@ pub struct Region {
     pub r_name: String,
     /// Variable length comment
     pub r_comment: String,
+}
+
+impl fmt::Display for Region {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}|{}|{}|",
+            self.r_regionkey, self.r_name, self.r_comment
+        )
+    }
 }
 
 impl Region {
@@ -278,7 +288,7 @@ impl fmt::Display for Part {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}, {}, {}, {},{}, {}, {}, {:.2}, {}",
+            "{}|{}|{}|{}|{}|{}|{}|{:.2}|{}|",
             self.p_partkey,
             self.p_name,
             self.p_mfgr,
@@ -518,7 +528,7 @@ impl fmt::Display for Supplier {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}, {}, {}, {}, {}, {:.2}, {}",
+            "{}|{}|{}|{}|{}|{:.2}|{}|",
             self.s_suppkey,
             self.s_name,
             self.s_address,
@@ -797,7 +807,7 @@ impl fmt::Display for Customer {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}, {}, {}, {}, {}, {:.2}, {}, {}",
+            "{}|{}|{}|{}|{}|{:.2}|{}|{}|",
             self.c_custkey,
             self.c_name,
             self.c_address,
@@ -1005,7 +1015,7 @@ impl fmt::Display for PartSupp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}, {}, {}, {:.2}, {}",
+            "{}|{}|{}|{:.2}|{}|",
             self.ps_partkey, self.ps_suppkey, self.ps_availqty, self.ps_supplycost, self.ps_comment
         )
     }
@@ -1218,7 +1228,7 @@ impl fmt::Display for Order {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}, {}, {}, {:.2}, {}, {}, {}, {}, {}",
+            "{}|{}|{}|{:.2}|{}|{}|{}|{}|{}|",
             self.o_orderkey,
             self.o_custkey,
             self.o_orderstatus,
@@ -1562,7 +1572,7 @@ impl fmt::Display for LineItem {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}, {}, {}, {}, {:.2}, {:.2}, {:.2}, {:.2}, {}, {}, {}, {}, {}, {}, {}, {}",
+            "{}|{}|{}|{}|{:.2}|{:.2}|{:.2}|{:.2}|{}|{}|{}|{}|{}|{}|{}|{}|",
             self.l_orderkey,
             self.l_partkey,
             self.l_suppkey,
@@ -1897,7 +1907,7 @@ impl LineItemGeneratorIterator {
         receipt_date += ship_date;
 
         let returned_flag = if TPCHDate::is_in_past(receipt_date) {
-            self.returned_flag_random.next_value()
+            self.returned_flag_random.next_value().to_string()
         } else {
             "N".to_string()
         };
@@ -1926,9 +1936,9 @@ impl LineItemGeneratorIterator {
             l_shipdate: TPCHDate::new(ship_date),
             l_commitdate: TPCHDate::new(commit_date),
             l_receiptdate: TPCHDate::new(receipt_date),
-            l_shipinstruct: ship_instructions,
-            l_shipmode: ship_mode,
-            l_comment: comment,
+            l_shipinstruct: ship_instructions.to_string(),
+            l_shipmode: ship_mode.to_string(),
+            l_comment: comment.to_string(),
         }
     }
 }
