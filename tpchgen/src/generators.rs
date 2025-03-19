@@ -297,6 +297,22 @@ impl fmt::Display for PartManufacturerName {
     }
 }
 
+/// A Part brand name, formatted as "Brand#<n>"
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PartBrandName(i32);
+
+impl PartBrandName {
+    pub fn new(value: i32) -> Self {
+        PartBrandName(value)
+    }
+}
+
+impl fmt::Display for PartBrandName {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Brand#{}", self.0)
+    }
+}
+
 /// The PART table
 ///
 /// The Display trait is implemented to format the line item data as a string
@@ -314,8 +330,8 @@ pub struct Part<'a> {
     pub p_name: StringSequenceInstance<'a>,
     /// Part manufacturer.
     pub p_mfgr: PartManufacturerName,
-    /// Part brand. Formatted as "Brand#<n>"
-    pub p_brand: i32,
+    /// Part brand.
+    pub p_brand: PartBrandName,
     /// Part type
     pub p_type: &'a str,
     /// Part size
@@ -332,7 +348,7 @@ impl fmt::Display for Part<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}|{}|{}|Brand#{}|{}|{}|{}|{:.2}|{}|",
+            "{}|{}|{}|{}|{}|{}|{}|{:.2}|{}|",
             self.p_partkey,
             self.p_name,
             self.p_mfgr,
@@ -504,7 +520,7 @@ impl<'a> PartGeneratorIterator<'a> {
             p_partkey: part_key,
             p_name: name,
             p_mfgr: PartManufacturerName::new(manufacturer),
-            p_brand: brand,
+            p_brand: PartBrandName::new(brand),
             p_type: self.type_random.next_value(),
             p_size: self.size_random.next_value(),
             p_container: self.container_random.next_value(),
