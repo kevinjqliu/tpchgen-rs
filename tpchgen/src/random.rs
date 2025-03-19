@@ -296,6 +296,7 @@ impl RandomBoundedLong {
 }
 
 /// Generates random alphanumeric strings
+#[derive(Debug)]
 pub struct RandomAlphaNumeric {
     inner: RowRandomInt,
     min_length: i32,
@@ -495,6 +496,7 @@ impl<'a> RandomString<'a> {
 }
 
 /// Generates sequences of random sequence of strings from a distribution
+#[derive(Debug)]
 pub struct RandomStringSequence<'a> {
     inner: RowRandomInt,
     count: i32,
