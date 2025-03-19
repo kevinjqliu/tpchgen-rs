@@ -13,6 +13,7 @@ use crate::dates::{GenerateUtils, TPCHDate};
 use crate::random::{RandomBoundedInt, RandomString, RandomStringSequence, RandomText};
 
 /// Generator for Nation table data
+#[derive(Debug)]
 pub struct NationGenerator<'a> {
     distributions: &'a Distributions,
     text_pool: &'a TextPool,
@@ -95,6 +96,7 @@ impl<'a> Nation<'a> {
 }
 
 /// Iterator that generates Nation rows
+#[derive(Debug)]
 pub struct NationGeneratorIterator<'a> {
     nations: &'a Distribution,
     comment_random: RandomText<'a>,
@@ -176,6 +178,7 @@ impl<'a> Region<'a> {
 }
 
 /// Generator for Region table data
+#[derive(Debug)]
 pub struct RegionGenerator<'a> {
     distributions: &'a Distributions,
     text_pool: &'a TextPool,
@@ -223,6 +226,7 @@ impl<'a> IntoIterator for &'a RegionGenerator<'a> {
 }
 
 /// Iterator that generates Region rows
+#[derive(Debug)]
 pub struct RegionGeneratorIterator<'a> {
     regions: &'a Distribution,
     comment_random: RandomText<'a>,
@@ -308,6 +312,7 @@ impl fmt::Display for Part<'_> {
 }
 
 /// Generator for Part table data
+#[derive(Debug)]
 pub struct PartGenerator<'a> {
     scale_factor: f64,
     part: i32,
@@ -388,6 +393,7 @@ impl<'a> IntoIterator for &'a PartGenerator<'a> {
 }
 
 /// Iterator that generates Part rows
+#[derive(Debug)]
 pub struct PartGeneratorIterator<'a> {
     name_random: RandomStringSequence<'a>,
     manufacturer_random: RandomBoundedInt,
@@ -546,6 +552,7 @@ impl fmt::Display for Supplier {
 }
 
 /// Generator for Supplier table data
+#[derive(Debug)]
 pub struct SupplierGenerator<'a> {
     scale_factor: f64,
     part: i32,
@@ -632,6 +639,7 @@ impl<'a> IntoIterator for &'a SupplierGenerator<'a> {
 }
 
 /// Iterator that generates Supplier rows
+#[derive(Debug)]
 pub struct SupplierGeneratorIterator<'a> {
     address_random: RandomAlphaNumeric,
     nation_key_random: RandomBoundedInt,
@@ -826,6 +834,7 @@ impl fmt::Display for Customer {
 }
 
 /// Generator for Customer table data
+#[derive(Debug)]
 pub struct CustomerGenerator<'a> {
     scale_factor: f64,
     part: i32,
@@ -903,6 +912,7 @@ impl<'a> IntoIterator for &'a CustomerGenerator<'a> {
 }
 
 /// Iterator that generates Customer rows
+#[derive(Debug)]
 pub struct CustomerGeneratorIterator<'a> {
     address_random: RandomAlphaNumeric,
     nation_key_random: RandomBoundedInt,
@@ -1003,6 +1013,7 @@ impl Iterator for CustomerGeneratorIterator<'_> {
 }
 
 /// The PARTSUPP table
+#[derive(Debug, Clone, PartialEq)]
 pub struct PartSupp<'a> {
     /// Primary key, foreign key to PART
     pub ps_partkey: i64,
@@ -1027,6 +1038,7 @@ impl fmt::Display for PartSupp<'_> {
 }
 
 /// Generator for PartSupplier table data
+#[derive(Debug)]
 pub struct PartSupplierGenerator<'a> {
     scale_factor: f64,
     part: i32,
@@ -1104,6 +1116,7 @@ impl<'a> IntoIterator for &'a PartSupplierGenerator<'a> {
 }
 
 /// Iterator that generates PartSupplier rows
+#[derive(Debug)]
 pub struct PartSupplierGeneratorIterator<'a> {
     scale_factor: f64,
     start_index: i64,
@@ -1217,6 +1230,7 @@ impl<'a> Iterator for PartSupplierGeneratorIterator<'a> {
 }
 
 /// The ORDERS table
+#[derive(Debug, Clone, PartialEq)]
 pub struct Order<'a> {
     /// Primary key
     pub o_orderkey: i64,
@@ -1257,6 +1271,7 @@ impl fmt::Display for Order<'_> {
 }
 
 /// Generator for Order table data
+#[derive(Debug)]
 pub struct OrderGenerator<'a> {
     scale_factor: f64,
     part: i32,
@@ -1366,6 +1381,7 @@ impl<'a> IntoIterator for &'a OrderGenerator<'a> {
 }
 
 /// Iterator that generates Order rows
+#[derive(Debug)]
 pub struct OrderGeneratorIterator<'a> {
     order_date_random: RandomBoundedInt,
     line_count_random: RandomBoundedInt,
@@ -1608,6 +1624,7 @@ impl fmt::Display for LineItem<'_> {
 }
 
 /// Generator for LineItem table data
+#[derive(Debug)]
 pub struct LineItemGenerator<'a> {
     scale_factor: f64,
     part: i32,
@@ -1750,6 +1767,7 @@ impl<'a> IntoIterator for &'a LineItemGenerator<'a> {
 }
 
 /// Iterator that generates LineItem rows
+#[derive(Debug)]
 pub struct LineItemGeneratorIterator<'a> {
     order_date_random: RandomBoundedInt,
     line_count_random: RandomBoundedInt,
