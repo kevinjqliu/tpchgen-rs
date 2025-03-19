@@ -60,6 +60,14 @@ impl<'a> IntoIterator for &'a NationGenerator<'a> {
 }
 
 /// The NATION table
+///
+/// The Display trait is implemented to format the line item data as a string
+/// in the default TPC-H 'tbl' format.
+///
+/// ```text
+/// 0|ALGERIA|0| haggle. carefully final deposits detect slyly agai|
+/// 1|ARGENTINA|1|al foxes promise slyly according to the regular accounts. bold requests alon|
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Nation<'a> {
     /// Primary key (0-24)
@@ -144,6 +152,13 @@ impl<'a> Iterator for NationGeneratorIterator<'a> {
 }
 
 /// The REGION table
+/// The Display trait is implemented to format the line item data as a string
+/// in the default TPC-H 'tbl' format.
+///
+/// ```text
+/// 0|AFRICA|lar deposits. blithely final packages cajole. regular waters are final requests. regular accounts are according to |
+/// 1|AMERICA|hs use ironic, even requests. s|
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Region<'a> {
     /// Primary key (0-4)
@@ -267,6 +282,14 @@ impl<'a> Iterator for RegionGeneratorIterator<'a> {
 }
 
 /// The PART table
+///
+/// The Display trait is implemented to format the line item data as a string
+/// in the default TPC-H 'tbl' format.
+///
+/// ```text
+/// 1|goldenrod lavender spring chocolate lace|Manufacturer#1|Brand#13|PROMO BURNISHED COPPER|7|JUMBO PKG|901.00|ly. slyly ironi|
+/// 2|blush thistle blue yellow saddle|Manufacturer#1|Brand#13|LARGE BRUSHED BRASS|1|LG CASE|902.00|lar accounts amo|
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Part<'a> {
     /// Primary key
@@ -511,6 +534,14 @@ impl<'a> Iterator for PartGeneratorIterator<'a> {
 }
 
 /// Records for the SUPPLIER table.
+///
+/// The Display trait is implemented to format the line item data as a string
+/// in the default TPC-H 'tbl' format.
+///
+/// ```text
+/// 1|Supplier#000000001| N kD4on9OM Ipw3,gf0JBoQDd7tgrzrddZ|17|27-918-335-1736|5755.94|each slyly above the careful|
+/// 2|Supplier#000000002|89eJ5ksX3ImxJQBvxObC,|5|15-679-861-2259|4032.68| slyly bold instructions. idle dependen|
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Supplier {
     /// Primary key
@@ -788,6 +819,14 @@ impl Iterator for SupplierGeneratorIterator<'_> {
 }
 
 /// The CUSTOMER table
+///
+/// The Display trait is implemented to format the line item data as a string
+/// in the default TPC-H 'tbl' format.
+///
+/// ```text
+/// 1|Customer#000000001|IVhzIApeRb ot,c,E|15|25-989-741-2988|711.56|BUILDING|to the even, regular platelets. regular, ironic epitaphs nag e|
+/// 2|Customer#000000002|XSTf4,NCwDVaWNe6tEgvwfmRchLXak|13|23-768-687-3665|121.65|AUTOMOBILE|l accounts. blithely ironic theodolites integrate boldly: caref|
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Customer<'a> {
     /// Primary key
@@ -1002,7 +1041,15 @@ impl<'a> Iterator for CustomerGeneratorIterator<'a> {
     }
 }
 
-/// The PARTSUPP table
+/// The PARTSUPP (part supplier) table
+///
+/// The Display trait is implemented to format the line item data as a string
+/// in the default TPC-H 'tbl' format.
+///
+/// ```text
+/// 1|2|3325|771.64|, even theodolites. regular, final theodolites eat after the carefully pending foxes. ...
+/// 1|4|8076|993.49|ven ideas. quickly even packages print. pending multipliers must have to are fluff|
+/// ```
 pub struct PartSupp<'a> {
     /// Primary key, foreign key to PART
     pub ps_partkey: i64,
@@ -1217,6 +1264,14 @@ impl<'a> Iterator for PartSupplierGeneratorIterator<'a> {
 }
 
 /// The ORDERS table
+///
+/// The Display trait is implemented to format the line item data as a string
+/// in the default TPC-H 'tbl' format.
+///
+/// ```text
+/// 1|37|O|131251.81|1996-01-02|5-LOW|Clerk#000000951|0|nstructions sleep furiously among |
+///  2|79|O|40183.29|1996-12-01|1-URGENT|Clerk#000000880|0| foxes. pending accounts at the pending, silent asymptot|
+/// ```
 pub struct Order<'a> {
     /// Primary key
     pub o_orderkey: i64,
