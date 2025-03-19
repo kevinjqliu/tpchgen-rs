@@ -1387,7 +1387,6 @@ pub struct OrderGeneratorIterator<'a> {
 
     index: i64,
 }
-
 impl<'a> OrderGeneratorIterator<'a> {
     fn new(
         distributions: &'a Distributions,
@@ -1546,6 +1545,15 @@ impl<'a> Iterator for OrderGeneratorIterator<'a> {
 }
 
 /// The LINEITEM table
+///
+/// The Display trait is implemented to format the line item data as a string
+/// in the default TPC-H 'tbl' format.
+///
+/// Example
+/// ```text
+/// 1|156|4|1|17|17954.55|0.04|0.02|N|O|1996-03-13|1996-02-12|1996-03-22|DELIVER IN PERSON|TRUCK|egular courts above the|
+/// 1|68|9|2|36|34850.16|0.09|0.06|N|O|1996-04-12|1996-02-28|1996-04-20|TAKE BACK RETURN|MAIL|ly final dependencies: slyly bold |
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct LineItem<'a> {
     /// Foreign key to ORDERS
