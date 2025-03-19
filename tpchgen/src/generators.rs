@@ -818,6 +818,23 @@ impl Iterator for SupplierGeneratorIterator<'_> {
     }
 }
 
+/// A Customer Name, formatted as "Customer#<n>"
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CustomerName(i64);
+
+impl CustomerName {
+    /// Creates a new CustomerName with the given value
+    pub fn new(value: i64) -> Self {
+        CustomerName(value)
+    }
+}
+
+impl fmt::Display for CustomerName {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Customer#{:09}", self.0)
+    }
+}
+
 /// The CUSTOMER table
 ///
 /// The Display trait is implemented to format the line item data as a string
@@ -832,7 +849,7 @@ pub struct Customer<'a> {
     /// Primary key
     pub c_custkey: i64,
     /// Customer name: Formatted as "Customer#<n>"
-    pub c_name: i64,
+    pub c_name: CustomerName,
     /// Customer address
     pub c_address: String,
     /// Foreign key to NATION
@@ -851,7 +868,7 @@ impl fmt::Display for Customer<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}|Customer#{:09}|{}|{}|{}|{:.2}|{}|{}|",
+            "{}|{}|{}|{}|{}|{:.2}|{}|{}|",
             self.c_custkey,
             self.c_name,
             self.c_address,
@@ -1007,7 +1024,7 @@ impl<'a> CustomerGeneratorIterator<'a> {
 
         Customer {
             c_custkey: customer_key,
-            c_name: customer_key,
+            c_name: CustomerName::new(customer_key),
             c_address: self.address_random.next_value().to_string(),
             c_nationkey: nation_key,
             c_phone: self.phone_random.next_value(nation_key),
