@@ -3,7 +3,7 @@
 use crate::{distribution::Distribution, text::TextPool};
 use std::fmt::Display;
 
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RowRandomInt {
     seed: i64,
     usage: i32,
@@ -300,7 +300,6 @@ pub struct RandomAlphaNumeric {
     inner: RowRandomInt,
     min_length: i32,
     max_length: i32,
-    buffer: Vec<u8>,
 }
 
 impl RandomAlphaNumeric {
@@ -327,27 +326,18 @@ impl RandomAlphaNumeric {
             inner: RowRandomInt::new(seed, Self::USAGE_PER_ROW * seeds_per_row),
             min_length,
             max_length,
-            buffer: Vec::new(),
         }
     }
 
-    pub fn next_value(&mut self) -> &str {
+    /// Returns the next string as a [`RandomAlphaNumericInstance`], which can
+    /// generate the string on demand.
+    pub fn next_value(&mut self) -> RandomAlphaNumericInstance {
         let length = self.inner.next_int(self.min_length, self.max_length) as usize;
-        self.buffer.resize(length, 0);
 
-        let mut char_index = 0;
-        for i in 0..length {
-            if i % 5 == 0 {
-                char_index = self.inner.next_int(0, i32::MAX) as i64;
-            }
-
-            let char_pos = (char_index & 0x3f) as usize;
-            self.buffer[i] = Self::ALPHA_NUMERIC[char_pos];
-            char_index >>= 6;
+        RandomAlphaNumericInstance {
+            length,
+            snapshot: self.inner,
         }
-
-        // SAFETY: ALPHA_NUMERIC contains only valid ASCII characters
-        unsafe { std::str::from_utf8_unchecked(&self.buffer) }
     }
 
     /// Advance the inner random number generator by the specified number of rows.
@@ -357,6 +347,50 @@ impl RandomAlphaNumeric {
 
     pub fn row_finished(&mut self) {
         self.inner.row_finished();
+    }
+}
+
+/// A random alphanumeric string. To avoid allocations
+/// the string is created on demand with the Display implementation.
+#[derive(Debug, Clone, PartialEq)]
+pub struct RandomAlphaNumericInstance {
+    length: usize,
+    /// snapshot of the random number generator
+    snapshot: RowRandomInt,
+}
+
+impl Display for RandomAlphaNumericInstance {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Use up to  64 bytes of a stack buffer for small strings to avoid
+        // allocation, and heap allocation for larger ones.
+        let mut stack_buffer = [0u8; 64];
+        let mut heap_buffer = Vec::new();
+
+        let buffer = if self.length <= stack_buffer.len() {
+            &mut stack_buffer[0..self.length]
+        } else {
+            heap_buffer.resize(self.length, 0);
+            &mut heap_buffer
+        };
+
+        let mut generator = self.snapshot; // copy to for mutation
+
+        let mut char_index = 0;
+        // todo remove
+        #[allow(clippy::needless_range_loop)]
+        for i in 0..self.length {
+            if i % 5 == 0 {
+                char_index = generator.next_int(0, i32::MAX) as i64;
+            }
+
+            let char_pos = (char_index & 0x3f) as usize;
+            buffer[i] = RandomAlphaNumeric::ALPHA_NUMERIC[char_pos];
+            char_index >>= 6;
+        }
+        // Safety: only pushed ascii characters into the buffer
+        let s = unsafe { std::str::from_utf8_unchecked(buffer) };
+        f.write_str(s)?;
+        Ok(())
     }
 }
 
@@ -592,5 +626,56 @@ impl<'a> RandomText<'a> {
 
     pub fn row_finished(&mut self) {
         self.inner.row_finished();
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::collections::HashSet;
+    #[test]
+    fn test_small_random_alpha_numeric() {
+        RandomAlphaNumericTest {
+            average_length: 10,
+            num_rows: 100,
+            expected_average_length: 10,
+        }
+        .assert()
+    }
+
+    #[test]
+    fn test_large_random_alpha_numeric() {
+        RandomAlphaNumericTest {
+            average_length: 100,
+            num_rows: 100,
+            expected_average_length: 102,
+        }
+        .assert()
+    }
+
+    struct RandomAlphaNumericTest {
+        average_length: i32,
+        num_rows: usize,
+        expected_average_length: usize,
+    }
+    impl RandomAlphaNumericTest {
+        fn assert(self) {
+            let Self {
+                average_length,
+                num_rows,
+                expected_average_length,
+            } = self;
+
+            let mut generator = RandomAlphaNumeric::new(1, average_length);
+            let mut values = HashSet::new();
+            // check that the values are within the expected length and not repeated
+            let mut total_len = 0;
+            for _ in 0..num_rows {
+                let value = generator.next_value().to_string();
+                total_len += value.len();
+                assert!(values.insert(value)); // no dupes
+            }
+            assert_eq!(total_len / num_rows, expected_average_length);
+        }
     }
 }
