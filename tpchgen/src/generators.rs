@@ -281,6 +281,22 @@ impl<'a> Iterator for RegionGeneratorIterator<'a> {
     }
 }
 
+/// A Part Manufacturer, formatted as "Manufacturer#<n>"
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PartManufacturerName(i32);
+
+impl PartManufacturerName {
+    pub fn new(value: i32) -> Self {
+        PartManufacturerName(value)
+    }
+}
+
+impl fmt::Display for PartManufacturerName {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Manufacturer#{}", self.0)
+    }
+}
+
 /// The PART table
 ///
 /// The Display trait is implemented to format the line item data as a string
@@ -296,8 +312,8 @@ pub struct Part<'a> {
     pub p_partkey: i64,
     /// Part name
     pub p_name: StringSequenceInstance<'a>,
-    /// Part manufacturer. Formatted as "Manufacturer#<n>"
-    pub p_mfgr: i32,
+    /// Part manufacturer.
+    pub p_mfgr: PartManufacturerName,
     /// Part brand. Formatted as "Brand#<n>"
     pub p_brand: i32,
     /// Part type
@@ -316,7 +332,7 @@ impl fmt::Display for Part<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}|{}|Manufacturer#{}|Brand#{}|{}|{}|{}|{:.2}|{}|",
+            "{}|{}|{}|Brand#{}|{}|{}|{}|{:.2}|{}|",
             self.p_partkey,
             self.p_name,
             self.p_mfgr,
@@ -487,7 +503,7 @@ impl<'a> PartGeneratorIterator<'a> {
         Part {
             p_partkey: part_key,
             p_name: name,
-            p_mfgr: manufacturer,
+            p_mfgr: PartManufacturerName::new(manufacturer),
             p_brand: brand,
             p_type: self.type_random.next_value(),
             p_size: self.size_random.next_value(),
