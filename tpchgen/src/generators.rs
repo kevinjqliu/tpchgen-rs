@@ -897,7 +897,7 @@ impl fmt::Display for CustomerName {
 pub struct Customer<'a> {
     /// Primary key
     pub c_custkey: i64,
-    /// Customer name: Formatted as "Customer#<n>"
+    /// Customer name
     pub c_name: CustomerName,
     /// Customer address
     pub c_address: String,
@@ -1329,6 +1329,23 @@ impl<'a> Iterator for PartSupplierGeneratorIterator<'a> {
     }
 }
 
+/// A clerk name, formatted as "Clerk#<n>"
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ClerkName(i32);
+
+impl ClerkName {
+    /// Creates a new ClerkName with the given value
+    pub fn new(value: i32) -> Self {
+        ClerkName(value)
+    }
+}
+
+impl fmt::Display for ClerkName {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Clerk#{:09}", self.0)
+    }
+}
+
 /// The ORDERS table
 ///
 /// The Display trait is implemented to format the line item data as a string
@@ -1351,8 +1368,8 @@ pub struct Order<'a> {
     pub o_orderdate: TPCHDate,
     /// Order priority
     pub o_orderpriority: &'a str,
-    /// Clerk who processed the order. Formatted as "Clerk#<n>"
-    pub o_clerk: i32,
+    /// Clerk who processed the order.
+    pub o_clerk: ClerkName,
     /// Order shipping priority
     pub o_shippriority: i32,
     /// Variable length comment
@@ -1363,7 +1380,7 @@ impl fmt::Display for Order<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}|{}|{}|{:.2}|{}|{}|Clerk#{:09}|{}|{}|",
+            "{}|{}|{}|{:.2}|{}|{}|{}|{}|{}|",
             self.o_orderkey,
             self.o_custkey,
             self.o_orderstatus,
@@ -1622,6 +1639,9 @@ impl<'a> OrderGeneratorIterator<'a> {
             'O' // Open - no line items shipped
         };
 
+        let clerk_id = self.clerk_random.next_value();
+        let clerk_name = ClerkName::new(clerk_id);
+
         Order {
             o_orderkey: order_key,
             o_custkey: customer_key,
@@ -1629,7 +1649,7 @@ impl<'a> OrderGeneratorIterator<'a> {
             o_totalprice: total_price as f64 / 100.,
             o_orderdate: TPCHDate::new(order_date),
             o_orderpriority: self.order_priority_random.next_value(),
-            o_clerk: self.clerk_random.next_value(),
+            o_clerk: clerk_name,
             o_shippriority: 0, // Fixed value per TPC-H spec
             o_comment: self.comment_random.next_value(),
         }
