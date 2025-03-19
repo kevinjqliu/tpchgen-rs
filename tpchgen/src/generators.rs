@@ -565,6 +565,23 @@ impl<'a> Iterator for PartGeneratorIterator<'a> {
     }
 }
 
+/// A supplier name, formatted as "Supplier#<n>"
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct SupplierName(i64);
+
+impl SupplierName {
+    /// Creates a new SupplierName with the given value
+    pub fn new(value: i64) -> Self {
+        SupplierName(value)
+    }
+}
+
+impl fmt::Display for SupplierName {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Supplier#{:09}", self.0)
+    }
+}
+
 /// Records for the SUPPLIER table.
 ///
 /// The Display trait is implemented to format the line item data as a string
@@ -578,8 +595,8 @@ impl<'a> Iterator for PartGeneratorIterator<'a> {
 pub struct Supplier {
     /// Primary key
     pub s_suppkey: i64,
-    /// Supplier name. Formatted as "Supplier#<n>"
-    pub s_name: i64,
+    /// Supplier name.
+    pub s_name: SupplierName,
     /// Supplier address
     pub s_address: String,
     /// Foreign key to NATION
@@ -596,7 +613,7 @@ impl fmt::Display for Supplier {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}|Supplier#{:09}|{}|{}|{}|{:.2}|{}|",
+            "{}|{}|{}|{}|{}|{:.2}|{}|",
             self.s_suppkey,
             self.s_name,
             self.s_address,
@@ -814,7 +831,7 @@ impl<'a> SupplierGeneratorIterator<'a> {
 
         Supplier {
             s_suppkey: supplier_key,
-            s_name: supplier_key,
+            s_name: SupplierName::new(supplier_key),
             s_address: self.address_random.next_value().to_string(),
             s_nationkey: nation_key,
             s_phone: self.phone_random.next_value(nation_key),
