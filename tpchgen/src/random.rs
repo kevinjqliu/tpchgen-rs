@@ -425,19 +425,19 @@ impl Display for PhoneNumberInstance {
 
 /// Fetches random strings from a distribution.
 #[derive(Debug, Clone)]
-pub struct RandomString {
+pub struct RandomString<'a> {
     inner: RowRandomInt,
-    distribution: Distribution,
+    distribution: &'a Distribution,
 }
 
-impl RandomString {
-    pub fn new(seed: i64, distribution: &Distribution) -> Self {
-        Self::new_with_expected_row_count(seed, distribution.clone(), 1)
+impl<'a> RandomString<'a> {
+    pub fn new(seed: i64, distribution: &'a Distribution) -> Self {
+        Self::new_with_expected_row_count(seed, distribution, 1)
     }
 
     pub fn new_with_expected_row_count(
         seed: i64,
-        distribution: Distribution,
+        distribution: &'a Distribution,
         seeds_per_row: i32,
     ) -> Self {
         Self {
@@ -446,7 +446,7 @@ impl RandomString {
         }
     }
 
-    pub fn next_value(&mut self) -> &str {
+    pub fn next_value(&mut self) -> &'a str {
         self.distribution.random_value(&mut self.inner)
     }
 
@@ -461,31 +461,31 @@ impl RandomString {
 }
 
 /// Generates sequences of random sequence of strings from a distribution
-pub struct RandomStringSequence {
+pub struct RandomStringSequence<'a> {
     inner: RowRandomInt,
     count: i32,
-    distribution: Distribution,
+    distribution: &'a Distribution,
 }
 
-impl RandomStringSequence {
-    pub fn new(seed: i64, count: i32, distribution: &Distribution) -> Self {
+impl<'a> RandomStringSequence<'a> {
+    pub fn new(seed: i64, count: i32, distribution: &'a Distribution) -> Self {
         Self::new_with_expected_row_count(seed, count, distribution, 1)
     }
 
     pub fn new_with_expected_row_count(
         seed: i64,
         count: i32,
-        distribution: &Distribution,
+        distribution: &'a Distribution,
         seeds_per_row: i32,
     ) -> Self {
         Self {
             inner: RowRandomInt::new(seed, distribution.size() as i32 * seeds_per_row),
             count,
-            distribution: distribution.clone(),
+            distribution,
         }
     }
 
-    pub fn next_value(&mut self) -> StringSequenceInstance<'_> {
+    pub fn next_value(&mut self) -> StringSequenceInstance<'a> {
         // Get all values from the distribution
         let mut values: Vec<&str> = self
             .distribution
@@ -548,36 +548,36 @@ impl Display for StringSequenceInstance<'_> {
 
 /// Generates random text according to TPC-H spec
 #[derive(Debug, Clone)]
-pub struct RandomText {
+pub struct RandomText<'a> {
     inner: RowRandomInt,
-    text_pool: TextPool,
+    text_pool: &'a TextPool,
     min_length: i32,
     max_length: i32,
 }
 
-impl RandomText {
+impl<'a> RandomText<'a> {
     const LOW_LENGTH_MULTIPLIER: f64 = 0.4;
     const HIGH_LENGTH_MULTIPLIER: f64 = 1.6;
 
-    pub fn new(seed: i64, text_pool: &TextPool, average_text_length: f64) -> Self {
+    pub fn new(seed: i64, text_pool: &'a TextPool, average_text_length: f64) -> Self {
         Self::new_with_expected_row_count(seed, text_pool, average_text_length, 1)
     }
 
     pub fn new_with_expected_row_count(
         seed: i64,
-        text_pool: &TextPool,
+        text_pool: &'a TextPool,
         average_text_length: f64,
         expected_row_count: i32,
     ) -> Self {
         Self {
             inner: RowRandomInt::new(seed, expected_row_count * 2),
-            text_pool: text_pool.clone(),
+            text_pool,
             min_length: (average_text_length * Self::LOW_LENGTH_MULTIPLIER) as i32,
             max_length: (average_text_length * Self::HIGH_LENGTH_MULTIPLIER) as i32,
         }
     }
 
-    pub fn next_value(&mut self) -> &str {
+    pub fn next_value(&mut self) -> &'a str {
         let offset = self
             .inner
             .next_int(0, self.text_pool.size() - self.max_length);

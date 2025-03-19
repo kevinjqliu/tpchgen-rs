@@ -19,14 +19,9 @@ fn read_tbl_gz<P: AsRef<Path>>(path: P) -> Vec<String> {
         .expect("Failed to read lines")
 }
 
-fn test_generator<T, G, F>(
-    generator_fn: F,
-    reference_path: &str,
-    scale_factor: f64,
-    transform_fn: impl Fn(T) -> String,
-) where
-    G: Iterator<Item = T>,
-    F: FnOnce(f64) -> G,
+fn test_generator<T, I>(iter: I, reference_path: &str, transform_fn: impl Fn(T) -> String)
+where
+    I: Iterator<Item = T>,
 {
     let mut dir =
         PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set"));
@@ -36,8 +31,7 @@ fn test_generator<T, G, F>(
     let reference_data = read_tbl_gz(dir);
 
     // Generate data using our own generators.
-    let generator = generator_fn(scale_factor);
-    let generated_data: Vec<String> = generator.map(transform_fn).collect();
+    let generated_data: Vec<String> = iter.map(transform_fn).collect();
 
     // Compare that we have the same number of records.
     assert_eq!(
@@ -61,63 +55,55 @@ fn test_generator<T, G, F>(
 
 #[test]
 fn test_nation_sf_0_001() {
-    test_generator(
-        |_| NationGenerator::new().iter(),
-        "data/sf-0.001/nation.tbl.gz",
-        0.001,
-        |nation| {
-            format!(
-                "{}|{}|{}|{}|",
-                nation.n_nationkey, nation.n_name, nation.n_regionkey, nation.n_comment
-            )
-        },
-    );
+    let _sf = 0.001;
+    let generator = NationGenerator::new();
+    test_generator(generator.iter(), "data/sf-0.001/nation.tbl.gz", |nation| {
+        format!(
+            "{}|{}|{}|{}|",
+            nation.n_nationkey, nation.n_name, nation.n_regionkey, nation.n_comment
+        )
+    });
 }
 
 #[test]
 fn test_region_sf_0_001() {
-    test_generator(
-        |_| RegionGenerator::new().iter(),
-        "data/sf-0.001/region.tbl.gz",
-        0.001,
-        |region| {
-            format!(
-                "{}|{}|{}|",
-                region.r_regionkey, region.r_name, region.r_comment
-            )
-        },
-    );
+    let _sf = 0.001;
+    let generator = RegionGenerator::new();
+    test_generator(generator.iter(), "data/sf-0.001/region.tbl.gz", |region| {
+        format!(
+            "{}|{}|{}|",
+            region.r_regionkey, region.r_name, region.r_comment
+        )
+    });
 }
 
 #[test]
 fn test_part_sf_0_001() {
-    test_generator(
-        |sf| PartGenerator::new(sf, 1, 1).iter(),
-        "data/sf-0.001/part.tbl.gz",
-        0.001,
-        |part| {
-            format!(
-                "{}|{}|{}|{}|{}|{}|{}|{:.2}|{}|",
-                part.p_partkey,
-                part.p_name,
-                part.p_mfgr,
-                part.p_brand,
-                part.p_type,
-                part.p_size,
-                part.p_container,
-                part.p_retailprice,
-                part.p_comment
-            )
-        },
-    );
+    let sf = 0.001;
+    let generator = PartGenerator::new(sf, 1, 1);
+    test_generator(generator.iter(), "data/sf-0.001/part.tbl.gz", |part| {
+        format!(
+            "{}|{}|{}|{}|{}|{}|{}|{:.2}|{}|",
+            part.p_partkey,
+            part.p_name,
+            part.p_mfgr,
+            part.p_brand,
+            part.p_type,
+            part.p_size,
+            part.p_container,
+            part.p_retailprice,
+            part.p_comment
+        )
+    });
 }
 
 #[test]
 fn test_supplier_sf_0_001() {
+    let sf = 0.001;
+    let generator = SupplierGenerator::new(sf, 1, 1);
     test_generator(
-        |sf| SupplierGenerator::new(sf, 1, 1).iter(),
+        generator.iter(),
         "data/sf-0.001/supplier.tbl.gz",
-        0.001,
         |supplier| {
             format!(
                 "{}|{}|{}|{}|{}|{:.2}|{}|",
@@ -135,25 +121,23 @@ fn test_supplier_sf_0_001() {
 
 #[test]
 fn test_partsupp_sf_0_001() {
-    test_generator(
-        |sf| PartSupplierGenerator::new(sf, 1, 1).iter(),
-        "data/sf-0.001/partsupp.tbl.gz",
-        0.001,
-        |ps| {
-            format!(
-                "{}|{}|{}|{:.2}|{}|",
-                ps.ps_partkey, ps.ps_suppkey, ps.ps_availqty, ps.ps_supplycost, ps.ps_comment
-            )
-        },
-    );
+    let sf = 0.001;
+    let generator = PartSupplierGenerator::new(sf, 1, 1);
+    test_generator(generator.iter(), "data/sf-0.001/partsupp.tbl.gz", |ps| {
+        format!(
+            "{}|{}|{}|{:.2}|{}|",
+            ps.ps_partkey, ps.ps_suppkey, ps.ps_availqty, ps.ps_supplycost, ps.ps_comment
+        )
+    });
 }
 
 #[test]
 fn test_customer_sf_0_001() {
+    let sf = 0.001;
+    let generator = CustomerGenerator::new(sf, 1, 1);
     test_generator(
-        |sf| CustomerGenerator::new(sf, 1, 1).iter(),
+        generator.iter(),
         "data/sf-0.001/customer.tbl.gz",
-        0.001,
         |customer| {
             format!(
                 "{}|{}|{}|{}|{}|{:.2}|{}|{}|",
@@ -172,116 +156,102 @@ fn test_customer_sf_0_001() {
 
 #[test]
 fn test_orders_sf_0_001() {
-    test_generator(
-        |sf| OrderGenerator::new(sf, 1, 1).iter(),
-        "data/sf-0.001/orders.tbl.gz",
-        0.001,
-        |order| {
-            format!(
-                "{}|{}|{}|{:.2}|{}|{}|{}|{}|{}|",
-                order.o_orderkey,
-                order.o_custkey,
-                order.o_orderstatus,
-                order.o_totalprice,
-                order.o_orderdate,
-                order.o_orderpriority,
-                order.o_clerk,
-                order.o_shippriority,
-                order.o_comment
-            )
-        },
-    );
+    let sf = 0.001;
+    let generator = OrderGenerator::new(sf, 1, 1);
+    test_generator(generator.iter(), "data/sf-0.001/orders.tbl.gz", |order| {
+        format!(
+            "{}|{}|{}|{:.2}|{}|{}|{}|{}|{}|",
+            order.o_orderkey,
+            order.o_custkey,
+            order.o_orderstatus,
+            order.o_totalprice,
+            order.o_orderdate,
+            order.o_orderpriority,
+            order.o_clerk,
+            order.o_shippriority,
+            order.o_comment
+        )
+    });
 }
 
 #[test]
 fn test_lineitem_sf_0_001() {
-    test_generator(
-        |sf| LineItemGenerator::new(sf, 1, 1).iter(),
-        "data/sf-0.001/lineitem.tbl.gz",
-        0.001,
-        |item| {
-            format!(
-                "{}|{}|{}|{}|{:.2}|{:.2}|{:.2}|{:.2}|{}|{}|{}|{}|{}|{}|{}|{}|",
-                item.l_orderkey,
-                item.l_partkey,
-                item.l_suppkey,
-                item.l_linenumber,
-                item.l_quantity,
-                item.l_extendedprice,
-                item.l_discount,
-                item.l_tax,
-                item.l_returnflag,
-                item.l_linestatus,
-                item.l_shipdate,
-                item.l_commitdate,
-                item.l_receiptdate,
-                item.l_shipinstruct,
-                item.l_shipmode,
-                item.l_comment
-            )
-        },
-    );
+    let sf = 0.001;
+    let generator = LineItemGenerator::new(sf, 1, 1);
+    test_generator(generator.iter(), "data/sf-0.001/lineitem.tbl.gz", |item| {
+        format!(
+            "{}|{}|{}|{}|{:.2}|{:.2}|{:.2}|{:.2}|{}|{}|{}|{}|{}|{}|{}|{}|",
+            item.l_orderkey,
+            item.l_partkey,
+            item.l_suppkey,
+            item.l_linenumber,
+            item.l_quantity,
+            item.l_extendedprice,
+            item.l_discount,
+            item.l_tax,
+            item.l_returnflag,
+            item.l_linestatus,
+            item.l_shipdate,
+            item.l_commitdate,
+            item.l_receiptdate,
+            item.l_shipinstruct,
+            item.l_shipmode,
+            item.l_comment
+        )
+    });
 }
 
 #[test]
 fn test_nation_sf_0_01() {
-    test_generator(
-        |_| NationGenerator::new().iter(),
-        "data/sf-0.01/nation.tbl.gz",
-        0.01,
-        |nation| {
-            format!(
-                "{}|{}|{}|{}|",
-                nation.n_nationkey, nation.n_name, nation.n_regionkey, nation.n_comment
-            )
-        },
-    );
+    let _sf = 0.01;
+    let generator = NationGenerator::new();
+    test_generator(generator.iter(), "data/sf-0.01/nation.tbl.gz", |nation| {
+        format!(
+            "{}|{}|{}|{}|",
+            nation.n_nationkey, nation.n_name, nation.n_regionkey, nation.n_comment
+        )
+    });
 }
 
 #[test]
 fn test_region_sf_0_01() {
-    test_generator(
-        |_| RegionGenerator::new().iter(),
-        "data/sf-0.01/region.tbl.gz",
-        0.01,
-        |region| {
-            format!(
-                "{}|{}|{}|",
-                region.r_regionkey, region.r_name, region.r_comment
-            )
-        },
-    );
+    let _sf = 0.01;
+    let generator = RegionGenerator::new();
+    test_generator(generator.iter(), "data/sf-0.01/region.tbl.gz", |region| {
+        format!(
+            "{}|{}|{}|",
+            region.r_regionkey, region.r_name, region.r_comment
+        )
+    });
 }
 
 #[test]
 fn test_part_sf_0_01() {
-    test_generator(
-        |sf| PartGenerator::new(sf, 1, 1).iter(),
-        "data/sf-0.01/part.tbl.gz",
-        0.01,
-        |part| {
-            format!(
-                "{}|{}|{}|{}|{}|{}|{}|{:.2}|{}|",
-                part.p_partkey,
-                part.p_name,
-                part.p_mfgr,
-                part.p_brand,
-                part.p_type,
-                part.p_size,
-                part.p_container,
-                part.p_retailprice,
-                part.p_comment
-            )
-        },
-    );
+    let sf = 0.01;
+    let generator = PartGenerator::new(sf, 1, 1);
+    test_generator(generator.iter(), "data/sf-0.01/part.tbl.gz", |part| {
+        format!(
+            "{}|{}|{}|{}|{}|{}|{}|{:.2}|{}|",
+            part.p_partkey,
+            part.p_name,
+            part.p_mfgr,
+            part.p_brand,
+            part.p_type,
+            part.p_size,
+            part.p_container,
+            part.p_retailprice,
+            part.p_comment
+        )
+    });
 }
 
 #[test]
 fn test_supplier_sf_0_01() {
+    let sf = 0.01;
+    let generator = SupplierGenerator::new(sf, 1, 1);
     test_generator(
-        |sf| SupplierGenerator::new(sf, 1, 1).iter(),
+        generator.iter(),
         "data/sf-0.01/supplier.tbl.gz",
-        0.01,
         |supplier| {
             format!(
                 "{}|{}|{}|{}|{}|{:.2}|{}|",
@@ -299,25 +269,23 @@ fn test_supplier_sf_0_01() {
 
 #[test]
 fn test_partsupp_sf_0_01() {
-    test_generator(
-        |sf| PartSupplierGenerator::new(sf, 1, 1).iter(),
-        "data/sf-0.01/partsupp.tbl.gz",
-        0.01,
-        |ps| {
-            format!(
-                "{}|{}|{}|{:.2}|{}|",
-                ps.ps_partkey, ps.ps_suppkey, ps.ps_availqty, ps.ps_supplycost, ps.ps_comment
-            )
-        },
-    );
+    let sf = 0.01;
+    let generator = PartSupplierGenerator::new(sf, 1, 1);
+    test_generator(generator.iter(), "data/sf-0.01/partsupp.tbl.gz", |ps| {
+        format!(
+            "{}|{}|{}|{:.2}|{}|",
+            ps.ps_partkey, ps.ps_suppkey, ps.ps_availqty, ps.ps_supplycost, ps.ps_comment
+        )
+    });
 }
 
 #[test]
 fn test_customer_sf_0_01() {
+    let sf = 0.01;
+    let generator = CustomerGenerator::new(sf, 1, 1);
     test_generator(
-        |sf| CustomerGenerator::new(sf, 1, 1).iter(),
+        generator.iter(),
         "data/sf-0.01/customer.tbl.gz",
-        0.01,
         |customer| {
             format!(
                 "{}|{}|{}|{}|{}|{:.2}|{}|{}|",
@@ -336,53 +304,47 @@ fn test_customer_sf_0_01() {
 
 #[test]
 fn test_orders_sf_0_01() {
-    test_generator(
-        |sf| OrderGenerator::new(sf, 1, 1).iter(),
-        "data/sf-0.01/orders.tbl.gz",
-        0.01,
-        |order| {
-            format!(
-                "{}|{}|{}|{:.2}|{}|{}|{}|{}|{}|",
-                order.o_orderkey,
-                order.o_custkey,
-                order.o_orderstatus,
-                order.o_totalprice,
-                order.o_orderdate,
-                order.o_orderpriority,
-                order.o_clerk,
-                order.o_shippriority,
-                order.o_comment
-            )
-        },
-    );
+    let sf = 0.01;
+    let generator = OrderGenerator::new(sf, 1, 1);
+    test_generator(generator.iter(), "data/sf-0.01/orders.tbl.gz", |order| {
+        format!(
+            "{}|{}|{}|{:.2}|{}|{}|{}|{}|{}|",
+            order.o_orderkey,
+            order.o_custkey,
+            order.o_orderstatus,
+            order.o_totalprice,
+            order.o_orderdate,
+            order.o_orderpriority,
+            order.o_clerk,
+            order.o_shippriority,
+            order.o_comment
+        )
+    });
 }
 
 #[test]
 fn test_lineitem_sf_0_01() {
-    test_generator(
-        |sf| LineItemGenerator::new(sf, 1, 1).iter(),
-        "data/sf-0.01/lineitem.tbl.gz",
-        0.01,
-        |item| {
-            format!(
-                "{}|{}|{}|{}|{}|{:.2}|{:.2}|{:.2}|{}|{}|{}|{}|{}|{}|{}|{}|",
-                item.l_orderkey,
-                item.l_partkey,
-                item.l_suppkey,
-                item.l_linenumber,
-                item.l_quantity,
-                item.l_extendedprice,
-                item.l_discount,
-                item.l_tax,
-                item.l_returnflag,
-                item.l_linestatus,
-                item.l_shipdate,
-                item.l_commitdate,
-                item.l_receiptdate,
-                item.l_shipinstruct,
-                item.l_shipmode,
-                item.l_comment
-            )
-        },
-    );
+    let sf = 0.01;
+    let generator = LineItemGenerator::new(sf, 1, 1);
+    test_generator(generator.iter(), "data/sf-0.01/lineitem.tbl.gz", |item| {
+        format!(
+            "{}|{}|{}|{}|{}|{:.2}|{:.2}|{:.2}|{}|{}|{}|{}|{}|{}|{}|{}|",
+            item.l_orderkey,
+            item.l_partkey,
+            item.l_suppkey,
+            item.l_linenumber,
+            item.l_quantity,
+            item.l_extendedprice,
+            item.l_discount,
+            item.l_tax,
+            item.l_returnflag,
+            item.l_linestatus,
+            item.l_shipdate,
+            item.l_commitdate,
+            item.l_receiptdate,
+            item.l_shipinstruct,
+            item.l_shipmode,
+            item.l_comment
+        )
+    });
 }
