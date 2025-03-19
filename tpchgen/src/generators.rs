@@ -152,6 +152,7 @@ impl<'a> Iterator for NationGeneratorIterator<'a> {
 }
 
 /// The REGION table
+
 /// The Display trait is implemented to format the line item data as a string
 /// in the default TPC-H 'tbl' format.
 ///
