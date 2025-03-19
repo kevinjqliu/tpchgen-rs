@@ -147,17 +147,7 @@ fn generate_supplier(cli: &Cli) -> io::Result<()> {
 
     let generator = SupplierGenerator::new(cli.scale_factor, cli.part, cli.parts);
     for supplier in generator.iter() {
-        writeln!(
-            writer,
-            "{}|{}|{}|{}|{}|{:.2}|{}|",
-            supplier.s_suppkey,
-            supplier.s_name,
-            supplier.s_address,
-            supplier.s_nationkey,
-            supplier.s_phone,
-            supplier.s_acctbal,
-            supplier.s_comment
-        )?;
+        writeln!(writer, "{supplier}")?;
     }
     writer.flush()
 }
@@ -179,18 +169,7 @@ fn generate_customer(cli: &Cli) -> io::Result<()> {
 
     let generator = CustomerGenerator::new(cli.scale_factor, cli.part, cli.parts);
     for customer in generator.iter() {
-        writeln!(
-            writer,
-            "{}|{}|{}|{}|{}|{:.2}|{}|{}|",
-            customer.c_custkey,
-            customer.c_name,
-            customer.c_address,
-            customer.c_nationkey,
-            customer.c_phone,
-            customer.c_acctbal,
-            customer.c_mktsegment,
-            customer.c_comment
-        )?;
+        writeln!(writer, "{customer}",)?;
     }
     writer.flush()
 }

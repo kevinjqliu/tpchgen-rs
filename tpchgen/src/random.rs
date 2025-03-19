@@ -405,7 +405,7 @@ impl RandomPhoneNumber {
 /// ```text
 /// 27-918-335-1736
 /// ```
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub struct PhoneNumberInstance {
     country_code: i32,
     local1: i32,
@@ -528,7 +528,7 @@ impl<'a> RandomStringSequence<'a> {
 /// ```text
 /// "value1 value2 value3"
 /// ```
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub struct StringSequenceInstance<'a> {
     values: Vec<&'a str>,
 }

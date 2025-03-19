@@ -3,10 +3,10 @@ use core::fmt;
 use crate::dates;
 use crate::distribution::Distribution;
 use crate::distribution::Distributions;
-use crate::random::RandomAlphaNumeric;
-use crate::random::RandomBoundedLong;
 use crate::random::RandomPhoneNumber;
 use crate::random::RowRandomInt;
+use crate::random::{PhoneNumberInstance, RandomBoundedLong};
+use crate::random::{RandomAlphaNumeric, StringSequenceInstance};
 use crate::text::TextPool;
 
 use crate::dates::{GenerateUtils, TPCHDate};
@@ -272,11 +272,11 @@ pub struct Part<'a> {
     /// Primary key
     pub p_partkey: i64,
     /// Part name
-    pub p_name: String,
-    /// Part manufacturer
-    pub p_mfgr: String,
-    /// Part brand
-    pub p_brand: String,
+    pub p_name: StringSequenceInstance<'a>,
+    /// Part manufacturer. Formatted as "Manufacturer#<n>"
+    pub p_mfgr: i32,
+    /// Part brand. Formatted as "Brand#<n>"
+    pub p_brand: i32,
     /// Part type
     pub p_type: &'a str,
     /// Part size
@@ -293,7 +293,7 @@ impl fmt::Display for Part<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}|{}|{}|{}|{}|{}|{}|{:.2}|{}|",
+            "{}|{}|Manufacturer#{}|Brand#{}|{}|{}|{}|{:.2}|{}|",
             self.p_partkey,
             self.p_name,
             self.p_mfgr,
@@ -463,9 +463,9 @@ impl<'a> PartGeneratorIterator<'a> {
 
         Part {
             p_partkey: part_key,
-            p_name: name.to_string(),
-            p_mfgr: format!("Manufacturer#{}", manufacturer),
-            p_brand: format!("Brand#{}", brand),
+            p_name: name,
+            p_mfgr: manufacturer,
+            p_brand: brand,
             p_type: self.type_random.next_value(),
             p_size: self.size_random.next_value(),
             p_container: self.container_random.next_value(),
@@ -515,14 +515,14 @@ impl<'a> Iterator for PartGeneratorIterator<'a> {
 pub struct Supplier {
     /// Primary key
     pub s_suppkey: i64,
-    /// Supplier name
-    pub s_name: String,
+    /// Supplier name. Formatted as "Supplier#<n>"
+    pub s_name: i64,
     /// Supplier address
     pub s_address: String,
     /// Foreign key to NATION
     pub s_nationkey: i64,
     /// Supplier phone number
-    pub s_phone: String,
+    pub s_phone: PhoneNumberInstance,
     /// Supplier account balance
     pub s_acctbal: f64,
     /// Variable length comment
@@ -533,7 +533,7 @@ impl fmt::Display for Supplier {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}|{}|{}|{}|{}|{:.2}|{}|",
+            "{}|Supplier#{:09}|{}|{}|{}|{:.2}|{}|",
             self.s_suppkey,
             self.s_name,
             self.s_address,
@@ -751,10 +751,10 @@ impl<'a> SupplierGeneratorIterator<'a> {
 
         Supplier {
             s_suppkey: supplier_key,
-            s_name: format!("Supplier#{:09}", supplier_key),
+            s_name: supplier_key,
             s_address: self.address_random.next_value().to_string(),
             s_nationkey: nation_key,
-            s_phone: self.phone_random.next_value(nation_key).to_string(),
+            s_phone: self.phone_random.next_value(nation_key),
             s_acctbal: self.account_balance_random.next_value() as f64 / 100.0,
             s_comment: comment,
         }
@@ -789,30 +789,30 @@ impl Iterator for SupplierGeneratorIterator<'_> {
 
 /// The CUSTOMER table
 #[derive(Debug, Clone, PartialEq)]
-pub struct Customer {
+pub struct Customer<'a> {
     /// Primary key
     pub c_custkey: i64,
-    /// Customer name
-    pub c_name: String,
+    /// Customer name: Formatted as "Customer#<n>"
+    pub c_name: i64,
     /// Customer address
     pub c_address: String,
     /// Foreign key to NATION
     pub c_nationkey: i64,
     /// Customer phone number
-    pub c_phone: String,
+    pub c_phone: PhoneNumberInstance,
     /// Customer account balance
     pub c_acctbal: f64,
     /// Customer market segment
-    pub c_mktsegment: String,
+    pub c_mktsegment: &'a str,
     /// Variable length comment
-    pub c_comment: String,
+    pub c_comment: &'a str,
 }
 
-impl fmt::Display for Customer {
+impl fmt::Display for Customer<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}|{}|{}|{}|{}|{:.2}|{}|{}|",
+            "{}|Customer#{:09}|{}|{}|{}|{:.2}|{}|{}|",
             self.c_custkey,
             self.c_name,
             self.c_address,
@@ -894,7 +894,7 @@ impl<'a> CustomerGenerator<'a> {
 }
 
 impl<'a> IntoIterator for &'a CustomerGenerator<'a> {
-    type Item = Customer;
+    type Item = Customer<'a>;
     type IntoIter = CustomerGeneratorIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -963,24 +963,24 @@ impl<'a> CustomerGeneratorIterator<'a> {
     }
 
     /// Creates a customer with the given key
-    fn make_customer(&mut self, customer_key: i64) -> Customer {
+    fn make_customer(&mut self, customer_key: i64) -> Customer<'a> {
         let nation_key = self.nation_key_random.next_value() as i64;
 
         Customer {
             c_custkey: customer_key,
-            c_name: format!("Customer#{:09}", customer_key),
+            c_name: customer_key,
             c_address: self.address_random.next_value().to_string(),
             c_nationkey: nation_key,
-            c_phone: self.phone_random.next_value(nation_key).to_string(),
+            c_phone: self.phone_random.next_value(nation_key),
             c_acctbal: self.account_balance_random.next_value() as f64 / 100.0,
-            c_mktsegment: self.market_segment_random.next_value().to_string(),
-            c_comment: self.comment_random.next_value().to_string(),
+            c_mktsegment: self.market_segment_random.next_value(),
+            c_comment: self.comment_random.next_value(),
         }
     }
 }
 
-impl Iterator for CustomerGeneratorIterator<'_> {
-    type Item = Customer;
+impl<'a> Iterator for CustomerGeneratorIterator<'a> {
+    type Item = Customer<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index >= self.row_count {
@@ -1229,9 +1229,9 @@ pub struct Order<'a> {
     /// Order date
     pub o_orderdate: TPCHDate,
     /// Order priority
-    pub o_orderpriority: String,
-    /// Clerk who processed the order
-    pub o_clerk: String,
+    pub o_orderpriority: &'a str,
+    /// Clerk who processed the order. Formatted as "Clerk#<n>"
+    pub o_clerk: i32,
     /// Order shipping priority
     pub o_shippriority: i32,
     /// Variable length comment
@@ -1242,7 +1242,7 @@ impl fmt::Display for Order<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}|{}|{}|{:.2}|{}|{}|{}|{}|{}|",
+            "{}|{}|{}|{:.2}|{}|{}|Clerk#{:09}|{}|{}|",
             self.o_orderkey,
             self.o_custkey,
             self.o_orderstatus,
@@ -1507,8 +1507,8 @@ impl<'a> OrderGeneratorIterator<'a> {
             o_orderstatus: order_status,
             o_totalprice: total_price as f64 / 100.,
             o_orderdate: TPCHDate::new(order_date),
-            o_orderpriority: self.order_priority_random.next_value().to_string(),
-            o_clerk: format!("Clerk#{:09}", self.clerk_random.next_value()),
+            o_orderpriority: self.order_priority_random.next_value(),
+            o_clerk: self.clerk_random.next_value(),
             o_shippriority: 0, // Fixed value per TPC-H spec
             o_comment: self.comment_random.next_value(),
         }
