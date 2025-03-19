@@ -2118,8 +2118,7 @@ mod tests {
         // Check first supplier
         let first = &suppliers[0];
         assert_eq!(first.s_suppkey, 1);
-        assert_eq!(first.s_name, "Supplier#000000001");
-        assert!(!first.s_address.is_empty());
+        assert_eq!(first.to_string(), "1|Supplier#000000001| N kD4on9OM Ipw3,gf0JBoQDd7tgrzrddZ|17|27-918-335-1736|5755.94|each slyly above the careful|")
     }
 
     #[test]
@@ -2134,8 +2133,7 @@ mod tests {
         // Check first customer
         let first = &customers[0];
         assert_eq!(first.c_custkey, 1);
-        assert_eq!(first.c_name, "Customer#000000001");
-        assert!(!first.c_address.is_empty());
+        assert_eq!(first.to_string(), "1|Customer#000000001|IVhzIApeRb ot,c,E|15|25-989-741-2988|711.56|BUILDING|to the even, regular platelets. regular, ironic epitaphs nag e|");
 
         // Check market segment distribution
         let market_segments: std::collections::HashSet<_> =
