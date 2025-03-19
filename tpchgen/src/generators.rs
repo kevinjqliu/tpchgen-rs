@@ -5,8 +5,8 @@ use crate::distribution::Distribution;
 use crate::distribution::Distributions;
 use crate::random::RandomPhoneNumber;
 use crate::random::RowRandomInt;
-use crate::random::{PhoneNumberInstance, RandomBoundedLong};
-use crate::random::{RandomAlphaNumeric, StringSequenceInstance};
+use crate::random::{PhoneNumberInstance, RandomBoundedLong, StringSequenceInstance};
+use crate::random::{RandomAlphaNumeric, RandomAlphaNumericInstance};
 use crate::text::TextPool;
 
 use crate::dates::{GenerateUtils, TPCHDate};
@@ -14,7 +14,7 @@ use crate::random::{RandomBoundedInt, RandomString, RandomStringSequence, Random
 
 /// Generator for Nation table data
 pub struct NationGenerator<'a> {
-    distributions: Distributions,
+    distributions: &'a Distributions,
     text_pool: &'a TextPool,
 }
 
@@ -28,14 +28,14 @@ impl<'a> NationGenerator<'a> {
     /// Creates a new NationGenerator with default distributions and text pool
     pub fn new() -> Self {
         Self::new_with_distributions_and_text_pool(
-            Distributions::default(),
+            Distributions::static_default(),
             TextPool::get_or_init_default(),
         )
     }
 
     /// Creates a NationGenerator with the specified distributions and text pool
     pub fn new_with_distributions_and_text_pool(
-        distributions: Distributions,
+        distributions: &'a Distributions,
         text_pool: &'a TextPool,
     ) -> Self {
         NationGenerator {
@@ -45,12 +45,12 @@ impl<'a> NationGenerator<'a> {
     }
 
     /// Returns an iterator over the nation rows
-    pub fn iter(&self) -> NationGeneratorIterator {
+    pub fn iter(&self) -> NationGeneratorIterator<'a> {
         NationGeneratorIterator::new(self.distributions.nations(), self.text_pool)
     }
 }
 
-impl<'a> IntoIterator for &'a NationGenerator<'a> {
+impl<'a> IntoIterator for NationGenerator<'a> {
     type Item = Nation<'a>;
     type IntoIter = NationGeneratorIterator<'a>;
 
@@ -192,7 +192,7 @@ impl<'a> Region<'a> {
 
 /// Generator for Region table data
 pub struct RegionGenerator<'a> {
-    distributions: Distributions,
+    distributions: &'a Distributions,
     text_pool: &'a TextPool,
 }
 
@@ -206,14 +206,14 @@ impl<'a> RegionGenerator<'a> {
     /// Creates a new RegionGenerator with default distributions and text pool
     pub fn new() -> Self {
         Self::new_with_distributions_and_text_pool(
-            Distributions::default(),
+            Distributions::static_default(),
             TextPool::get_or_init_default(),
         )
     }
 
     /// Creates a RegionGenerator with the specified distributions and text pool
     pub fn new_with_distributions_and_text_pool(
-        distributions: Distributions,
+        distributions: &'a Distributions,
         text_pool: &'a TextPool,
     ) -> Self {
         RegionGenerator {
@@ -223,7 +223,7 @@ impl<'a> RegionGenerator<'a> {
     }
 
     /// Returns an iterator over the region rows
-    pub fn iter(&self) -> RegionGeneratorIterator {
+    pub fn iter(&self) -> RegionGeneratorIterator<'a> {
         RegionGeneratorIterator::new(self.distributions.regions(), self.text_pool)
     }
 }
@@ -367,7 +367,7 @@ pub struct PartGenerator<'a> {
     scale_factor: f64,
     part: i32,
     part_count: i32,
-    distributions: Distributions,
+    distributions: &'a Distributions,
     text_pool: &'a TextPool,
 }
 
@@ -390,7 +390,7 @@ impl<'a> PartGenerator<'a> {
             scale_factor,
             part,
             part_count,
-            Distributions::default(),
+            Distributions::static_default(),
             TextPool::get_or_init_default(),
         )
     }
@@ -400,7 +400,7 @@ impl<'a> PartGenerator<'a> {
         scale_factor: f64,
         part: i32,
         part_count: i32,
-        distributions: Distributions,
+        distributions: &'a Distributions,
         text_pool: &'a TextPool,
     ) -> Self {
         PartGenerator {
@@ -413,9 +413,9 @@ impl<'a> PartGenerator<'a> {
     }
 
     /// Returns an iterator over the part rows
-    pub fn iter(&self) -> PartGeneratorIterator {
+    pub fn iter(&self) -> PartGeneratorIterator<'a> {
         PartGeneratorIterator::new(
-            &self.distributions,
+            self.distributions,
             self.text_pool,
             GenerateUtils::calculate_start_index(
                 Self::SCALE_BASE,
@@ -598,7 +598,7 @@ pub struct Supplier {
     /// Supplier name.
     pub s_name: SupplierName,
     /// Supplier address
-    pub s_address: String,
+    pub s_address: RandomAlphaNumericInstance,
     /// Foreign key to NATION
     pub s_nationkey: i64,
     /// Supplier phone number
@@ -630,7 +630,7 @@ pub struct SupplierGenerator<'a> {
     scale_factor: f64,
     part: i32,
     part_count: i32,
-    distributions: Distributions,
+    distributions: &'a Distributions,
     text_pool: &'a TextPool,
 }
 
@@ -659,7 +659,7 @@ impl<'a> SupplierGenerator<'a> {
             scale_factor,
             part,
             part_count,
-            Distributions::default(),
+            Distributions::static_default(),
             TextPool::get_or_init_default(),
         )
     }
@@ -669,7 +669,7 @@ impl<'a> SupplierGenerator<'a> {
         scale_factor: f64,
         part: i32,
         part_count: i32,
-        distributions: Distributions,
+        distributions: &'a Distributions,
         text_pool: &'a TextPool,
     ) -> Self {
         SupplierGenerator {
@@ -682,9 +682,9 @@ impl<'a> SupplierGenerator<'a> {
     }
 
     /// Returns an iterator over the supplier rows
-    pub fn iter(&self) -> SupplierGeneratorIterator {
+    pub fn iter(&self) -> SupplierGeneratorIterator<'a> {
         SupplierGeneratorIterator::new(
-            &self.distributions,
+            self.distributions,
             self.text_pool,
             GenerateUtils::calculate_start_index(
                 Self::SCALE_BASE,
@@ -832,7 +832,7 @@ impl<'a> SupplierGeneratorIterator<'a> {
         Supplier {
             s_suppkey: supplier_key,
             s_name: SupplierName::new(supplier_key),
-            s_address: self.address_random.next_value().to_string(),
+            s_address: self.address_random.next_value(),
             s_nationkey: nation_key,
             s_phone: self.phone_random.next_value(nation_key),
             s_acctbal: self.account_balance_random.next_value() as f64 / 100.0,
@@ -900,7 +900,7 @@ pub struct Customer<'a> {
     /// Customer name
     pub c_name: CustomerName,
     /// Customer address
-    pub c_address: String,
+    pub c_address: RandomAlphaNumericInstance,
     /// Foreign key to NATION
     pub c_nationkey: i64,
     /// Customer phone number
@@ -935,7 +935,7 @@ pub struct CustomerGenerator<'a> {
     scale_factor: f64,
     part: i32,
     part_count: i32,
-    distributions: Distributions,
+    distributions: &'a Distributions,
     text_pool: &'a TextPool,
 }
 
@@ -955,7 +955,7 @@ impl<'a> CustomerGenerator<'a> {
             scale_factor,
             part,
             part_count,
-            Distributions::default(),
+            Distributions::static_default(),
             TextPool::get_or_init_default(),
         )
     }
@@ -965,7 +965,7 @@ impl<'a> CustomerGenerator<'a> {
         scale_factor: f64,
         part: i32,
         part_count: i32,
-        distributions: Distributions,
+        distributions: &'a Distributions,
         text_pool: &'a TextPool,
     ) -> Self {
         CustomerGenerator {
@@ -978,9 +978,9 @@ impl<'a> CustomerGenerator<'a> {
     }
 
     /// Returns an iterator over the customer rows
-    pub fn iter(&self) -> CustomerGeneratorIterator {
+    pub fn iter(&self) -> CustomerGeneratorIterator<'a> {
         CustomerGeneratorIterator::new(
-            &self.distributions,
+            self.distributions,
             self.text_pool,
             GenerateUtils::calculate_start_index(
                 Self::SCALE_BASE,
@@ -1074,7 +1074,7 @@ impl<'a> CustomerGeneratorIterator<'a> {
         Customer {
             c_custkey: customer_key,
             c_name: CustomerName::new(customer_key),
-            c_address: self.address_random.next_value().to_string(),
+            c_address: self.address_random.next_value(),
             c_nationkey: nation_key,
             c_phone: self.phone_random.next_value(nation_key),
             c_acctbal: self.account_balance_random.next_value() as f64 / 100.0,
@@ -1184,7 +1184,7 @@ impl<'a> PartSupplierGenerator<'a> {
     }
 
     /// Returns an iterator over the part supplier rows
-    pub fn iter(&self) -> PartSupplierGeneratorIterator {
+    pub fn iter(&self) -> PartSupplierGeneratorIterator<'a> {
         // Use the part generator's scale base for start/row calculation
         let scale_base = PartGenerator::SCALE_BASE;
 
@@ -1399,7 +1399,7 @@ pub struct OrderGenerator<'a> {
     scale_factor: f64,
     part: i32,
     part_count: i32,
-    distributions: Distributions,
+    distributions: &'a Distributions,
     text_pool: &'a TextPool,
 }
 
@@ -1427,7 +1427,7 @@ impl<'a> OrderGenerator<'a> {
             scale_factor,
             part,
             part_count,
-            Distributions::default(),
+            Distributions::static_default(),
             TextPool::get_or_init_default(),
         )
     }
@@ -1437,7 +1437,7 @@ impl<'a> OrderGenerator<'a> {
         scale_factor: f64,
         part: i32,
         part_count: i32,
-        distributions: Distributions,
+        distributions: &'a Distributions,
         text_pool: &'a TextPool,
     ) -> Self {
         OrderGenerator {
@@ -1450,9 +1450,9 @@ impl<'a> OrderGenerator<'a> {
     }
 
     /// Returns an iterator over the order rows
-    pub fn iter(&self) -> OrderGeneratorIterator {
+    pub fn iter(&self) -> OrderGeneratorIterator<'a> {
         OrderGeneratorIterator::new(
-            &self.distributions,
+            self.distributions,
             self.text_pool,
             self.scale_factor,
             GenerateUtils::calculate_start_index(
@@ -1761,7 +1761,7 @@ pub struct LineItemGenerator<'a> {
     scale_factor: f64,
     part: i32,
     part_count: i32,
-    distributions: Distributions,
+    distributions: &'a Distributions,
     text_pool: &'a TextPool,
 }
 
@@ -1792,7 +1792,7 @@ impl<'a> LineItemGenerator<'a> {
             scale_factor,
             part,
             part_count,
-            Distributions::default(),
+            Distributions::static_default(),
             TextPool::get_or_init_default(),
         )
     }
@@ -1802,7 +1802,7 @@ impl<'a> LineItemGenerator<'a> {
         scale_factor: f64,
         part: i32,
         part_count: i32,
-        distributions: Distributions,
+        distributions: &'a Distributions,
         text_pool: &'a TextPool,
     ) -> Self {
         LineItemGenerator {
@@ -1815,9 +1815,9 @@ impl<'a> LineItemGenerator<'a> {
     }
 
     /// Returns an iterator over the line item rows
-    pub fn iter(&self) -> LineItemGeneratorIterator {
+    pub fn iter(&self) -> LineItemGeneratorIterator<'a> {
         LineItemGeneratorIterator::new(
-            &self.distributions,
+            self.distributions,
             self.text_pool,
             self.scale_factor,
             GenerateUtils::calculate_start_index(
@@ -2411,5 +2411,21 @@ mod tests {
             line_items.iter().map(|l| &l.l_linestatus).collect();
 
         assert!(!line_statuses.is_empty());
+    }
+
+    #[test]
+    fn check_iter_static_lifetimes() {
+        // Lifetimes of iterators should be independent of the generator that
+        // created it. This test case won't compile if that's not the case.
+
+        let _iter: NationGeneratorIterator<'static> = NationGenerator::new().iter();
+        let _iter: RegionGeneratorIterator<'static> = RegionGenerator::new().iter();
+        let _iter: PartGeneratorIterator<'static> = PartGenerator::new(0.1, 1, 1).iter();
+        let _iter: SupplierGeneratorIterator<'static> = SupplierGenerator::new(0.1, 1, 1).iter();
+        let _iter: CustomerGeneratorIterator<'static> = CustomerGenerator::new(0.1, 1, 1).iter();
+        let _iter: PartSupplierGeneratorIterator<'static> =
+            PartSupplierGenerator::new(0.1, 1, 1).iter();
+        let _iter: OrderGeneratorIterator<'static> = OrderGenerator::new(0.1, 1, 1).iter();
+        let _iter: LineItemGeneratorIterator<'static> = LineItemGenerator::new(0.1, 1, 1).iter();
     }
 }
