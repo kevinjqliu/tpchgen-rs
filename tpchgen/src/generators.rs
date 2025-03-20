@@ -1,6 +1,7 @@
 use core::fmt;
 
 use crate::dates;
+use crate::decimal::TPCHDecimal;
 use crate::distribution::Distribution;
 use crate::distribution::Distributions;
 use crate::random::RandomPhoneNumber;
@@ -344,7 +345,7 @@ pub struct Part<'a> {
     /// Part container
     pub p_container: &'a str,
     /// Part retail price
-    pub p_retailprice: f64,
+    pub p_retailprice: TPCHDecimal,
     /// Variable length comment
     pub p_comment: &'a str,
 }
@@ -353,7 +354,7 @@ impl fmt::Display for Part<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}|{}|{}|{}|{}|{}|{}|{:.2}|{}|",
+            "{}|{}|{}|{}|{}|{}|{}|{}|{}|",
             self.p_partkey,
             self.p_name,
             self.p_mfgr,
@@ -531,7 +532,7 @@ impl<'a> PartGeneratorIterator<'a> {
             p_type: self.type_random.next_value(),
             p_size: self.size_random.next_value(),
             p_container: self.container_random.next_value(),
-            p_retailprice: Self::calculate_part_price(part_key) as f64 / 100.0,
+            p_retailprice: TPCHDecimal(Self::calculate_part_price(part_key)),
             p_comment: self.comment_random.next_value(),
         }
     }
@@ -611,7 +612,7 @@ pub struct Supplier {
     /// Supplier phone number
     pub s_phone: PhoneNumberInstance,
     /// Supplier account balance
-    pub s_acctbal: f64,
+    pub s_acctbal: TPCHDecimal,
     /// Variable length comment
     pub s_comment: String,
 }
@@ -620,7 +621,7 @@ impl fmt::Display for Supplier {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}|{}|{}|{}|{}|{:.2}|{}|",
+            "{}|{}|{}|{}|{}|{}|{}|",
             self.s_suppkey,
             self.s_name,
             self.s_address,
@@ -844,7 +845,7 @@ impl<'a> SupplierGeneratorIterator<'a> {
             s_address: self.address_random.next_value(),
             s_nationkey: nation_key,
             s_phone: self.phone_random.next_value(nation_key),
-            s_acctbal: self.account_balance_random.next_value() as f64 / 100.0,
+            s_acctbal: TPCHDecimal(self.account_balance_random.next_value() as i64),
             s_comment: comment,
         }
     }
@@ -915,7 +916,7 @@ pub struct Customer<'a> {
     /// Customer phone number
     pub c_phone: PhoneNumberInstance,
     /// Customer account balance
-    pub c_acctbal: f64,
+    pub c_acctbal: TPCHDecimal,
     /// Customer market segment
     pub c_mktsegment: &'a str,
     /// Variable length comment
@@ -926,7 +927,7 @@ impl fmt::Display for Customer<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}|{}|{}|{}|{}|{:.2}|{}|{}|",
+            "{}|{}|{}|{}|{}|{}|{}|{}|",
             self.c_custkey,
             self.c_name,
             self.c_address,
@@ -1088,7 +1089,7 @@ impl<'a> CustomerGeneratorIterator<'a> {
             c_address: self.address_random.next_value(),
             c_nationkey: nation_key,
             c_phone: self.phone_random.next_value(nation_key),
-            c_acctbal: self.account_balance_random.next_value() as f64 / 100.0,
+            c_acctbal: TPCHDecimal(self.account_balance_random.next_value() as i64),
             c_mktsegment: self.market_segment_random.next_value(),
             c_comment: self.comment_random.next_value(),
         }
@@ -1136,7 +1137,7 @@ pub struct PartSupp<'a> {
     /// Available quantity
     pub ps_availqty: i32,
     /// Supplier cost
-    pub ps_supplycost: f64,
+    pub ps_supplycost: TPCHDecimal,
     /// Variable length comment
     pub ps_comment: &'a str,
 }
@@ -1145,7 +1146,7 @@ impl fmt::Display for PartSupp<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}|{}|{}|{:.2}|{}|",
+            "{}|{}|{}|{}|{}|",
             self.ps_partkey, self.ps_suppkey, self.ps_availqty, self.ps_supplycost, self.ps_comment
         )
     }
@@ -1291,7 +1292,7 @@ impl<'a> PartSupplierGeneratorIterator<'a> {
         );
 
         let ps_availqty = self.available_quantity_random.next_value();
-        let ps_supplycost = self.supply_cost_random.next_value() as f64 / 100.0;
+        let ps_supplycost = TPCHDecimal(self.supply_cost_random.next_value() as i64);
         let ps_comment = self.comment_random.next_value();
 
         PartSupp {
@@ -1378,7 +1379,7 @@ pub struct Order<'a> {
     /// Order status (F=final, O=open, P=pending)
     pub o_orderstatus: char,
     /// Order total price
-    pub o_totalprice: f64,
+    pub o_totalprice: TPCHDecimal,
     /// Order date
     pub o_orderdate: TPCHDate,
     /// Order priority
@@ -1395,7 +1396,7 @@ impl fmt::Display for Order<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}|{}|{}|{:.2}|{}|{}|{}|{}|{}|",
+            "{}|{}|{}|{}|{}|{}|{}|{}|{}|",
             self.o_orderkey,
             self.o_custkey,
             self.o_orderstatus,
@@ -1663,7 +1664,7 @@ impl<'a> OrderGeneratorIterator<'a> {
             o_orderkey: order_key,
             o_custkey: customer_key,
             o_orderstatus: order_status,
-            o_totalprice: total_price as f64 / 100.,
+            o_totalprice: TPCHDecimal(total_price),
             o_orderdate: TPCHDate::new(order_date),
             o_orderpriority: self.order_priority_random.next_value(),
             o_clerk: clerk_name,
@@ -1723,13 +1724,14 @@ pub struct LineItem<'a> {
     /// Line item number within order
     pub l_linenumber: i32,
     /// Quantity ordered
+    // TODO: Spec has this as decimal.
     pub l_quantity: i64,
     /// Extended price (l_quantity * p_retailprice)
-    pub l_extendedprice: f64,
+    pub l_extendedprice: TPCHDecimal,
     /// Discount percentage
-    pub l_discount: f64,
+    pub l_discount: TPCHDecimal,
     /// Tax percentage
-    pub l_tax: f64,
+    pub l_tax: TPCHDecimal,
     /// Return flag (R=returned, A=accepted, null=pending)
     pub l_returnflag: &'a str,
     /// Line status (O=ordered, F=fulfilled)
@@ -1752,7 +1754,7 @@ impl fmt::Display for LineItem<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}|{}|{}|{}|{:.2}|{:.2}|{:.2}|{:.2}|{}|{}|{}|{}|{}|{}|{}|{}|",
+            "{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|",
             self.l_orderkey,
             self.l_partkey,
             self.l_suppkey,
@@ -1787,10 +1789,10 @@ impl<'a> LineItemGenerator<'a> {
     // Constants for line item generation
     const QUANTITY_MIN: i32 = 1;
     const QUANTITY_MAX: i32 = 50;
-    const TAX_MIN: i32 = 0;
-    const TAX_MAX: i32 = 8;
-    const DISCOUNT_MIN: i32 = 0;
-    const DISCOUNT_MAX: i32 = 10;
+    const TAX_MIN: TPCHDecimal = TPCHDecimal(0); // 0.00
+    const TAX_MAX: TPCHDecimal = TPCHDecimal(8); // 0.08
+    const DISCOUNT_MIN: TPCHDecimal = TPCHDecimal(0); // 0.00
+    const DISCOUNT_MAX: TPCHDecimal = TPCHDecimal(10); // 0.10
     const PART_KEY_MIN: i32 = 1;
 
     const SHIP_DATE_MIN: i32 = 1;
@@ -1867,8 +1869,8 @@ impl<'a> LineItemGenerator<'a> {
     pub fn create_discount_random() -> RandomBoundedInt {
         RandomBoundedInt::new_with_seeds_per_row(
             554590007,
-            Self::DISCOUNT_MIN,
-            Self::DISCOUNT_MAX,
+            Self::DISCOUNT_MIN.0 as i32,
+            Self::DISCOUNT_MAX.0 as i32,
             OrderGenerator::LINE_COUNT_MAX,
         )
     }
@@ -1877,8 +1879,8 @@ impl<'a> LineItemGenerator<'a> {
     pub fn create_tax_random() -> RandomBoundedInt {
         RandomBoundedInt::new_with_seeds_per_row(
             721958466,
-            Self::TAX_MIN,
-            Self::TAX_MAX,
+            Self::TAX_MIN.0 as i32,
+            Self::TAX_MAX.0 as i32,
             OrderGenerator::LINE_COUNT_MAX,
         )
     }
@@ -2110,9 +2112,9 @@ impl<'a> LineItemGeneratorIterator<'a> {
             l_suppkey: supplier_key,
             l_linenumber: (self.line_number + 1),
             l_quantity: quantity as i64,
-            l_extendedprice: extended_price as f64 / 100.0,
-            l_discount: discount as f64 / 100.0,
-            l_tax: tax as f64 / 100.0,
+            l_extendedprice: TPCHDecimal(extended_price),
+            l_discount: TPCHDecimal(discount as i64),
+            l_tax: TPCHDecimal(tax as i64),
             l_returnflag: returned_flag,
             l_linestatus: status,
             l_shipdate: TPCHDate::new(ship_date),
@@ -2275,7 +2277,7 @@ mod tests {
         assert_eq!(first.ps_partkey, 1);
         assert_ne!(first.ps_suppkey, 0); // Should have a valid supplier key
         assert!(first.ps_availqty > 0);
-        assert!(first.ps_supplycost > 0.0);
+        assert!(first.ps_supplycost > TPCHDecimal::ZERO);
         assert!(!first.ps_comment.is_empty());
 
         // Verify supplier distribution
@@ -2341,7 +2343,7 @@ mod tests {
         assert!(
             first.o_orderstatus == 'F' || first.o_orderstatus == 'P' || first.o_orderstatus == 'O'
         );
-        assert!(first.o_totalprice > 0.0);
+        assert!(first.o_totalprice > TPCHDecimal::ZERO);
 
         // Check order status distribution
         let status_counts =
@@ -2394,11 +2396,11 @@ mod tests {
         assert!(first.l_quantity >= LineItemGenerator::QUANTITY_MIN as i64);
         assert!(first.l_quantity <= LineItemGenerator::QUANTITY_MAX as i64);
 
-        assert!(first.l_discount >= LineItemGenerator::DISCOUNT_MIN as f64 / 100.0);
-        assert!(first.l_discount <= LineItemGenerator::DISCOUNT_MAX as f64 / 100.0);
+        assert!(first.l_discount >= LineItemGenerator::DISCOUNT_MIN);
+        assert!(first.l_discount <= LineItemGenerator::DISCOUNT_MAX);
 
-        assert!(first.l_tax >= LineItemGenerator::TAX_MIN as f64 / 100.0);
-        assert!(first.l_tax <= LineItemGenerator::TAX_MAX as f64 / 100.0);
+        assert!(first.l_tax >= LineItemGenerator::TAX_MIN);
+        assert!(first.l_tax <= LineItemGenerator::TAX_MAX);
 
         // Verify line numbers are sequential per order
         let mut order_lines = std::collections::HashMap::new();
