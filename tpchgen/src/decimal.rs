@@ -1,6 +1,6 @@
 use std::fmt;
 
-/// Represents a 'Decimal(15, 2)' value interally represented an an i64.
+/// Represents a decimal with a scale of 2.
 ///
 /// A 'decimal' column should be able to fit any values in the the range
 /// [-9_999_999_999.99, +9_999_999_999.99] in increments of 0.01.
