@@ -1,7 +1,7 @@
 use core::fmt;
 
 use crate::dates;
-use crate::decimal::Decimal;
+use crate::decimal::TPCHDecimal;
 use crate::distribution::Distribution;
 use crate::distribution::Distributions;
 use crate::random::RandomPhoneNumber;
@@ -345,7 +345,7 @@ pub struct Part<'a> {
     /// Part container
     pub p_container: &'a str,
     /// Part retail price
-    pub p_retailprice: Decimal,
+    pub p_retailprice: TPCHDecimal,
     /// Variable length comment
     pub p_comment: &'a str,
 }
@@ -532,7 +532,7 @@ impl<'a> PartGeneratorIterator<'a> {
             p_type: self.type_random.next_value(),
             p_size: self.size_random.next_value(),
             p_container: self.container_random.next_value(),
-            p_retailprice: Decimal(Self::calculate_part_price(part_key)),
+            p_retailprice: TPCHDecimal(Self::calculate_part_price(part_key)),
             p_comment: self.comment_random.next_value(),
         }
     }
@@ -612,7 +612,7 @@ pub struct Supplier {
     /// Supplier phone number
     pub s_phone: PhoneNumberInstance,
     /// Supplier account balance
-    pub s_acctbal: Decimal,
+    pub s_acctbal: TPCHDecimal,
     /// Variable length comment
     pub s_comment: String,
 }
@@ -845,7 +845,7 @@ impl<'a> SupplierGeneratorIterator<'a> {
             s_address: self.address_random.next_value(),
             s_nationkey: nation_key,
             s_phone: self.phone_random.next_value(nation_key),
-            s_acctbal: Decimal(self.account_balance_random.next_value() as i64),
+            s_acctbal: TPCHDecimal(self.account_balance_random.next_value() as i64),
             s_comment: comment,
         }
     }
@@ -916,7 +916,7 @@ pub struct Customer<'a> {
     /// Customer phone number
     pub c_phone: PhoneNumberInstance,
     /// Customer account balance
-    pub c_acctbal: Decimal,
+    pub c_acctbal: TPCHDecimal,
     /// Customer market segment
     pub c_mktsegment: &'a str,
     /// Variable length comment
@@ -1089,7 +1089,7 @@ impl<'a> CustomerGeneratorIterator<'a> {
             c_address: self.address_random.next_value(),
             c_nationkey: nation_key,
             c_phone: self.phone_random.next_value(nation_key),
-            c_acctbal: Decimal(self.account_balance_random.next_value() as i64),
+            c_acctbal: TPCHDecimal(self.account_balance_random.next_value() as i64),
             c_mktsegment: self.market_segment_random.next_value(),
             c_comment: self.comment_random.next_value(),
         }
@@ -1137,7 +1137,7 @@ pub struct PartSupp<'a> {
     /// Available quantity
     pub ps_availqty: i32,
     /// Supplier cost
-    pub ps_supplycost: Decimal,
+    pub ps_supplycost: TPCHDecimal,
     /// Variable length comment
     pub ps_comment: &'a str,
 }
@@ -1292,7 +1292,7 @@ impl<'a> PartSupplierGeneratorIterator<'a> {
         );
 
         let ps_availqty = self.available_quantity_random.next_value();
-        let ps_supplycost = Decimal(self.supply_cost_random.next_value() as i64);
+        let ps_supplycost = TPCHDecimal(self.supply_cost_random.next_value() as i64);
         let ps_comment = self.comment_random.next_value();
 
         PartSupp {
@@ -1379,7 +1379,7 @@ pub struct Order<'a> {
     /// Order status (F=final, O=open, P=pending)
     pub o_orderstatus: char,
     /// Order total price
-    pub o_totalprice: Decimal,
+    pub o_totalprice: TPCHDecimal,
     /// Order date
     pub o_orderdate: TPCHDate,
     /// Order priority
@@ -1664,7 +1664,7 @@ impl<'a> OrderGeneratorIterator<'a> {
             o_orderkey: order_key,
             o_custkey: customer_key,
             o_orderstatus: order_status,
-            o_totalprice: Decimal(total_price),
+            o_totalprice: TPCHDecimal(total_price),
             o_orderdate: TPCHDate::new(order_date),
             o_orderpriority: self.order_priority_random.next_value(),
             o_clerk: clerk_name,
@@ -1727,11 +1727,11 @@ pub struct LineItem<'a> {
     // TODO: Spec has this as decimal.
     pub l_quantity: i64,
     /// Extended price (l_quantity * p_retailprice)
-    pub l_extendedprice: Decimal,
+    pub l_extendedprice: TPCHDecimal,
     /// Discount percentage
-    pub l_discount: Decimal,
+    pub l_discount: TPCHDecimal,
     /// Tax percentage
-    pub l_tax: Decimal,
+    pub l_tax: TPCHDecimal,
     /// Return flag (R=returned, A=accepted, null=pending)
     pub l_returnflag: &'a str,
     /// Line status (O=ordered, F=fulfilled)
@@ -1789,10 +1789,10 @@ impl<'a> LineItemGenerator<'a> {
     // Constants for line item generation
     const QUANTITY_MIN: i32 = 1;
     const QUANTITY_MAX: i32 = 50;
-    const TAX_MIN: Decimal = Decimal(0); // 0.00
-    const TAX_MAX: Decimal = Decimal(8); // 0.08
-    const DISCOUNT_MIN: Decimal = Decimal(0); // 0.00
-    const DISCOUNT_MAX: Decimal = Decimal(10); // 0.10
+    const TAX_MIN: TPCHDecimal = TPCHDecimal(0); // 0.00
+    const TAX_MAX: TPCHDecimal = TPCHDecimal(8); // 0.08
+    const DISCOUNT_MIN: TPCHDecimal = TPCHDecimal(0); // 0.00
+    const DISCOUNT_MAX: TPCHDecimal = TPCHDecimal(10); // 0.10
     const PART_KEY_MIN: i32 = 1;
 
     const SHIP_DATE_MIN: i32 = 1;
@@ -2112,9 +2112,9 @@ impl<'a> LineItemGeneratorIterator<'a> {
             l_suppkey: supplier_key,
             l_linenumber: (self.line_number + 1),
             l_quantity: quantity as i64,
-            l_extendedprice: Decimal(extended_price),
-            l_discount: Decimal(discount as i64),
-            l_tax: Decimal(tax as i64),
+            l_extendedprice: TPCHDecimal(extended_price),
+            l_discount: TPCHDecimal(discount as i64),
+            l_tax: TPCHDecimal(tax as i64),
             l_returnflag: returned_flag,
             l_linestatus: status,
             l_shipdate: TPCHDate::new(ship_date),
@@ -2277,7 +2277,7 @@ mod tests {
         assert_eq!(first.ps_partkey, 1);
         assert_ne!(first.ps_suppkey, 0); // Should have a valid supplier key
         assert!(first.ps_availqty > 0);
-        assert!(first.ps_supplycost > Decimal::ZERO);
+        assert!(first.ps_supplycost > TPCHDecimal::ZERO);
         assert!(!first.ps_comment.is_empty());
 
         // Verify supplier distribution
@@ -2343,7 +2343,7 @@ mod tests {
         assert!(
             first.o_orderstatus == 'F' || first.o_orderstatus == 'P' || first.o_orderstatus == 'O'
         );
-        assert!(first.o_totalprice > Decimal::ZERO);
+        assert!(first.o_totalprice > TPCHDecimal::ZERO);
 
         // Check order status distribution
         let status_counts =

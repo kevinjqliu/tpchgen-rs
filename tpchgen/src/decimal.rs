@@ -5,10 +5,10 @@ use std::fmt;
 /// A 'decimal' column should be able to fit any values in the the range
 /// [-9_999_999_999.99, +9_999_999_999.99] in increments of 0.01.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Decimal(pub i64);
+pub struct TPCHDecimal(pub i64);
 
-impl Decimal {
-    pub const ZERO: Decimal = Decimal(0);
+impl TPCHDecimal {
+    pub const ZERO: TPCHDecimal = TPCHDecimal(0);
 
     /// Converts the decimal value to an f64.
     ///
@@ -33,7 +33,7 @@ impl Decimal {
     }
 }
 
-impl fmt::Display for Decimal {
+impl fmt::Display for TPCHDecimal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -52,59 +52,59 @@ mod tests {
     #[test]
     fn decimal_format() {
         struct TestCase {
-            decimal: Decimal,
+            decimal: TPCHDecimal,
             expected: &'static str,
         }
 
         let test_cases = [
             TestCase {
-                decimal: Decimal(0),
+                decimal: TPCHDecimal(0),
                 expected: "0.00",
             },
             TestCase {
-                decimal: Decimal(1),
+                decimal: TPCHDecimal(1),
                 expected: "0.01",
             },
             TestCase {
-                decimal: Decimal(10),
+                decimal: TPCHDecimal(10),
                 expected: "0.10",
             },
             TestCase {
-                decimal: Decimal(100),
+                decimal: TPCHDecimal(100),
                 expected: "1.00",
             },
             TestCase {
-                decimal: Decimal(1000),
+                decimal: TPCHDecimal(1000),
                 expected: "10.00",
             },
             TestCase {
-                decimal: Decimal(1234),
+                decimal: TPCHDecimal(1234),
                 expected: "12.34",
             },
             TestCase {
-                decimal: Decimal(-1),
+                decimal: TPCHDecimal(-1),
                 expected: "-0.01",
             },
             TestCase {
-                decimal: Decimal(-10),
+                decimal: TPCHDecimal(-10),
                 expected: "-0.10",
             },
             TestCase {
-                decimal: Decimal(-100),
+                decimal: TPCHDecimal(-100),
                 expected: "-1.00",
             },
             TestCase {
-                decimal: Decimal(-1000),
+                decimal: TPCHDecimal(-1000),
                 expected: "-10.00",
             },
             // Max according to spec.
             TestCase {
-                decimal: Decimal(999_999_999_999),
+                decimal: TPCHDecimal(999_999_999_999),
                 expected: "9999999999.99",
             },
             // Min according to spec.
             TestCase {
-                decimal: Decimal(-999_999_999_999),
+                decimal: TPCHDecimal(-999_999_999_999),
                 expected: "-9999999999.99",
             },
         ];
