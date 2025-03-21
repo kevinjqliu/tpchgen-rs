@@ -19,7 +19,7 @@ jobs:
         run: cargo fmt --all -- --check
       - name: Run cargo-clippy
         run: cargo clippy -- -D warnings
-      - name: Build
+      - name: Check
         run: cargo check --verbose --workspace --all-targets
 
   # Library tests (run in parallel with "tests" and dpcs)
@@ -38,7 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run Tests
-        run: cargo test --test --workspace
+        run: cargo test --tests --workspace
 
   # doc examples test
   test-doc:
