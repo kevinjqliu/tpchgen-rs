@@ -353,7 +353,7 @@ impl RandomAlphaNumeric {
 
 /// A random alphanumeric string. To avoid allocations
 /// the string is created on demand with the Display implementation.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RandomAlphaNumericInstance {
     length: usize,
     /// snapshot of the random number generator
@@ -396,7 +396,7 @@ impl Display for RandomAlphaNumericInstance {
 }
 
 /// Generates phone numbers according to TPC-H spec
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RandomPhoneNumber {
     inner: RowRandomInt,
 }
@@ -440,7 +440,7 @@ impl RandomPhoneNumber {
 /// ```text
 /// 27-918-335-1736
 /// ```
-#[derive(Default, Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PhoneNumberInstance {
     country_code: i32,
     local1: i32,
