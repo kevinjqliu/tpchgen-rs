@@ -215,28 +215,47 @@ impl DistributionLoader {
 /// Static global instance of the default distributions.
 ///
 /// Initialized once on first access.
-static DEFAULT_DISTRIBUTIONS: LazyLock<Distributions> = LazyLock::new(Distributions::default);
+static DEFAULT_DISTRIBUTIONS: LazyLock<Distributions> =
+    LazyLock::new(|| Distributions::try_load_defualt().unwrap());
 
 /// Distributions wraps all TPC-H distributions and provides methods to access them.
 #[derive(Debug, Clone)]
 pub struct Distributions {
+    articles: Distribution,
+    adjectives: Distribution,
+    adverbs: Distribution,
+    nouns: Distribution,
+    verbs: Distribution,
+    auxiliaries: Distribution,
+
     distributions: HashMap<String, Distribution>,
 }
 
-impl Default for Distributions {
-    /// Loads the default distributions from `DISTS_SEED`.
-    fn default() -> Self {
+impl Distributions {
+    pub fn try_load_defualt() -> io::Result<Self> {
         let cursor = io::Cursor::new(DISTS_SEED);
         let lines = cursor.lines();
-        let distributions = DistributionLoader::load_distributions(lines).unwrap();
-        Distributions::new(distributions)
-    }
-}
+        let mut distributions = DistributionLoader::load_distributions(lines).unwrap();
 
-impl Distributions {
-    /// Creates a new distributions wrapper.
-    pub fn new(distributions: HashMap<String, Distribution>) -> Self {
-        Distributions { distributions }
+        let remove_dist = &mut |key: &str| {
+            distributions.remove(key).ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    format!("Missing distribution: {key}"),
+                )
+            })
+        };
+
+        Ok(Distributions {
+            articles: remove_dist("articles")?,
+            adjectives: remove_dist("adjectives")?,
+            adverbs: remove_dist("adverbs")?,
+            nouns: remove_dist("nouns")?,
+            verbs: remove_dist("verbs")?,
+            auxiliaries: remove_dist("auxillaries")?, // P.S: The correct spelling is `auxiliaries` which is what we use.
+
+            distributions,
+        })
     }
 
     /// Returns a static reference to the default distributions.
@@ -246,24 +265,24 @@ impl Distributions {
 
     /// Returns the `adjectives` distribution.
     pub fn adjectives(&self) -> &Distribution {
-        self.get("adjectives")
+        &self.adjectives
     }
 
     /// Returns the `adverbs` distribution.
     pub fn adverbs(&self) -> &Distribution {
-        self.get("adverbs")
+        &self.adverbs
     }
 
     /// Returns the `articles` distribution.
     pub fn articles(&self) -> &Distribution {
-        self.get("articles")
+        &self.articles
     }
 
     /// Returns the `auxillaries` distribution.
     ///
     /// P.S: The correct spelling is `auxiliaries` which is what we use.
     pub fn auxiliaries(&self) -> &Distribution {
-        self.get("auxillaries")
+        &self.auxiliaries
     }
 
     /// Returns the `grammar` distribution.
@@ -293,7 +312,7 @@ impl Distributions {
 
     /// Returns the `nouns` distribution.
     pub fn nouns(&self) -> &Distribution {
-        self.get("nouns")
+        &self.nouns
     }
 
     /// Returns the `orders_priority` distribution.
@@ -353,7 +372,7 @@ impl Distributions {
 
     /// Returns the `verbs` distribution.
     pub fn verbs(&self) -> &Distribution {
-        self.get("verbs")
+        &self.verbs
     }
 
     /// Returns the distribution with the specified name.
