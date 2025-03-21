@@ -1,3 +1,5 @@
+//! [`TPCHDate`] and date handling
+
 use chrono::NaiveDate;
 use std::{
     fmt::{Display, Formatter},

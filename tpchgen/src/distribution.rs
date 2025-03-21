@@ -112,10 +112,10 @@ impl DistributionLoader {
     /// Loads distributions from a stream of lines.
     ///
     /// The format is expected to follow the TPC-H specification format where:
-    /// - Lines starting with "#" are comments
-    /// - Distributions start with "BEGIN <name>"
-    /// - Distribution entries are formatted as "value|weight"
-    /// - Distributions end with "END"
+    /// - Lines starting with `"#"` are comments
+    /// - Distributions start with `"BEGIN <name>"`
+    /// - Distribution entries are formatted as `"value|weight"`
+    /// - Distributions end with `"END"`
     pub fn load_distributions<I>(lines: I) -> io::Result<IndexMap<String, Distribution>>
     where
         I: Iterator<Item = io::Result<String>>,
