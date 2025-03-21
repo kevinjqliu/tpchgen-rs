@@ -57,7 +57,7 @@ impl GenerateUtils {
 /// Represents a date (day/year)
 ///
 /// Example display: 1992-01-01
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TPCHDate {
     /// Index of this date in the date to string lookup table
     date_index: i32,
@@ -80,6 +80,11 @@ impl TPCHDate {
     /// Returns a chrono [`NaiveDate`] representing this date
     pub fn to_chrono(&self) -> NaiveDate {
         make_date(self.date_index + 1)
+    }
+
+    /// Return the inner date index
+    pub fn into_inner(self) -> i32 {
+        self.date_index
     }
 
     /// Format money value (convert to decimal)

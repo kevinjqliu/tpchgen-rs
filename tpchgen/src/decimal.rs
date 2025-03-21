@@ -18,18 +18,23 @@ impl TPCHDecimal {
     }
 
     /// Returns if this decimal is negative.
-    const fn is_negative(&self) -> bool {
+    pub const fn is_negative(&self) -> bool {
         self.0.is_negative()
     }
 
     /// Returns the digits before the decimal point.
-    const fn int_digits(&self) -> i64 {
+    pub const fn int_digits(&self) -> i64 {
         (self.0 / 100).abs()
     }
 
     /// Returns the digits after the decimal point.
-    const fn decimal_digits(&self) -> i64 {
+    pub const fn decimal_digits(&self) -> i64 {
         (self.0 % 100).abs()
+    }
+
+    /// Return the inner i64 value.
+    pub const fn into_inner(self) -> i64 {
+        self.0
     }
 }
 
