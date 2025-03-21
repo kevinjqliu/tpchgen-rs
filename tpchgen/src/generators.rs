@@ -1,3 +1,4 @@
+//! Generators for each TPC-H Tables
 use core::fmt;
 
 use crate::dates;
@@ -295,7 +296,7 @@ impl<'a> Iterator for RegionGeneratorIterator<'a> {
     }
 }
 
-/// A Part Manufacturer, formatted as "Manufacturer#<n>"
+/// A Part Manufacturer, formatted as `"Manufacturer#<n>"`
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PartManufacturerName(i32);
 
@@ -311,7 +312,7 @@ impl fmt::Display for PartManufacturerName {
     }
 }
 
-/// A Part brand name, formatted as "Brand#<n>"
+/// A Part brand name, formatted as `"Brand#<n>"`
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PartBrandName(i32);
 
@@ -586,7 +587,7 @@ impl<'a> Iterator for PartGeneratorIterator<'a> {
     }
 }
 
-/// A supplier name, formatted as "Supplier#<n>"
+/// A supplier name, formatted as `"Supplier#<n>"`
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SupplierName(i64);
 
@@ -894,7 +895,7 @@ impl Iterator for SupplierGeneratorIterator<'_> {
     }
 }
 
-/// A Customer Name, formatted as "Customer#<n>"
+/// A Customer Name, formatted as `"Customer#<n>"`
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CustomerName(i64);
 
@@ -1369,7 +1370,7 @@ impl<'a> Iterator for PartSupplierGeneratorIterator<'a> {
     }
 }
 
-/// A clerk name, formatted as "Clerk#<n>"
+/// A clerk name, formatted as `"Clerk#<n>"`
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ClerkName(i32);
 

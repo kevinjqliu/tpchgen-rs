@@ -3,7 +3,7 @@
 //! Most of this code has been ported from the Apache Trino TPC-H generator
 //! implementation. The original code can be found in the following link:
 //!
-//! https://github.com/trinodb/tpch/blob/master/src/main/java/io/trino/tpch/TextPool.java
+//! <https://github.com/trinodb/tpch/blob/master/src/main/java/io/trino/tpch/TextPool.java>
 
 use crate::{
     distribution::{Distribution, Distributions},

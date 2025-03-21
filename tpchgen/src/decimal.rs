@@ -1,3 +1,5 @@
+//! [`TPCHDecimal`] and decimal handling
+
 use std::fmt;
 
 /// Represents a decimal with a scale of 2.
