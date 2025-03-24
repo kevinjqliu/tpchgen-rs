@@ -224,11 +224,25 @@ pub struct Distributions {
     articles: Distribution,
     adjectives: Distribution,
     adverbs: Distribution,
-    nouns: Distribution,
-    verbs: Distribution,
     auxiliaries: Distribution,
-
-    distributions: HashMap<String, Distribution>,
+    grammar: Distribution,
+    category: Distribution,
+    market_segments: Distribution,
+    nations: Distribution,
+    noun_phrase: Distribution,
+    nouns: Distribution,
+    order_priority: Distribution,
+    part_colors: Distribution,
+    part_containers: Distribution,
+    part_types: Distribution,
+    prepositions: Distribution,
+    regions: Distribution,
+    return_flags: Distribution,
+    ship_instructions: Distribution,
+    ship_modes: Distribution,
+    terminators: Distribution,
+    verb_phrase: Distribution,
+    verbs: Distribution,
 }
 
 impl Distributions {
@@ -246,16 +260,72 @@ impl Distributions {
             })
         };
 
-        Ok(Distributions {
-            articles: remove_dist("articles")?,
-            adjectives: remove_dist("adjectives")?,
-            adverbs: remove_dist("adverbs")?,
-            nouns: remove_dist("nouns")?,
-            verbs: remove_dist("verbs")?,
-            auxiliaries: remove_dist("auxillaries")?, // P.S: The correct spelling is `auxiliaries` which is what we use.
+        let articles = remove_dist("articles")?;
+        let adjectives = remove_dist("adjectives")?;
+        let adverbs = remove_dist("adverbs")?;
+        let auxiliaries = remove_dist("auxillaries")?; // P.S: The correct spelling is `auxiliaries` which is what we use.
+        let grammar = remove_dist("grammar")?;
+        let category = remove_dist("category")?;
+        let market_segments = remove_dist("msegmnt")?;
+        let nations = remove_dist("nations")?;
+        let noun_phrase = remove_dist("np")?;
+        let nouns = remove_dist("nouns")?;
+        let order_priority = remove_dist("o_oprio")?;
+        let part_colors = remove_dist("colors")?;
+        let part_containers = remove_dist("p_cntr")?;
+        let part_types = remove_dist("p_types")?;
+        let prepositions = remove_dist("prepositions")?;
+        let regions = remove_dist("regions")?;
+        let return_flags = remove_dist("rflag")?;
+        let ship_instructions = remove_dist("instruct")?;
+        let ship_modes = remove_dist("smode")?;
+        let terminators = remove_dist("terminators")?;
+        let verb_phrase = remove_dist("vp")?;
+        let verbs = remove_dist("verbs")?;
 
-            distributions,
-        })
+        // currently unused distributions
+        remove_dist("nations2")?;
+        remove_dist("Q13a")?;
+        remove_dist("Q13b")?;
+        remove_dist("p_names")?;
+
+        // Ensure that all distributions have been removed.
+        if !distributions.is_empty() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!(
+                    "Internal Error: Unused distributions: {:?}",
+                    distributions.keys().collect::<Vec<_>>()
+                ),
+            ));
+        }
+
+        let new_self = Distributions {
+            articles,
+            adjectives,
+            adverbs,
+            auxiliaries,
+            grammar,
+            category,
+            market_segments,
+            nations,
+            noun_phrase,
+            nouns,
+            order_priority,
+            part_colors,
+            part_containers,
+            part_types,
+            prepositions,
+            regions,
+            return_flags,
+            ship_instructions,
+            ship_modes,
+            terminators,
+            verb_phrase,
+            verbs,
+        };
+
+        Ok(new_self)
     }
 
     /// Returns a static reference to the default distributions.
@@ -287,27 +357,27 @@ impl Distributions {
 
     /// Returns the `grammar` distribution.
     pub fn grammar(&self) -> &Distribution {
-        self.get("grammar")
+        &self.grammar
     }
 
     /// Returns the `category` distribution.
     pub fn category(&self) -> &Distribution {
-        self.get("category")
+        &self.category
     }
 
     /// Returns the `msegmnt` distribution.
     pub fn market_segments(&self) -> &Distribution {
-        self.get("msegmnt")
+        &self.market_segments
     }
 
     /// Returns the `nations` distribution.
     pub fn nations(&self) -> &Distribution {
-        self.get("nations")
+        &self.nations
     }
 
     /// Returns the `noun_phrases` distribution.
     pub fn noun_phrase(&self) -> &Distribution {
-        self.get("np")
+        &self.noun_phrase
     }
 
     /// Returns the `nouns` distribution.
@@ -317,72 +387,62 @@ impl Distributions {
 
     /// Returns the `orders_priority` distribution.
     pub fn order_priority(&self) -> &Distribution {
-        self.get("o_oprio")
+        &self.order_priority
     }
 
     /// Returns the `part_colors` distribution.
     pub fn part_colors(&self) -> &Distribution {
-        self.get("colors")
+        &self.part_colors
     }
 
     /// Returns the `part_containers` distribution.
     pub fn part_containers(&self) -> &Distribution {
-        self.get("p_cntr")
+        &self.part_containers
     }
 
     /// Returns the `part_types` distribution.
     pub fn part_types(&self) -> &Distribution {
-        self.get("p_types")
+        &self.part_types
     }
 
     /// Returns the `prepositions` distribution.
     pub fn prepositions(&self) -> &Distribution {
-        self.get("prepositions")
+        &self.prepositions
     }
 
     /// Returns the `regions` distribution.
     pub fn regions(&self) -> &Distribution {
-        self.get("regions")
+        &self.regions
     }
 
     /// Returns the `return_flags` distribution.
     pub fn return_flags(&self) -> &Distribution {
-        self.get("rflag")
+        &self.return_flags
     }
 
     /// Returns the `ship_instructions` distribution.
     pub fn ship_instructions(&self) -> &Distribution {
-        self.get("instruct")
+        &self.ship_instructions
     }
 
     /// Returns the `ship_modes` distribution.
     pub fn ship_modes(&self) -> &Distribution {
-        self.get("smode")
+        &self.ship_modes
     }
 
     /// Returns the `terminators` distribution.
     pub fn terminators(&self) -> &Distribution {
-        self.get("terminators")
+        &self.terminators
     }
 
     // Returns the `verb_phrases` distribution.
     pub fn verb_phrase(&self) -> &Distribution {
-        self.get("vp")
+        &self.verb_phrase
     }
 
     /// Returns the `verbs` distribution.
     pub fn verbs(&self) -> &Distribution {
         &self.verbs
-    }
-
-    /// Returns the distribution with the specified name.
-    ///
-    /// # Panics
-    ///  Panics if the distribution does not exist.
-    pub fn get(&self, name: &str) -> &Distribution {
-        self.distributions
-            .get(name)
-            .unwrap_or_else(|| panic!("Distribution not found: {}", name))
     }
 }
 
