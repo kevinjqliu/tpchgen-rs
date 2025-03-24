@@ -30,9 +30,12 @@
 //! provides the following output formats:
 //!
 //! - TBL: The `Display` impl of the row structs produces the TPCH TBL format.
+//! - CSV: the [`csv`] module has formatters for CSV output (e.g. [`LineItemCsv`]).
 //!
 //! [`LineItem`]: generators::LineItem
+//! [`LineItemCsv`]: csv::LineItemCsv
 
+pub mod csv;
 pub mod dates;
 pub mod decimal;
 pub mod distribution;
