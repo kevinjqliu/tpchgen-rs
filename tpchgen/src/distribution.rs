@@ -1,6 +1,5 @@
 use crate::random::RowRandomInt;
 use std::{
-    collections::HashMap,
     io::{self, BufRead},
     sync::LazyLock,
 };
@@ -10,7 +9,7 @@ pub(crate) const DISTS_SEED: &str = include_str!("dists.dss");
 
 /// Distribution represents a weighted collection of string values from the TPC-H specification.
 /// It provides methods to access values by index or randomly based on their weights.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Distribution {
     name: String,
     values: Vec<String>,
@@ -99,64 +98,9 @@ impl Distribution {
         }
         unreachable!("Cannot get random value from an invalid distribution")
     }
-}
-
-/// DistributionLoader provides functionality to load TPC-H distributions from a text format.
-pub struct DistributionLoader;
-
-impl DistributionLoader {
-    /// Loads distributions from a stream of lines.
-    ///
-    /// The format is expected to follow the TPC-H specification format where:
-    /// - Lines starting with `"#"` are comments
-    /// - Distributions start with `"BEGIN <name>"`
-    /// - Distribution entries are formatted as `"value|weight"`
-    /// - Distributions end with `"END"`
-    pub fn load_distributions<I>(lines: I) -> io::Result<HashMap<String, Distribution>>
-    where
-        I: Iterator<Item = io::Result<String>>,
-    {
-        let filtered_lines = lines.filter_map(|line_result| {
-            line_result.ok().and_then(|line| {
-                let trimmed = line.trim();
-                if !trimmed.is_empty() && !trimmed.starts_with('#') {
-                    Some(trimmed.to_string())
-                } else {
-                    None
-                }
-            })
-        });
-
-        Self::load_distributions_from_filtered_lines(filtered_lines)
-    }
-
-    /// Internal method to load distributions from pre-filtered lines.
-    fn load_distributions_from_filtered_lines<I>(
-        lines: I,
-    ) -> io::Result<HashMap<String, Distribution>>
-    where
-        I: Iterator<Item = String>,
-    {
-        let mut distributions = HashMap::new();
-        let mut lines_iter = lines.peekable();
-
-        while let Some(line) = lines_iter.next() {
-            let parts: Vec<&str> = line.split_whitespace().collect();
-            if parts.len() == 2 && parts[0].eq_ignore_ascii_case("BEGIN") {
-                let name = parts[1].to_string();
-                let distribution = Self::load_distribution(&mut lines_iter, &name)?;
-                distributions.insert(name, distribution);
-            }
-        }
-
-        Ok(distributions)
-    }
 
     /// Loads a single distribution until its END marker.
-    fn load_distribution<I>(
-        lines: &mut std::iter::Peekable<I>,
-        name: &str,
-    ) -> io::Result<Distribution>
+    fn load_distribution<I>(lines: &mut std::iter::Peekable<I>, name: &str) -> io::Result<Self>
     where
         I: Iterator<Item = String>,
     {
@@ -216,10 +160,10 @@ impl DistributionLoader {
 ///
 /// Initialized once on first access.
 static DEFAULT_DISTRIBUTIONS: LazyLock<Distributions> =
-    LazyLock::new(|| Distributions::try_load_defualt().unwrap());
+    LazyLock::new(|| Distributions::try_load_default().unwrap());
 
 /// Distributions wraps all TPC-H distributions and provides methods to access them.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Distributions {
     articles: Distribution,
     adjectives: Distribution,
@@ -246,86 +190,87 @@ pub struct Distributions {
 }
 
 impl Distributions {
-    pub fn try_load_defualt() -> io::Result<Self> {
+    pub fn try_load_default() -> io::Result<Self> {
         let cursor = io::Cursor::new(DISTS_SEED);
         let lines = cursor.lines();
-        let mut distributions = DistributionLoader::load_distributions(lines).unwrap();
 
-        let remove_dist = &mut |key: &str| {
-            distributions.remove(key).ok_or_else(|| {
-                io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    format!("Missing distribution: {key}"),
-                )
-            })
-        };
+        let mut new_self = Self::default();
+        for (name, distribution) in Self::load_distributions(lines)? {
+            match name.as_str() {
+                "articles" => new_self.articles = distribution,
+                "adjectives" => new_self.adjectives = distribution,
+                "adverbs" => new_self.adverbs = distribution,
+                // P.S: The correct spelling is `auxiliaries` which is what we use.
+                "auxillaries" => new_self.auxiliaries = distribution,
+                "grammar" => new_self.grammar = distribution,
+                "category" => new_self.category = distribution,
+                "msegmnt" => new_self.market_segments = distribution,
+                "nations" => new_self.nations = distribution,
+                "np" => new_self.noun_phrase = distribution,
+                "nouns" => new_self.nouns = distribution,
+                "o_oprio" => new_self.order_priority = distribution,
+                "colors" => new_self.part_colors = distribution,
+                "p_cntr" => new_self.part_containers = distribution,
+                "p_types" => new_self.part_types = distribution,
+                "prepositions" => new_self.prepositions = distribution,
+                "regions" => new_self.regions = distribution,
+                "rflag" => new_self.return_flags = distribution,
+                "instruct" => new_self.ship_instructions = distribution,
+                "smode" => new_self.ship_modes = distribution,
+                "terminators" => new_self.terminators = distribution,
+                "vp" => new_self.verb_phrase = distribution,
+                "verbs" => new_self.verbs = distribution,
 
-        let articles = remove_dist("articles")?;
-        let adjectives = remove_dist("adjectives")?;
-        let adverbs = remove_dist("adverbs")?;
-        let auxiliaries = remove_dist("auxillaries")?; // P.S: The correct spelling is `auxiliaries` which is what we use.
-        let grammar = remove_dist("grammar")?;
-        let category = remove_dist("category")?;
-        let market_segments = remove_dist("msegmnt")?;
-        let nations = remove_dist("nations")?;
-        let noun_phrase = remove_dist("np")?;
-        let nouns = remove_dist("nouns")?;
-        let order_priority = remove_dist("o_oprio")?;
-        let part_colors = remove_dist("colors")?;
-        let part_containers = remove_dist("p_cntr")?;
-        let part_types = remove_dist("p_types")?;
-        let prepositions = remove_dist("prepositions")?;
-        let regions = remove_dist("regions")?;
-        let return_flags = remove_dist("rflag")?;
-        let ship_instructions = remove_dist("instruct")?;
-        let ship_modes = remove_dist("smode")?;
-        let terminators = remove_dist("terminators")?;
-        let verb_phrase = remove_dist("vp")?;
-        let verbs = remove_dist("verbs")?;
-
-        // currently unused distributions
-        remove_dist("nations2")?;
-        remove_dist("Q13a")?;
-        remove_dist("Q13b")?;
-        remove_dist("p_names")?;
-
-        // Ensure that all distributions have been removed.
-        if !distributions.is_empty() {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                format!(
-                    "Internal Error: Unused distributions: {:?}",
-                    distributions.keys().collect::<Vec<_>>()
-                ),
-            ));
+                // currently unused distributions
+                "nations2" | "Q13a" | "Q13b" | "p_names" => {}
+                _ => {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        format!("Internal Error: Unknown distribution: {name}"),
+                    ));
+                }
+            }
         }
 
-        let new_self = Distributions {
-            articles,
-            adjectives,
-            adverbs,
-            auxiliaries,
-            grammar,
-            category,
-            market_segments,
-            nations,
-            noun_phrase,
-            nouns,
-            order_priority,
-            part_colors,
-            part_containers,
-            part_types,
-            prepositions,
-            regions,
-            return_flags,
-            ship_instructions,
-            ship_modes,
-            terminators,
-            verb_phrase,
-            verbs,
-        };
-
         Ok(new_self)
+    }
+
+    /// Loads distributions from a stream of lines.
+    ///
+    /// The format is expected to follow the TPC-H specification format where:
+    /// - Lines starting with `"#"` are comments
+    /// - Distributions start with `"BEGIN <name>"`
+    /// - Distribution entries are formatted as `"value|weight"`
+    /// - Distributions end with `"END"`
+    fn load_distributions<I>(lines: I) -> io::Result<Vec<(String, Distribution)>>
+    where
+        I: Iterator<Item = io::Result<String>>,
+    {
+        let mut filtered_lines = lines
+            .filter_map(|line_result| {
+                line_result.ok().and_then(|line| {
+                    let trimmed = line.trim();
+                    if !trimmed.is_empty() && !trimmed.starts_with('#') {
+                        Some(trimmed.to_string())
+                    } else {
+                        None
+                    }
+                })
+            })
+            .peekable();
+
+        let mut distributions = Vec::new();
+
+        while let Some(line) = filtered_lines.next() {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() == 2 && parts[0].eq_ignore_ascii_case("BEGIN") {
+                let name = parts[1].to_string();
+                let distribution = Distribution::load_distribution(&mut filtered_lines, &name)?;
+                distributions.push((name, distribution));
+            }
+        }
+
+        Ok(distributions)
     }
 
     /// Returns a static reference to the default distributions.
@@ -449,6 +394,7 @@ impl Distributions {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
     use std::io::Cursor;
 
     #[test]
@@ -456,7 +402,7 @@ mod tests {
         let input = "";
         let cursor = Cursor::new(input);
         let lines = cursor.lines();
-        let distributions = DistributionLoader::load_distributions(lines).unwrap();
+        let distributions = Distributions::load_distributions(lines).unwrap();
         assert!(distributions.is_empty());
     }
 
@@ -471,7 +417,10 @@ mod tests {
         ";
         let cursor = Cursor::new(input);
         let lines = cursor.lines();
-        let distributions = DistributionLoader::load_distributions(lines).unwrap();
+        let distributions: HashMap<_, _> = Distributions::load_distributions(lines)
+            .unwrap()
+            .into_iter()
+            .collect();
 
         assert_eq!(distributions.len(), 1);
         assert!(distributions.contains_key("test"));
@@ -500,7 +449,10 @@ mod tests {
         ";
         let cursor = Cursor::new(input);
         let lines = cursor.lines();
-        let distributions = DistributionLoader::load_distributions(lines).unwrap();
+        let distributions: HashMap<_, _> = Distributions::load_distributions(lines)
+            .unwrap()
+            .into_iter()
+            .collect();
 
         assert_eq!(distributions.len(), 2);
         assert!(distributions.contains_key("first"));
@@ -522,7 +474,7 @@ mod tests {
         ";
         let cursor = Cursor::new(input);
         let lines = cursor.lines();
-        let result = DistributionLoader::load_distributions(lines);
+        let result = Distributions::load_distributions(lines);
         assert!(result.is_err());
     }
 
@@ -534,7 +486,7 @@ mod tests {
         ";
         let cursor = Cursor::new(input);
         let lines = cursor.lines();
-        let result = DistributionLoader::load_distributions(lines);
+        let result = Distributions::load_distributions(lines);
         assert!(result.is_err());
     }
 
@@ -572,7 +524,10 @@ mod tests {
 
         let cursor = Cursor::new(DISTS_SEED);
         let lines = cursor.lines();
-        let distributions = DistributionLoader::load_distributions(lines).unwrap();
+        let distributions: HashMap<_, _> = Distributions::load_distributions(lines)
+            .unwrap()
+            .into_iter()
+            .collect();
         assert_eq!(distributions.len(), 26);
 
         for name in expected_distributions {
