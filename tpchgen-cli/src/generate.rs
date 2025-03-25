@@ -30,13 +30,19 @@ pub trait Sink: Send {
     fn flush(self) -> Result<(), io::Error>;
 }
 
-/// Creates data from a set of [`Source`] in parallel sending data in order to the Sink.
+/// Generates data in parallel from a series of [`Source`] and writes to a [`Sink`]
 ///
+/// Each [`Source`] is a data generator that generates data directly into an in
+/// memory buffer.
+///
+/// This function will run the [`Source`]es in parallel using all available
+/// cores. Data is written to the [`Sink`] in the order of the [`Source`]es in
+/// the input iterator.
 ///
 /// G: Generator
 /// I: Iterator<Item = G>
 /// S: Sink that writes buffers somewhere
-pub async fn generate_in_chunks<G, I, S>(mut sink: S, generators: I) -> Result<(), io::Error>
+pub async fn generate_in_chunks<G, I, S>(mut sink: S, sources: I) -> Result<(), io::Error>
 where
     G: Source + 'static,
     I: Iterator<Item = G>,
@@ -51,16 +57,16 @@ where
     // create a channel to communicate between the generator tasks and the writer task
     let (tx, mut rx) = tokio::sync::mpsc::channel(num_tasks);
 
-    let generators_and_recyclers = generators.map(|generator| (generator, recycler.clone()));
+    let sources_and_recyclers = sources.map(|generator| (generator, recycler.clone()));
 
     // convert to an async stream to run on tokio
-    let mut stream = futures::stream::iter(generators_and_recyclers)
+    let mut stream = futures::stream::iter(sources_and_recyclers)
         // each generator writes to a buffer
-        .map(async |(generator, recycler)| {
+        .map(async |(source, recycler)| {
             let buffer = recycler.new_buffer(1024 * 1024 * 8);
             // do the work in a task (on a different thread)
             let mut join_set = JoinSet::new();
-            join_set.spawn(async move { generator.create(buffer) });
+            join_set.spawn(async move { source.create(buffer) });
             // wait for the task to be done and return the result
             join_set
                 .join_next()
@@ -73,18 +79,23 @@ where
         .map(async |buffer| {
             // send the buffer to the writer task, in order.
 
-            // ignoring error (if the writer errored it means the channel is closed / the program is exiting)
+            // Note we ignore errors writing because if the write errors it
+            // means the channel is closed / the program is exiting so there
+            // is nothing listening to send errors
             if let Err(e) = tx.send(buffer).await {
                 debug!("Error sending buffer to writer: {e}");
             }
         });
 
+    // The writer task runs in a blocking thread to avoid blocking the async
+    // runtime. It reads from the channel and writes to the sink (doing File IO)
     let captured_recycler = recycler.clone();
     let writer_task = tokio::task::spawn_blocking(move || {
         while let Some(buffer) = rx.blocking_recv() {
             sink.sink(&buffer)?;
             captured_recycler.return_buffer(buffer);
         }
+        // No more input, flush the sink and return
         sink.flush()
     });
 
@@ -93,7 +104,7 @@ where
         write_task.await; // sends the buffer to the writer task
     }
     drop(stream); // drop any stream references
-    drop(tx); // drop last tx reference to stop the writer
+    drop(tx); // drop last tx reference to tell the writer it is done.
 
     // wait for writer to finish
     debug!("waiting for writer task to complete");
