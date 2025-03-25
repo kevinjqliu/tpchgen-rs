@@ -101,7 +101,7 @@ where
 
 /// A simple buffer recycler to avoid allocating new buffers for each part
 ///
-/// Clones share the same undrlying recycler, so it is not thread safe
+/// Clones share the same underlying recycler, so it is not thread safe
 #[derive(Debug, Clone)]
 struct BufferRecycler {
     buffers: Arc<Mutex<VecDeque<Vec<u8>>>>,
