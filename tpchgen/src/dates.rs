@@ -22,6 +22,14 @@ const MONTH_YEAR_DAY_START: [i32; 13] =
 /// value: strings like 1992-01-01
 static DATE_TO_STRING: LazyLock<Vec<String>> = LazyLock::new(make_date_index);
 
+/// Lookup table for julian date format used to check if a given date is in
+/// the past as part of the lineitem generation.
+static JULIAN_DATE: LazyLock<Vec<i32>> = LazyLock::new(|| {
+    (0..TOTAL_DATE_RANGE)
+        .map(|date| julian(date + MIN_GENERATE_DATE))
+        .collect()
+});
+
 pub struct GenerateUtils;
 
 impl GenerateUtils {
@@ -95,33 +103,13 @@ impl TPCHDate {
     }
 
     /// Checks if a date is in the past
-    pub const fn is_in_past(date: i32) -> bool {
-        Self::julian(date) <= CURRENT_DATE
+    pub fn is_in_past(date: i32) -> bool {
+        Self::to_julian(date) <= CURRENT_DATE
     }
 
-    /// Converts to julian date format
-    const fn julian(date: i32) -> i32 {
-        let mut offset = date - MIN_GENERATE_DATE;
-        let mut result = MIN_GENERATE_DATE;
-
-        loop {
-            let year = result / 1000;
-            let year_end = year * 1000 + 365 + if Self::is_leap_year(year) { 1 } else { 0 };
-
-            if result + offset <= year_end {
-                break;
-            }
-
-            offset -= year_end - result + 1;
-            result += 1000;
-        }
-
-        result + offset
-    }
-
-    /// Check if a year is a leap year
-    const fn is_leap_year(year: i32) -> bool {
-        year % 4 == 0 && year % 100 != 0
+    /// Lookup if a date is in the past.
+    fn to_julian(date: i32) -> i32 {
+        JULIAN_DATE[(date - MIN_GENERATE_DATE) as usize]
     }
 }
 
