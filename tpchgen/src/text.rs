@@ -80,14 +80,14 @@ impl TextPool {
         let syntax = distributions.grammar().random_value(random);
         let max_length = syntax.len();
 
-        for i in (0..max_length).step_by(2) {
-            match syntax.chars().nth(i).unwrap() {
+        for c in syntax.chars().take(max_length).step_by(2) {
+            match c {
                 'V' => Self::generate_verb_phrase(distributions, builder, random),
                 'N' => Self::generate_noun_phrase(distributions, builder, random),
                 'P' => {
                     let preposition = distributions.prepositions().random_value(random);
                     builder.append(preposition);
-                    builder.append(" the ");
+                    builder.append_bytes(b" the ");
                     Self::generate_noun_phrase(distributions, builder, random);
                 }
                 'T' => {
@@ -98,8 +98,8 @@ impl TextPool {
                 c => panic!("Unknown token '{}'", c),
             };
 
-            if builder.get_last_char() != ' ' {
-                builder.append(" ");
+            if builder.get_last_char() != b' ' {
+                builder.append_bytes(b" ");
             }
         }
     }
@@ -112,8 +112,8 @@ impl TextPool {
         let syntax = distributions.verb_phrase().random_value(random);
         let max_length = syntax.len();
 
-        for i in (0..max_length).step_by(2) {
-            let source = match syntax.chars().nth(i).unwrap() {
+        for c in syntax.chars().take(max_length).step_by(2) {
+            let source = match c {
                 'D' => distributions.adverbs(),
                 'V' => distributions.verbs(),
                 'X' => distributions.auxiliaries(),
@@ -125,7 +125,7 @@ impl TextPool {
             builder.append(word);
 
             // add a space
-            builder.append(" ");
+            builder.append_bytes(b" ");
         }
     }
 
@@ -137,9 +137,7 @@ impl TextPool {
         let syntax = distributions.noun_phrase().random_value(random);
         let max_length = syntax.len();
 
-        for i in 0..max_length {
-            let c = syntax.chars().nth(i).unwrap();
-
+        for c in syntax.chars().take(max_length) {
             let source = match c {
                 'A' => distributions.articles(),
                 'J' => distributions.adjectives(),
@@ -147,7 +145,7 @@ impl TextPool {
                 'N' => distributions.nouns(),
                 ',' => {
                     builder.erase(1);
-                    builder.append(", ");
+                    builder.append_bytes(b", ");
                     continue;
                 }
                 ' ' => continue,
@@ -157,7 +155,7 @@ impl TextPool {
             // pick a random word
             let word = source.random_value(random);
             builder.append(word);
-            builder.append(" ");
+            builder.append_bytes(b" ");
         }
     }
 }
@@ -170,24 +168,37 @@ struct ByteArrayBuilder {
 }
 
 impl ByteArrayBuilder {
-    fn new(size: usize) -> Self {
+    /// Creates a new builder with the given capacity
+    fn new(capacity: usize) -> Self {
         Self {
-            bytes: vec![0; size],
+            bytes: vec![0; capacity],
             length: 0,
         }
     }
 
+    /// Appends the string to the builder.
     fn append(&mut self, string: &str) {
         let bytes = string.as_bytes();
         self.bytes[self.length..self.length + bytes.len()].copy_from_slice(bytes);
         self.length += bytes.len();
     }
 
+    /// Appends the fixed size byte array to the builder.
+    ///
+    /// This is more efficient than appending a string because the compiler can
+    /// generate specialized code based on the length of the array.
+    fn append_bytes<const N: usize>(&mut self, bytes: &[u8; N]) {
+        self.bytes[self.length..self.length + N].copy_from_slice(bytes);
+        self.length += N;
+    }
+
+    /// Erases the last `count` bytes from the builder.
     fn erase(&mut self, count: usize) {
         assert!(self.length >= count, "Not enough bytes to erase");
         self.length -= count;
     }
 
+    /// Returns the length of the data in the builder.
     fn length(&self) -> usize {
         self.length
     }
@@ -197,8 +208,9 @@ impl ByteArrayBuilder {
         (self.bytes, self.length)
     }
 
-    fn get_last_char(&self) -> char {
-        self.bytes[self.length - 1] as char
+    /// Returns the last byte of the in progress bytes
+    fn get_last_char(&self) -> u8 {
+        self.bytes[self.length - 1]
     }
 }
 
