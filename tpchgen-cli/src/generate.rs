@@ -26,7 +26,8 @@ pub trait Sink: Send {
     /// Write all data from the buffer to the sink
     fn sink(&mut self, buffer: &[u8]) -> Result<(), io::Error>;
 
-    fn finish(self) -> Result<(), io::Error>;
+    /// Complete and flush any remaining data from the sink
+    fn flush(self) -> Result<(), io::Error>;
 }
 
 /// Creates data from a set of [`Source`] in parallel sending data in order to the Sink.
@@ -84,7 +85,7 @@ where
             sink.sink(&buffer)?;
             captured_recycler.return_buffer(buffer);
         }
-        sink.finish()
+        sink.flush()
     });
 
     // drive the stream to completion

@@ -380,7 +380,7 @@ impl Sink for BufWriterSink {
         self.inner.write_all(buffer)
     }
 
-    fn finish(mut self) -> Result<(), io::Error> {
+    fn flush(mut self) -> Result<(), io::Error> {
         let res = self.inner.flush();
 
         let duration = self.start.elapsed();
