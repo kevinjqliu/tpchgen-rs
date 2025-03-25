@@ -28,11 +28,13 @@
 //! # see all debug output
 //! RUST_LOG=debug tpchgen -s 1
 //! ```
+mod csv;
 mod generate;
-mod sources;
+mod tbl;
 
+use crate::csv::*;
 use crate::generate::{generate_in_chunks, Sink, Source};
-use crate::sources::*;
+use crate::tbl::*;
 use clap::{Parser, ValueEnum};
 use log::{debug, info, LevelFilter};
 use std::fmt::Display;
