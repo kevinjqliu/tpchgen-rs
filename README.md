@@ -10,7 +10,16 @@
 
 Blazing fast TPCH benchmark data generator in pure Rust !
 
-## Usage
+## Features
+1. Zero dependency TPCH data generator crate for easy embedding
+2. Blazing Speed (see below)
+3. Batteries included, multi-threaded CLI
+
+## Benchmarks
+
+(coming soon)
+
+## Structure
 
 `tpchgen-cli` is a [`dbgen`](https://github.com/databricks/tpch-dbgen) compatible CLI tool
 that generates tables from the TPCH benchmark dataset.
