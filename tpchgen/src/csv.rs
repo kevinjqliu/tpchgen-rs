@@ -201,7 +201,7 @@ impl Display for SupplierCsv {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            // note must quote the address and comment field as they may contain commas
+            // note must quote the address and comment fields as they may contain commas
             "{},{},\"{}\",{},{},{},\"{}\"",
             self.inner.s_suppkey,
             self.inner.s_name,
