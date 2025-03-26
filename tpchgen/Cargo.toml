@@ -7,7 +7,6 @@ authors = ["clflushopt", "alamb"]
 # Designed to have minimal depdencies to make it easy to use in other projects
 # See ../ARCHITECTURE.md for more details
 [dependencies]
-chrono = "0.4.40"
 
 [dev-dependencies]
 flate2 = "1.1.0"
