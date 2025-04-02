@@ -97,6 +97,15 @@ impl Display for TPCHDate {
 }
 
 impl TPCHDate {
+    /// Number of days that must be added to a TPCH date to get a Unix epoch
+    /// relative date.
+    ///
+    /// * Arrow `Date32` are days since the epoch (1970-01-01)
+    /// * [`TPCHDate`]s are days since MIN_GENERATE_DATE (1992-01-01)
+    ///
+    /// This value is `8035` because `1992-01-01` is `8035` days after `1970-01-01`
+    pub const UNIX_EPOCH_OFFSET: i32 = 8035;
+
     /// Create a new TPCHDate from a generated date
     pub fn new(generated_date: i32) -> Self {
         Self {
@@ -128,6 +137,12 @@ impl TPCHDate {
     /// Lookup if a date is in the past.
     fn to_julian(date: i32) -> i32 {
         JULIAN_DATE[(date - MIN_GENERATE_DATE) as usize]
+    }
+
+    /// Returns the number of days since the Unix epoch this date
+    /// represents.
+    pub fn to_unix_epoch(&self) -> i32 {
+        self.date_index + Self::UNIX_EPOCH_OFFSET
     }
 }
 
@@ -221,5 +236,17 @@ mod test {
             let (y, m, dy) = date.to_ymd();
             assert_eq!(format_ymd(y, m, dy), date.to_string());
         }
+    }
+
+    #[test]
+    fn test_date_epoch_consistency() {
+        // Check that dates are actually machine some epochs.
+        let date = TPCHDate::new(MIN_GENERATE_DATE + 1);
+        assert_eq!(date.to_unix_epoch(), 8036);
+
+        let date = TPCHDate::new(MIN_GENERATE_DATE + 1234);
+        // 1995-05-19 00:00:00 (12:00:00 AM)
+        assert_eq!(date.to_string(), "1995-05-19");
+        assert_eq!(date.to_unix_epoch(), 9269);
     }
 }
