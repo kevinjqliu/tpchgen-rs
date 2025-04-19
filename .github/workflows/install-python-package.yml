@@ -33,7 +33,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install tpchgen-cli from TestPyPI
-        run: pip install -i https://test.pypi.org/simple/ tpchgen-cli==0.0.4
+        run: pip install -i https://test.pypi.org/simple/ tpchgen-cli==1.0.0
 
   musllinux:
     runs-on: ${{ matrix.platform.runner }}
@@ -55,7 +55,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install tpchgen-cli from TestPyPI
-        run: pip install -i https://test.pypi.org/simple/ tpchgen-cli==0.0.4
+        run: pip install -i https://test.pypi.org/simple/ tpchgen-cli==1.0.0
 
   windows:
     runs-on: ${{ matrix.platform.runner }}
@@ -73,7 +73,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install tpchgen-cli from TestPyPI
-        run: pip install -i https://test.pypi.org/simple/ tpchgen-cli==0.0.4
+        run: pip install -i https://test.pypi.org/simple/ tpchgen-cli==1.0.0
 
   macos:
     runs-on: ${{ matrix.platform.runner }}
@@ -91,4 +91,4 @@ jobs:
           python-version: '3.11'
 
       - name: Install tpchgen-cli from TestPyPI
-        run: pip install -i https://test.pypi.org/simple/ tpchgen-cli==0.0.4
+        run: pip install -i https://test.pypi.org/simple/ tpchgen-cli==1.0.0
