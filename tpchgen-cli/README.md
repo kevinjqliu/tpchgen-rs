@@ -21,6 +21,7 @@ cargo install tpchgen-cli
 ```
 
 ## CLI Usage
+
 We tried to make the `tpchgen-cli` experience as close to `dbgen` as possible for no other
 reason than maybe make it easier for you to have a drop-in replacement.
 
