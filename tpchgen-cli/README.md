@@ -12,6 +12,7 @@ pip install tpchgen-cli
 ```
 
 ### Install Using Rust
+
 [Install Rust](https://www.rust-lang.org/tools/install) and this tool:
 
 ```shell
