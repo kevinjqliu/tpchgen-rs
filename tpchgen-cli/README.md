@@ -1,9 +1,27 @@
-### CLI Usage
+# TPC-H Data Generator CLI
 
+See the main [README.md](https://github.com/clflushopt/tpchgen-rs) for full documentation.
+
+## Installation
+### Install Using Python
+Install this tool with Python:
+```shell
+pip install tpchgen-cli
+```
+
+### Install Using Rust
+[Install Rust](https://www.rust-lang.org/tools/install) and this tool:
+
+```shell
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+cargo install tpchgen-cli
+```
+
+## CLI Usage
 We tried to make the `tpchgen-cli` experience as close to `dbgen` as possible for no other
 reason than maybe make it easier for you to have a drop-in replacement.
 
-```sh
+```shell
 $ tpchgen-cli -h
 TPC-H Data Generator
 
@@ -35,6 +53,6 @@ Options:
 ```
 
 For example generating a dataset with a scale factor of 1 (1GB) can be done like this:
-```sh
+```shell
 $ tpchgen-cli -s 1 --output-dir=/tmp/tpch
 ```
