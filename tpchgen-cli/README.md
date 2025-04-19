@@ -3,6 +3,7 @@
 See the main [README.md](https://github.com/clflushopt/tpchgen-rs) for full documentation.
 
 ## Installation
+
 ### Install Using Python
 Install this tool with Python:
 ```shell
