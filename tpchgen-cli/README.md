@@ -5,6 +5,7 @@ See the main [README.md](https://github.com/clflushopt/tpchgen-rs) for full docu
 ## Installation
 
 ### Install Using Python
+
 Install this tool with Python:
 ```shell
 pip install tpchgen-cli
