@@ -149,7 +149,7 @@ where
     let mut iter = iter.peekable();
     loop {
         // No more input
-        if iter.peek().is_some() {
+        if iter.peek().is_none() {
             break;
         }
         // Create writers for each of the leaf columns
