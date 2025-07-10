@@ -19,6 +19,7 @@
 //!         --part <N>               Which part to generate (1-based, default: 1)
 //!     -n, --num-threads <N>        Number of threads to use (default: number of CPUs)
 //!     -c, --parquet-compression <C> Parquet compression codec, e.g., SNAPPY, ZSTD(1), UNCOMPRESSED (default: SNAPPY)
+//!         --parquet-row-group-size <N> Number of rows per row group in Parquet files (default: 1048576)
 //!     -v, --verbose                Verbose output
 //!         --stdout                 Write output to stdout instead of files
 //!```
@@ -127,6 +128,14 @@ struct Cli {
     /// Write the output to stdout instead of a file.
     #[arg(long, default_value_t = false)]
     stdout: bool,
+
+    /// Number of rows per row group in Parquet files (default: 1048576)
+    /// 
+    /// Row groups are the unit of parallel processing and compression in Parquet.
+    /// Smaller row groups enable better parallelism but may reduce compression efficiency.
+    /// Typical values range from 100,000 to 10,000,000 rows.
+    #[arg(long, default_value_t = 1024 * 1024)]
+    parquet_row_group_size: usize,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -497,12 +506,26 @@ impl Cli {
         if self.stdout {
             // write to stdout
             let writer = BufWriter::with_capacity(32 * 1024 * 1024, io::stdout()); // 32MB buffer
-            generate_parquet(writer, sources, self.num_threads, self.parquet_compression).await
+            generate_parquet(
+                writer,
+                sources,
+                self.num_threads,
+                self.parquet_compression,
+                self.parquet_row_group_size,
+            )
+            .await
         } else {
             // write to a file
             let file = self.new_output_file(filename)?;
             let writer = BufWriter::with_capacity(32 * 1024 * 1024, file); // 32MB buffer
-            generate_parquet(writer, sources, self.num_threads, self.parquet_compression).await
+            generate_parquet(
+                writer,
+                sources,
+                self.num_threads,
+                self.parquet_compression,
+                self.parquet_row_group_size,
+            )
+            .await
         }
     }
 }

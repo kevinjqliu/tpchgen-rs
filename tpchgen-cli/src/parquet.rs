@@ -32,12 +32,13 @@ pub async fn generate_parquet<W: Write + Send + IntoSize + 'static, I>(
     iter_iter: I,
     num_threads: usize,
     parquet_compression: Compression,
+    row_group_size: usize,
 ) -> Result<(), io::Error>
 where
     I: Iterator<Item: RecordBatchIterator> + 'static,
 {
     debug!(
-        "Generating Parquet with {num_threads} threads, using {parquet_compression} compression"
+        "Generating Parquet with {num_threads} threads, using {parquet_compression} compression, {row_group_size} rows per group"
     );
     // Based on example in https://docs.rs/parquet/latest/parquet/arrow/arrow_writer/struct.ArrowColumnWriter.html
     let mut iter_iter = iter_iter.peekable();
@@ -61,17 +62,23 @@ where
     );
 
     // create a stream that computes the data for each row group
+    let parquet_schema_for_stream = Arc::clone(&parquet_schema);
+    let writer_properties_for_stream = Arc::clone(&writer_properties);
+    let schema_for_stream = Arc::clone(&schema);
     let mut row_group_stream = futures::stream::iter(iter_iter)
-        .map(async |iter| {
-            let parquet_schema = Arc::clone(&parquet_schema);
-            let writer_properties = Arc::clone(&writer_properties);
-            let schema = Arc::clone(&schema);
+        .map(move |iter| {
+            let parquet_schema = Arc::clone(&parquet_schema_for_stream);
+            let writer_properties = Arc::clone(&writer_properties_for_stream);
+            let schema = Arc::clone(&schema_for_stream);
+            let row_group_size = row_group_size; // capture the value
             // run on a separate thread
-            tokio::task::spawn(async move {
-                encode_row_group(parquet_schema, writer_properties, schema, iter)
-            })
-            .await
-            .expect("Inner task panicked")
+            async move {
+                tokio::task::spawn(async move {
+                    encode_row_group(parquet_schema, writer_properties, schema, iter, row_group_size)
+                })
+                .await
+                .expect("Inner task panicked")
+            }
         })
         .buffered(num_threads); // generate row groups in parallel
 
@@ -137,13 +144,11 @@ fn encode_row_group<I>(
     writer_properties: Arc<WriterProperties>,
     schema: SchemaRef,
     iter: I,
+    row_group_size: usize,
 ) -> Vec<Vec<ArrowColumnChunk>>
 where
     I: RecordBatchIterator,
 {
-    /// TODO - make this configurable
-    const NUM_ROWS_PER_GROUP: usize = 1024 * 1024; // 1 million rows per group
-
     let mut finished_row_groups = Vec::new();
 
     let mut iter = iter.peekable();
@@ -155,7 +160,7 @@ where
         // Create writers for each of the leaf columns
         let mut col_writers = get_column_writers(&parquet_schema, &writer_properties, &schema).unwrap();
 
-        // otherwise generate a row group with up to NUM_ROWS_PER_GROUP rows
+        // otherwise generate a row group with up to row_group_size rows
         let mut num_rows = 0;
         while let Some(batch) = iter.next() {
             // encode the columns in the batch
@@ -170,7 +175,7 @@ where
             }
 
             num_rows += batch.num_rows();
-            if num_rows >= NUM_ROWS_PER_GROUP {
+            if num_rows >= row_group_size {
                 break; // we have enough rows for this row group
             }
         }
