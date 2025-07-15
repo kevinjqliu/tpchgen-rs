@@ -130,7 +130,7 @@ struct Cli {
     stdout: bool,
 
     /// Number of rows per row group in Parquet files (default: 1048576)
-    /// 
+    ///
     /// Row groups are the unit of parallel processing and compression in Parquet.
     /// Smaller row groups enable better parallelism but may reduce compression efficiency.
     /// Typical values range from 100,000 to 10,000,000 rows.
