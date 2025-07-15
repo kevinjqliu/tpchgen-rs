@@ -169,7 +169,7 @@ where
 
         // otherwise generate a row group with up to row_group_size rows
         let mut num_rows = 0;
-        while let Some(batch) = iter.next() {
+        for batch in iter.by_ref() {
             // encode the columns in the batch
             let columns = batch.columns().iter();
             let col_writers = col_writers.iter_mut();
