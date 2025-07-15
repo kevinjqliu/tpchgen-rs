@@ -16,6 +16,9 @@ use std::sync::Arc;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tpchgen_arrow::RecordBatchIterator;
 
+/// Type alias for a collection of row groups, where each row group contains [`ArrowColumnChunk`]s
+type RowGroups = Vec<Vec<ArrowColumnChunk>>;
+
 pub trait IntoSize {
     /// Convert the object into a size
     fn into_size(self) -> Result<usize, io::Error>;
@@ -95,10 +98,8 @@ where
     // Now, read each completed row group and write it to the file
     let root_schema = parquet_schema.root_schema_ptr();
     let writer_properties_captured = Arc::clone(&writer_properties);
-    let (tx, mut rx): (
-        Sender<Vec<Vec<ArrowColumnChunk>>>,
-        Receiver<Vec<Vec<ArrowColumnChunk>>>,
-    ) = tokio::sync::mpsc::channel(num_threads);
+    let (tx, mut rx): (Sender<RowGroups>, Receiver<RowGroups>) =
+        tokio::sync::mpsc::channel(num_threads);
     let writer_task = tokio::task::spawn_blocking(move || {
         // Create parquet writer
         let mut writer =
@@ -144,14 +145,15 @@ where
 /// Note at the moment it does not use multiple tasks/threads but it could
 /// potentially encode multiple columns with different threads .
 ///
-/// Returns an array of [`ArrowColumnChunk`] for each row group
+/// Returns [`RowGroups`] - a collection of row groups, where each row group
+/// contains [`ArrowColumnChunk`]s for its columns
 fn encode_row_group<I>(
     parquet_schema: SchemaDescPtr,
     writer_properties: Arc<WriterProperties>,
     schema: SchemaRef,
     iter: I,
     row_group_size: usize,
-) -> Vec<Vec<ArrowColumnChunk>>
+) -> RowGroups
 where
     I: RecordBatchIterator,
 {
