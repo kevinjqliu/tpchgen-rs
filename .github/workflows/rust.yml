@@ -67,3 +67,9 @@ jobs:
         env:
           RUSTDOCFLAGS: "-D warnings"
         run: cargo doc --no-deps --workspace
+
+  # Build wheels + sdist (but don’t upload artifacts)
+  build-packages:
+    uses: ./.github/workflows/build-packages.yml
+    with:
+      upload-artifacts: false
