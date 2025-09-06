@@ -10,8 +10,8 @@ license = { workspace = true }
 repository = { workspace = true }
 
 [dependencies]
-arrow = "56"
-parquet = "56"
+arrow = { git = "https://github.com/apache/arrow-rs.git", rev = "cc1dc6c8506df76dc6c338370428a06e95a6b3a6" }
+parquet = { git = "https://github.com/apache/arrow-rs.git", rev = "cc1dc6c8506df76dc6c338370428a06e95a6b3a6" }
 clap = { version = "4.5.32", features = ["derive"] }
 tpchgen = { path = "../tpchgen", version = "2.0.0"}
 tpchgen-arrow = { path = "../tpchgen-arrow", version = "2.0.0" }
