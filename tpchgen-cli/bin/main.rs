@@ -121,12 +121,12 @@ struct TopLevelArgs {
     format: OutputFormat,
 
     /// Parquet block compression format (deprecated: use 'parquet' subcommand instead)
-    #[arg(short = 'c', long)]
+    #[arg(short = 'c', long, hide = true)]
     #[deprecated]
     parquet_compression: Option<Compression>,
 
     /// Target row group size in bytes (deprecated: use 'parquet' subcommand instead)
-    #[arg(long)]
+    #[arg(long, hide = true)]
     #[deprecated]
     parquet_row_group_bytes: Option<i64>,
 
@@ -276,25 +276,24 @@ impl Cli {
 
         // Warn if parquet specific options are set but not generating parquet
         if format == OutputFormat::Parquet {
-            eprintln!(
+            log::warn!(
                 "Warning: Use 'tpchgen-cli parquet' subcommand instead of '--format=parquet' for better validation and control"
             );
         }
 
-        if self.args.parquet_compression.is_some() && format != OutputFormat::Parquet {
-            log::warn!("Parquet compression option set but not generating Parquet files");
-        } else if self.args.parquet_compression.is_some() {
-            eprintln!(
-                "Warning: The --parquet-compression flag is deprecated. Use 'tpchgen-cli parquet --compression=...' instead"
-            );
+        if self.args.parquet_compression.is_some() {
+            if format == OutputFormat::Parquet {
+                log::warn!("The --parquet-compression flag is deprecated. Use 'tpchgen-cli parquet --compression=...' instead");
+            } else {
+                log::warn!("Parquet compression option set but not generating Parquet files");
+            }
         }
-
-        if self.args.parquet_row_group_bytes.is_some() && format != OutputFormat::Parquet {
-            log::warn!("Parquet row group size option set but not generating Parquet files");
-        } else if self.args.parquet_row_group_bytes.is_some() {
-            eprintln!(
-                "Warning: The --parquet-row-group-bytes flag is deprecated. Use 'tpchgen-cli parquet --row-group-bytes=...' instead"
-            );
+        if self.args.parquet_row_group_bytes.is_some() {
+            if format == OutputFormat::Parquet {
+                log::warn!("The --parquet-row-group-bytes flag is deprecated. Use 'tpchgen-cli parquet --row-group-bytes=...' instead");
+            } else {
+                log::warn!("Parquet row group size option set but not generating Parquet files");
+            }
         }
 
         // Validate delimiter usage
@@ -306,8 +305,8 @@ impl Cli {
         }
 
         // Warn if delimiter is set but not generating CSV
-        if delimiter != ',' && format != OutputFormat::Csv {
-            log::warn!("Delimiter option set but not generating CSV files");
+        if format != OutputFormat::Csv && delimiter != ',' {
+            log::warn!("Warning: Delimiter option set but not generating CSV");
         }
 
         // Build the generator using the library API
