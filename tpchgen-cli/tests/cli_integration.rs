@@ -1,4 +1,4 @@
-use assert_cmd::Command;
+use assert_cmd::cargo::cargo_bin_cmd;
 use parquet::arrow::arrow_reader::{ArrowReaderOptions, ParquetRecordBatchReaderBuilder};
 use parquet::file::metadata::ParquetMetaDataReader;
 use std::fs;
@@ -16,8 +16,7 @@ fn test_tpchgen_cli_tbl_scale_factor_0_001() {
     let temp_dir = tempdir().expect("Failed to create temporary directory");
 
     // Run the tpchgen-cli command
-    Command::cargo_bin("tpchgen-cli")
-        .expect("Binary not found")
+    cargo_bin_cmd!("tpchgen-cli")
         .arg("--scale-factor")
         .arg("0.001")
         .arg("--output-dir")
@@ -73,8 +72,7 @@ fn test_tpchgen_cli_tbl_no_overwrite() {
     let expected_file = temp_dir.path().join("part.tbl");
 
     // First run - create the file
-    Command::cargo_bin("tpchgen-cli")
-        .expect("Binary not found")
+    cargo_bin_cmd!("tpchgen-cli")
         .arg("--scale-factor")
         .arg("0.001")
         .arg("--tables")
@@ -90,8 +88,7 @@ fn test_tpchgen_cli_tbl_no_overwrite() {
 
     // Run the tpchgen-cli command again with the same parameters and expect the
     // file to not be overwritten and a warning to be logged
-    let output = Command::cargo_bin("tpchgen-cli")
-        .expect("Binary not found")
+    let output = cargo_bin_cmd!("tpchgen-cli")
         .arg("--scale-factor")
         .arg("0.001")
         .arg("--tables")
@@ -128,8 +125,7 @@ fn test_tpchgen_cli_parquet_no_overwrite() {
     let expected_file = temp_dir.path().join("part.parquet");
 
     // First run - create the file
-    Command::cargo_bin("tpchgen-cli")
-        .expect("Binary not found")
+    cargo_bin_cmd!("tpchgen-cli")
         .arg("parquet")
         .arg("--scale-factor")
         .arg("0.001")
@@ -146,8 +142,7 @@ fn test_tpchgen_cli_parquet_no_overwrite() {
 
     // Run the tpchgen-cli command again with the same parameters and expect the
     // file to not be overwritten and a warning to be logged
-    let output = Command::cargo_bin("tpchgen-cli")
-        .expect("Binary not found")
+    let output = cargo_bin_cmd!("tpchgen-cli")
         .arg("parquet")
         .arg("--scale-factor")
         .arg("0.001")
@@ -185,8 +180,7 @@ fn test_tpchgen_cli_quiet_flag() {
     let expected_file = temp_dir.path().join("part.tbl");
 
     // First run - create the file
-    Command::cargo_bin("tpchgen-cli")
-        .expect("Binary not found")
+    cargo_bin_cmd!("tpchgen-cli")
         .arg("--scale-factor")
         .arg("0.001")
         .arg("--tables")
@@ -202,8 +196,7 @@ fn test_tpchgen_cli_quiet_flag() {
 
     // Run the tpchgen-cli command again with --quiet flag
     // Expect the file to not be overwritten and NO warning even though warnings show by default
-    let output = Command::cargo_bin("tpchgen-cli")
-        .expect("Binary not found")
+    let output = cargo_bin_cmd!("tpchgen-cli")
         .arg("--scale-factor")
         .arg("0.001")
         .arg("--tables")
@@ -245,8 +238,7 @@ fn test_tpchgen_cli_parts() {
 
     let num_parts = 4;
     let output_dir = temp_dir.path().to_path_buf();
-    Command::cargo_bin("tpchgen-cli")
-        .expect("Binary not found")
+    cargo_bin_cmd!("tpchgen-cli")
         .arg("--scale-factor")
         .arg("0.001")
         .arg("--output-dir")
@@ -276,8 +268,7 @@ fn test_tpchgen_cli_parts_explicit() {
         threads.push(std::thread::spawn(move || {
             // Run the tpchgen-cli command for each part
             // output goes into `output_dir/orders/orders.{part}.tbl`
-            Command::cargo_bin("tpchgen-cli")
-                .expect("Binary not found")
+            cargo_bin_cmd!("tpchgen-cli")
                 .arg("--scale-factor")
                 .arg("0.001")
                 .arg("--output-dir")
@@ -306,8 +297,7 @@ fn test_tpchgen_cli_parts_all_tables() {
 
     let num_parts = 8;
     let output_dir = temp_dir.path().to_path_buf();
-    Command::cargo_bin("tpchgen-cli")
-        .expect("Binary not found")
+    cargo_bin_cmd!("tpchgen-cli")
         .arg("--scale-factor")
         .arg("0.001")
         .arg("--output-dir")
@@ -358,8 +348,7 @@ async fn test_write_parquet_orders() {
     // Run the CLI command to generate parquet data
     let output_dir = tempdir().unwrap();
     let output_path = output_dir.path().join("orders.parquet");
-    Command::cargo_bin("tpchgen-cli")
-        .expect("Binary not found")
+    cargo_bin_cmd!("tpchgen-cli")
         .arg("parquet")
         .arg("--tables")
         .arg("orders")
@@ -403,8 +392,7 @@ async fn test_write_parquet_orders() {
 async fn test_write_parquet_row_group_size_default() {
     // Run the CLI command to generate parquet data with default settings
     let output_dir = tempdir().unwrap();
-    Command::cargo_bin("tpchgen-cli")
-        .expect("Binary not found")
+    cargo_bin_cmd!("tpchgen-cli")
         .arg("parquet")
         .arg("--scale-factor")
         .arg("1")
@@ -470,8 +458,7 @@ async fn test_write_parquet_row_group_size_default() {
 async fn test_write_parquet_row_group_size_20mb() {
     // Run the CLI command to generate parquet data with larger row group size
     let output_dir = tempdir().unwrap();
-    Command::cargo_bin("tpchgen-cli")
-        .expect("Binary not found")
+    cargo_bin_cmd!("tpchgen-cli")
         .arg("parquet")
         .arg("--scale-factor")
         .arg("1")
@@ -530,8 +517,7 @@ fn test_tpchgen_cli_part_no_parts() {
     let temp_dir = tempdir().expect("Failed to create temporary directory");
 
     // CLI Error test --part and but not --parts
-    Command::cargo_bin("tpchgen-cli")
-        .expect("Binary not found")
+    cargo_bin_cmd!("tpchgen-cli")
         .arg("--output-dir")
         .arg(temp_dir.path())
         .arg("--part")
@@ -548,8 +534,7 @@ fn test_tpchgen_cli_too_many_parts() {
     let temp_dir = tempdir().expect("Failed to create temporary directory");
 
     // This should fail because --part is 42 which is more than the --parts 10
-    Command::cargo_bin("tpchgen-cli")
-        .expect("Binary not found")
+    cargo_bin_cmd!("tpchgen-cli")
         .arg("--output-dir")
         .arg(temp_dir.path())
         .arg("--part")
@@ -567,8 +552,7 @@ fn test_tpchgen_cli_too_many_parts() {
 fn test_tpchgen_cli_zero_part() {
     let temp_dir = tempdir().expect("Failed to create temporary directory");
 
-    Command::cargo_bin("tpchgen-cli")
-        .expect("Binary not found")
+    cargo_bin_cmd!("tpchgen-cli")
         .arg("--output-dir")
         .arg(temp_dir.path())
         .arg("--part")
@@ -585,8 +569,7 @@ fn test_tpchgen_cli_zero_part() {
 fn test_tpchgen_cli_zero_part_zero_parts() {
     let temp_dir = tempdir().expect("Failed to create temporary directory");
 
-    Command::cargo_bin("tpchgen-cli")
-        .expect("Binary not found")
+    cargo_bin_cmd!("tpchgen-cli")
         .arg("--output-dir")
         .arg(temp_dir.path())
         .arg("--part")
@@ -604,8 +587,7 @@ fn test_tpchgen_cli_zero_part_zero_parts() {
 #[tokio::test]
 async fn test_incompatible_options_warnings() {
     let output_dir = tempdir().unwrap();
-    Command::cargo_bin("tpchgen-cli")
-        .expect("Binary not found")
+    cargo_bin_cmd!("tpchgen-cli")
         .arg("--format")
         .arg("csv")
         .arg("--tables")
@@ -634,8 +616,7 @@ async fn test_incompatible_options_warnings() {
 #[tokio::test]
 async fn test_quiet_flag_suppresses_warnings() {
     let output_dir = tempdir().unwrap();
-    let output = Command::cargo_bin("tpchgen-cli")
-        .expect("Binary not found")
+    let output = cargo_bin_cmd!("tpchgen-cli")
         .env("RUST_LOG", "warn")
         .arg("--format")
         .arg("csv")
