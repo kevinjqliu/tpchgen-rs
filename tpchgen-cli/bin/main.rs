@@ -66,6 +66,7 @@ struct Cli {
 
 #[derive(clap::Subcommand)]
 enum Commands {
+    /// Generate Apache Parquet output with Parquet-specific options
     Parquet(ParquetArgs),
 }
 
