@@ -126,12 +126,11 @@ fn test_tpchgen_cli_parquet_no_overwrite() {
 
     // First run - create the file
     cargo_bin_cmd!("tpchgen-cli")
+        .arg("parquet")
         .arg("--scale-factor")
         .arg("0.001")
         .arg("--tables")
         .arg("part")
-        .arg("--format")
-        .arg("parquet")
         .arg("--output-dir")
         .arg(temp_dir.path())
         .assert()
@@ -144,12 +143,11 @@ fn test_tpchgen_cli_parquet_no_overwrite() {
     // Run the tpchgen-cli command again with the same parameters and expect the
     // file to not be overwritten and a warning to be logged
     let output = cargo_bin_cmd!("tpchgen-cli")
+        .arg("parquet")
         .arg("--scale-factor")
         .arg("0.001")
         .arg("--tables")
         .arg("part")
-        .arg("--format")
-        .arg("parquet")
         .arg("--output-dir")
         .arg(temp_dir.path())
         .assert()
@@ -351,7 +349,6 @@ async fn test_write_parquet_orders() {
     let output_dir = tempdir().unwrap();
     let output_path = output_dir.path().join("orders.parquet");
     cargo_bin_cmd!("tpchgen-cli")
-        .arg("--format")
         .arg("parquet")
         .arg("--tables")
         .arg("orders")
@@ -396,7 +393,6 @@ async fn test_write_parquet_row_group_size_default() {
     // Run the CLI command to generate parquet data with default settings
     let output_dir = tempdir().unwrap();
     cargo_bin_cmd!("tpchgen-cli")
-        .arg("--format")
         .arg("parquet")
         .arg("--scale-factor")
         .arg("1")
@@ -463,13 +459,12 @@ async fn test_write_parquet_row_group_size_20mb() {
     // Run the CLI command to generate parquet data with larger row group size
     let output_dir = tempdir().unwrap();
     cargo_bin_cmd!("tpchgen-cli")
-        .arg("--format")
         .arg("parquet")
         .arg("--scale-factor")
         .arg("1")
         .arg("--output-dir")
         .arg(output_dir.path())
-        .arg("--parquet-row-group-bytes")
+        .arg("--row-group-bytes")
         .arg("20000000") // 20 MB
         .assert()
         .success();

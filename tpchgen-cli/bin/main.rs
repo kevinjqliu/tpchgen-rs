@@ -38,17 +38,40 @@ Examples
 
 tpchgen-cli -s 1 --output-dir=/tmp/tpch
 
-# Generate the lineitem table at scale factor 100 in 10 Apache Parquet files to
-# /tmp/tpch/lineitem
+# Generate all tables in CSV format:
 
-tpchgen-cli -s 100 --tables=lineitem --format=parquet --parts=10 --output-dir=/tmp/tpch
+tpchgen-cli -s 1 --format=csv --output-dir=/tmp/tpch
+
+# Generate scale factor one in CSV format with tab delimiter:
+
+tpchgen-cli -s 1 --format=csv --delimiter='\t' --output-dir=/tmp/tpch
+
+# Generate the lineitem table at scale factor 100 in 10 Apache Parquet files to
+# /tmp/tpch/lineitem:
+
+tpchgen-cli parquet -s 100 --tables=lineitem --parts=10 --output-dir=/tmp/tpch
 
 # Generate scale factor one in current directory, seeing debug output
 
-RUST_LOG=debug tpchgen -s 1
+RUST_LOG=debug tpchgen-cli -s 1 --output-dir=/tmp/tpch
 "#
 )]
 struct Cli {
+    #[command(subcommand)]
+    command: Option<Commands>,
+
+    #[command(flatten)]
+    args: TopLevelArgs,
+}
+
+#[derive(clap::Subcommand)]
+enum Commands {
+    /// Generate Apache Parquet output with Parquet-specific options
+    Parquet(ParquetArgs),
+}
+
+#[derive(clap::Args)]
+struct CommonArgs {
     /// Scale factor to create
     #[arg(short, long, default_value_t = 1.)]
     scale_factor: f64,
@@ -69,29 +92,9 @@ struct Cli {
     #[arg(long)]
     part: Option<i32>,
 
-    /// Output format: tbl, csv, parquet
-    #[arg(short, long, default_value = "tbl")]
-    format: OutputFormat,
-
     /// The number of threads for parallel generation, defaults to the number of CPUs
     #[arg(short, long, default_value_t = num_cpus::get())]
     num_threads: usize,
-
-    /// Parquet block compression format.
-    ///
-    /// Supported values: UNCOMPRESSED, ZSTD(N), SNAPPY, GZIP, LZO, BROTLI, LZ4
-    ///
-    /// Note to use zstd you must supply the "compression" level (1-22)
-    /// as a number in parentheses, e.g. `ZSTD(1)` for level 1 compression.
-    ///
-    /// Using `ZSTD` results in the best compression, but is about 2x slower than
-    /// UNCOMPRESSED. For example, for the lineitem table at SF=10
-    ///
-    ///   ZSTD(1):      1.9G  (0.52 GB/sec)
-    ///   SNAPPY:       2.4G  (0.75 GB/sec)
-    ///   UNCOMPRESSED: 3.8G  (1.41 GB/sec)
-    #[arg(short = 'c', long, default_value = "SNAPPY")]
-    parquet_compression: Compression,
 
     /// Verbose output
     ///
@@ -107,6 +110,57 @@ struct Cli {
     /// Write the output to stdout instead of a file.
     #[arg(long, default_value_t = false)]
     stdout: bool,
+}
+
+#[derive(clap::Args)]
+struct TopLevelArgs {
+    #[command(flatten)]
+    common: CommonArgs,
+
+    /// Output format: tbl, csv, parquet
+    #[arg(short, long, default_value = "tbl")]
+    format: OutputFormat,
+
+    /// Parquet block compression format (deprecated: use 'parquet' subcommand instead)
+    #[arg(short = 'c', long, hide = true)]
+    #[deprecated]
+    parquet_compression: Option<Compression>,
+
+    /// Target row group size in bytes (deprecated: use 'parquet' subcommand instead)
+    #[arg(long, hide = true)]
+    #[deprecated]
+    parquet_row_group_bytes: Option<i64>,
+
+    /// CSV delimiter character (default: ',')
+    ///
+    /// Specifies the delimiter character to use when generating CSV files.
+    ///
+    /// Supports escape sequences: \t (tab), \n (newline), \r (carriage return), \\ (backslash)
+    /// Common delimiters: ',' (comma), '|' (pipe), '\t' (tab), ';' (semicolon)
+    #[arg(long, default_value = ",", value_parser = parse_delimiter)]
+    delimiter: char,
+}
+
+#[derive(clap::Args)]
+struct ParquetArgs {
+    #[command(flatten)]
+    common: CommonArgs,
+
+    /// Parquet block compression format.
+    ///
+    /// Supported values: UNCOMPRESSED, ZSTD(N), SNAPPY, GZIP, LZO, BROTLI, LZ4
+    ///
+    /// Note to use zstd you must supply the "compression" level (1-22)
+    /// as a number in parentheses, e.g. `ZSTD(1)` for level 1 compression.
+    ///
+    /// Using `ZSTD` results in the best compression, but is about 2x slower than
+    /// UNCOMPRESSED. For example, for the lineitem table at SF=10
+    ///
+    ///   ZSTD(1):      1.9G  (0.52 GB/sec)
+    ///   SNAPPY:       2.4G  (0.75 GB/sec)
+    ///   UNCOMPRESSED: 3.8G  (1.41 GB/sec)
+    #[arg(short = 'c', long, default_value = "SNAPPY")]
+    compression: Compression,
 
     /// Target size in row group bytes in Parquet files
     ///
@@ -121,17 +175,7 @@ struct Cli {
     ///
     /// Typical values range from 10MB to 100MB.
     #[arg(long, default_value_t = DEFAULT_PARQUET_ROW_GROUP_BYTES)]
-    parquet_row_group_bytes: i64,
-
-    /// CSV delimiter character (default: ',')
-    ///
-    /// Specifies the delimiter character to use when generating CSV files.
-    /// This option only applies to CSV format and cannot be used with TBL format.
-    ///
-    /// Supports escape sequences: \t (tab), \n (newline), \r (carriage return), \\ (backslash)
-    /// Common delimiters: ',' (comma), '|' (pipe), '\t' (tab), ';' (semicolon)
-    #[arg(long, default_value = ",", value_parser = parse_delimiter)]
-    delimiter: char,
+    row_group_bytes: i64,
 }
 
 /// Parse a delimiter string, handling escape sequences
@@ -207,35 +251,54 @@ async fn main() -> io::Result<()> {
 impl Cli {
     /// Main function to run the generation
     async fn main(self) -> io::Result<()> {
-        // Configure logging
-        if self.quiet {
-            // Quiet mode: only show error-level logs
-            env_logger::builder()
-                .filter_level(LevelFilter::Error)
-                .init();
-        } else if self.verbose {
-            env_logger::builder().filter_level(LevelFilter::Info).init();
-            info!("Verbose output enabled (ignoring RUST_LOG environment variable)");
-        } else {
-            // Default: show warnings and errors, but respect RUST_LOG if set
-            env_logger::builder()
-                .filter_level(LevelFilter::Warn)
-                .parse_default_env()
-                .init();
+        match self.command {
+            Some(Commands::Parquet(args)) => args.run().await,
+            None => self.run().await,
         }
+    }
+
+    #[allow(deprecated)]
+    async fn run(self) -> io::Result<()> {
+        let format = self.args.format;
+        let scale_factor = self.args.common.scale_factor;
+        let output_dir = self.args.common.output_dir;
+        let num_threads = self.args.common.num_threads;
+        let verbose = self.args.common.verbose;
+        let quiet = self.args.common.quiet;
+        let stdout = self.args.common.stdout;
+        let delimiter = self.args.delimiter;
+        let parquet_compression = self.args.parquet_compression.unwrap_or(Compression::SNAPPY);
+        let parquet_row_group_bytes = self
+            .args
+            .parquet_row_group_bytes
+            .unwrap_or(DEFAULT_PARQUET_ROW_GROUP_BYTES);
+
+        configure_logging(verbose, quiet);
 
         // Warn if parquet specific options are set but not generating parquet
-        if self.format != OutputFormat::Parquet {
-            if self.parquet_compression != Compression::SNAPPY {
+        if format == OutputFormat::Parquet {
+            log::warn!(
+                "Warning: Use 'tpchgen-cli parquet' subcommand instead of '--format=parquet' for better validation and control"
+            );
+        }
+
+        if self.args.parquet_compression.is_some() {
+            if format == OutputFormat::Parquet {
+                log::warn!("The --parquet-compression flag is deprecated. Use 'tpchgen-cli parquet --compression=...' instead");
+            } else {
                 log::warn!("Parquet compression option set but not generating Parquet files");
             }
-            if self.parquet_row_group_bytes != DEFAULT_PARQUET_ROW_GROUP_BYTES {
+        }
+        if self.args.parquet_row_group_bytes.is_some() {
+            if format == OutputFormat::Parquet {
+                log::warn!("The --parquet-row-group-bytes flag is deprecated. Use 'tpchgen-cli parquet --row-group-bytes=...' instead");
+            } else {
                 log::warn!("Parquet row group size option set but not generating Parquet files");
             }
         }
 
         // Validate delimiter usage
-        if self.format == OutputFormat::Tbl && self.delimiter != ',' {
+        if format == OutputFormat::Tbl && delimiter != ',' {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
                 "The --delimiter option cannot be used with --format=tbl. TBL format uses the TPC-H standard pipe delimiter."
@@ -243,35 +306,78 @@ impl Cli {
         }
 
         // Warn if delimiter is set but not generating CSV
-        if self.format != OutputFormat::Csv && self.delimiter != ',' {
-            eprintln!("Warning: Delimiter option set but not generating CSV files");
+        if format != OutputFormat::Csv && delimiter != ',' {
+            log::warn!("Warning: Delimiter option set but not generating CSV");
         }
 
         // Build the generator using the library API
         let mut builder = TpchGenerator::builder()
-            .with_scale_factor(self.scale_factor)
-            .with_output_dir(self.output_dir)
-            .with_format(self.format)
-            .with_num_threads(self.num_threads)
-            .with_parquet_compression(self.parquet_compression)
-            .with_parquet_row_group_bytes(self.parquet_row_group_bytes)
-            .with_stdout(self.stdout)
-            .with_csv_delimiter(self.delimiter);
+            .with_scale_factor(scale_factor)
+            .with_output_dir(output_dir)
+            .with_format(format)
+            .with_num_threads(num_threads)
+            .with_parquet_compression(parquet_compression)
+            .with_parquet_row_group_bytes(parquet_row_group_bytes)
+            .with_stdout(stdout)
+            .with_csv_delimiter(delimiter);
 
-        // Add tables if specified
-        if let Some(tables) = self.tables {
+        if let Some(tables) = self.args.common.tables {
             builder = builder.with_tables(tables);
         }
 
-        // Add parts/part if specified
-        if let Some(parts) = self.parts {
+        if let Some(parts) = self.args.common.parts {
             builder = builder.with_parts(parts);
         }
-        if let Some(part) = self.part {
+        if let Some(part) = self.args.common.part {
             builder = builder.with_part(part);
         }
 
-        // Generate using the library
         builder.build().generate().await
+    }
+}
+
+impl ParquetArgs {
+    async fn run(self) -> io::Result<()> {
+        configure_logging(self.common.verbose, self.common.quiet);
+
+        let mut builder = TpchGenerator::builder()
+            .with_scale_factor(self.common.scale_factor)
+            .with_output_dir(self.common.output_dir)
+            .with_format(OutputFormat::Parquet)
+            .with_num_threads(self.common.num_threads)
+            .with_stdout(self.common.stdout)
+            .with_parquet_compression(self.compression)
+            .with_parquet_row_group_bytes(self.row_group_bytes);
+
+        if let Some(tables) = self.common.tables {
+            builder = builder.with_tables(tables);
+        }
+
+        if let Some(parts) = self.common.parts {
+            builder = builder.with_parts(parts);
+        }
+        if let Some(part) = self.common.part {
+            builder = builder.with_part(part);
+        }
+
+        builder.build().generate().await
+    }
+}
+
+fn configure_logging(verbose: bool, quiet: bool) {
+    if quiet {
+        // Quiet mode: only show error-level logs
+        env_logger::builder()
+            .filter_level(LevelFilter::Error)
+            .init();
+    } else if verbose {
+        env_logger::builder().filter_level(LevelFilter::Info).init();
+        info!("Verbose output enabled (ignoring RUST_LOG environment variable)");
+    } else {
+        // Default: show warnings and errors, but respect RUST_LOG if set
+        env_logger::builder()
+            .filter_level(LevelFilter::Warn)
+            .parse_default_env()
+            .init();
     }
 }
