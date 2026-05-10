@@ -17,7 +17,7 @@ tpchgen-cli -s 100 --stdout | pv -arb > /dev/null
 # Outputs something similar to
 # 106GiB [3.09GiB/s] (3.09GiB/s)
 # For parquet
-tpchgen-cli -s 100 --format=parquet --stdout | pv -arb > /dev/null
+tpchgen-cli parquet -s 100 --stdout | pv -arb > /dev/null
 # 38.2GiB [ 865MiB/s] ( 865MiB/s)
 ```
 
@@ -49,7 +49,7 @@ single parquet file per table, with snappy page compression.
 Example command to create Scale Factor 10
 
 ```shell
-tpchgen-cli -s 10 --format=parquet
+tpchgen-cli parquet -s 10
 ```
 
 ## `parquet_duckdb.sh`
