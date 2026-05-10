@@ -117,9 +117,12 @@ struct TopLevelArgs {
     #[command(flatten)]
     common: CommonArgs,
 
-    /// Output format: tbl, csv, parquet
-    #[arg(short, long, default_value = "tbl")]
-    format: OutputFormat,
+    /// Output format: tbl, csv, parquet (default: tbl)
+    ///
+    /// For Parquet output, prefer using the `parquet` subcommand instead.
+    /// The --format flag will be replaced by subcommands in v4.0.0.
+    #[arg(short, long)]
+    format: Option<OutputFormat>,
 
     /// Parquet block compression format (deprecated: use 'parquet' subcommand instead)
     #[arg(short = 'c', long, hide = true)]
@@ -251,6 +254,13 @@ async fn main() -> io::Result<()> {
 impl Cli {
     /// Main function to run the generation
     async fn main(self) -> io::Result<()> {
+        // Error if both --format and a subcommand are specified
+        if self.args.format.is_some() && self.command.is_some() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Cannot use --format with a subcommand. Use the subcommand directly, e.g. `tpchgen-cli parquet`",
+            ));
+        }
         match self.command {
             Some(Commands::Parquet(args)) => args.run().await,
             None => self.run().await,
@@ -259,7 +269,7 @@ impl Cli {
 
     #[allow(deprecated)]
     async fn run(self) -> io::Result<()> {
-        let format = self.args.format;
+        let format = self.args.format.unwrap_or(OutputFormat::Tbl);
         let scale_factor = self.args.common.scale_factor;
         let output_dir = self.args.common.output_dir;
         let num_threads = self.args.common.num_threads;
@@ -275,10 +285,10 @@ impl Cli {
 
         configure_logging(verbose, quiet);
 
-        // Warn if parquet specific options are set but not generating parquet
+        // Warn about --format=parquet migration to subcommand
         if format == OutputFormat::Parquet {
             log::warn!(
-                "Warning: Use 'tpchgen-cli parquet' subcommand instead of '--format=parquet' for better validation and control"
+                "The --format=parquet flag will be replaced by the `parquet` subcommand in v4.0.0. Use `tpchgen-cli parquet` instead."
             );
         }
 
@@ -307,7 +317,7 @@ impl Cli {
 
         // Warn if delimiter is set but not generating CSV
         if format != OutputFormat::Csv && delimiter != ',' {
-            log::warn!("Warning: Delimiter option set but not generating CSV");
+            log::warn!("Delimiter option set but not generating CSV");
         }
 
         // Build the generator using the library API

@@ -703,3 +703,68 @@ fn expect_row_group_sizes(output_dir: &Path, expected_row_groups: Vec<RowGroups>
     let actual_row_groups = format!("{actual_row_groups:#?}");
     assert_eq!(actual_row_groups, expected_row_groups);
 }
+
+/// Test that --format=parquet emits a warning about v4.0.0 migration
+#[tokio::test]
+async fn test_format_parquet_warns_about_subcommand() {
+    let output_dir = tempdir().unwrap();
+    cargo_bin_cmd!("tpchgen-cli")
+        .arg("--format")
+        .arg("parquet")
+        .arg("--tables")
+        .arg("part")
+        .arg("--scale-factor")
+        .arg("0.001")
+        .arg("--output-dir")
+        .arg(output_dir.path())
+        .assert()
+        .success()
+        .stderr(predicates::str::contains(
+            "will be replaced by the `parquet` subcommand in v4.0.0",
+        ));
+}
+
+/// Test that using --format together with a subcommand errors
+#[test]
+fn test_format_with_subcommand_conflict() {
+    let temp_dir = tempdir().expect("Failed to create temporary directory");
+
+    cargo_bin_cmd!("tpchgen-cli")
+        .arg("--format")
+        .arg("parquet")
+        .arg("parquet")
+        .arg("--scale-factor")
+        .arg("0.001")
+        .arg("--tables")
+        .arg("part")
+        .arg("--output-dir")
+        .arg(temp_dir.path())
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains(
+            "Cannot use --format with a subcommand",
+        ));
+}
+
+/// Test that running with no --format and no subcommand defaults to TBL
+#[test]
+fn test_default_format_is_tbl() {
+    let temp_dir = tempdir().expect("Failed to create temporary directory");
+
+    cargo_bin_cmd!("tpchgen-cli")
+        .arg("--scale-factor")
+        .arg("0.001")
+        .arg("--tables")
+        .arg("part")
+        .arg("--output-dir")
+        .arg(temp_dir.path())
+        .assert()
+        .success();
+
+    let expected_file = temp_dir.path().join("part.tbl");
+    assert!(
+        expected_file.exists(),
+        "Expected TBL file {:?} to exist when no --format or subcommand is specified",
+        expected_file
+    );
+}

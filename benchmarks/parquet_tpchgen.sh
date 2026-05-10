@@ -13,5 +13,5 @@ uname -a >> $LOGFILE
 SCALE_FACTORS="1 10 100 1000"
 for sf in $SCALE_FACTORS ; do
     echo "SF=$sf" >> $LOGFILE
-    /usr/bin/time -a -o $LOGFILE tpchgen-cli -s $sf --output-dir=out_tpchgen --format=parquet
+    /usr/bin/time -a -o $LOGFILE tpchgen-cli parquet -s $sf --output-dir=out_tpchgen
 done
