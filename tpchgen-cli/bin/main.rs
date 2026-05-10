@@ -317,7 +317,7 @@ impl Cli {
 
         // Warn if delimiter is set but not generating CSV
         if format != OutputFormat::Csv && delimiter != ',' {
-            log::warn!("Warning: Delimiter option set but not generating CSV");
+            log::warn!("Delimiter option set but not generating CSV");
         }
 
         // Build the generator using the library API
