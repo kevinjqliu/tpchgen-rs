@@ -49,6 +49,7 @@ tpchgen-cli parquet -s 10
 
 # Scale Factor 10, all tables, in `tbl`(csv like) format in the `sf10` directory
 # (10GB, 8 files, 60M lineitem rows)
+# Note: `tpchgen-cli tbl` also works explicitly
 tpchgen-cli -s 10 --output-dir sf10
 
 # Scale Factor 1000, lineitem table, in Apache Parquet format in sf1000 directory, 
@@ -86,4 +87,16 @@ done
   which is why it is not included in the table above.
 
 Times to create TPCH tables in Parquet format using `tpchgen-cli` and `duckdb` for various scale factors.
+
+## Deprecation Notice
+
+`--format`, `--parquet-compression`, and `--parquet-row-group-bytes` are deprecated as of v3.x and will be removed in v4.0.0. Use subcommands instead:
+
+```shell
+# Before
+tpchgen-cli --format=parquet --parquet-compression=ZSTD(1) -s 10
+
+# After
+tpchgen-cli parquet --compression=ZSTD(1) -s 10
+```
 
