@@ -34,9 +34,8 @@ pub async fn generate_parquet<W: Write + Send + IntoSize + 'static, I>(
     iter_iter: I,
     num_threads: usize,
     parquet_compression: Compression,
-    progress_tracker: Option<ProgressTracker>,
+    progress: Option<Arc<dyn ProgressTracker>>,
     table: Table,
-    rows_per_chunk: u64,
 ) -> Result<(), io::Error>
 where
     I: Iterator<Item: RecordBatchIterator> + 'static,
@@ -91,7 +90,7 @@ where
         Sender<Vec<ArrowColumnChunk>>,
         Receiver<Vec<ArrowColumnChunk>>,
     ) = tokio::sync::mpsc::channel(num_threads);
-    let captured_progress = progress_tracker.clone();
+    let captured_progress = progress.clone();
     let writer_task = tokio::task::spawn_blocking(move || {
         // Create parquet writer
         let mut writer =
@@ -107,8 +106,8 @@ where
             }
             row_group_writer.close().unwrap();
             statistics.increment_chunks(1);
-            if let Some(ref tracker) = captured_progress {
-                tracker.increment(table, rows_per_chunk);
+            if let Some(ref progress) = captured_progress {
+                progress.increment(table, 1);
             }
         }
         let size = writer.into_inner()?.into_size()?;

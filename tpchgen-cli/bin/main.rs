@@ -10,9 +10,11 @@
 use clap::builder::TypedValueParser;
 use clap::{ArgAction, Parser};
 use log::{info, LevelFilter};
-use std::io;
+use std::io::{self, IsTerminal};
 use std::path::PathBuf;
 use std::str::FromStr;
+#[cfg(feature = "indicatif-progress")]
+use std::sync::Arc;
 use tpchgen_cli::{
     Compression, OutputFormat, Table, TpchGenerator, TpchGeneratorBuilder,
     DEFAULT_PARQUET_ROW_GROUP_BYTES,
@@ -120,21 +122,37 @@ struct CommonArgs {
     #[arg(long, default_value_t = false)]
     stdout: bool,
 
-    /// Disable progress bars during data generation
-    #[arg(long = "no-progress", action = ArgAction::SetFalse, default_value_t = true)]
+    /// Disable progress bars during data generation.
+    ///
+    /// Bars are also auto-suppressed by `--quiet`, `--stdout`, or when
+    /// stderr is not a terminal.
+    #[arg(long = "no-progress", action = ArgAction::SetFalse)]
     progress: bool,
 }
 
 impl CommonArgs {
     /// Create a [`TpchGeneratorBuilder`] pre-configured with the common options.
     fn builder(self, format: OutputFormat) -> TpchGeneratorBuilder {
+        // Show progress only on an interactive terminal and when no flag
+        // suppresses it. `--stdout` is included so piped data isn't
+        // interleaved with bar redraws on shared shells.
+        let show_progress =
+            self.progress && !self.quiet && !self.stdout && io::stderr().is_terminal();
         let mut builder = TpchGenerator::builder()
             .with_scale_factor(self.scale_factor)
             .with_output_dir(self.output_dir)
             .with_format(format)
             .with_num_threads(self.num_threads)
-            .with_stdout(self.stdout)
-            .with_show_progress(self.progress && !self.quiet);
+            .with_stdout(self.stdout);
+
+        if show_progress {
+            #[cfg(feature = "indicatif-progress")]
+            {
+                builder = builder.with_progress_tracker(Arc::new(
+                    tpchgen_cli::progress::IndicatifProgress::new(),
+                ));
+            }
+        }
 
         if let Some(tables) = self.tables {
             builder = builder.with_tables(tables);

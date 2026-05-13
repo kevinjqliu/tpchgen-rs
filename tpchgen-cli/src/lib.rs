@@ -90,7 +90,7 @@ impl IntoSize for BufWriter<File> {
 ///
 /// Represents the 8 tables in the TPC-H benchmark schema.
 /// Tables are ordered by size (smallest to largest at SF=1).
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Table {
     /// Nation table (25 rows)
     Nation,
@@ -237,8 +237,9 @@ pub struct GeneratorConfig {
     pub stdout: bool,
     /// CSV delimiter character (only applies to CSV format)
     pub csv_delimiter: char,
-    /// Show progress bars during generation
-    pub show_progress: bool,
+    /// Optional progress tracker invoked by the runner during generation.
+    /// Set via [`TpchGeneratorBuilder::with_progress_tracker`].
+    pub progress_tracker: Option<std::sync::Arc<dyn crate::progress::ProgressTracker>>,
 }
 
 impl Default for GeneratorConfig {
@@ -255,7 +256,9 @@ impl Default for GeneratorConfig {
             part: None,
             stdout: false,
             csv_delimiter: ',',
-            show_progress: true,
+            // No tracker by default: library users supply one, the CLI
+            // plugs in `IndicatifProgress` when policy allows.
+            progress_tracker: None,
         }
     }
 }
@@ -396,7 +399,10 @@ impl TpchGenerator {
         info!("Created static distributions and text pools in {elapsed:?}");
 
         // Run
-        let runner = PlanRunner::new(output_plans, config.num_threads, config.show_progress);
+        let mut runner = PlanRunner::new(output_plans, config.num_threads);
+        if let Some(tracker) = config.progress_tracker {
+            runner = runner.with_progress_tracker(tracker);
+        }
         runner.run().await?;
         info!("Generation complete!");
         Ok(())
@@ -418,7 +424,8 @@ impl TpchGenerator {
 /// - Threads: number of CPUs
 /// - Parquet compression: SNAPPY
 /// - Row group size: 7MB
-/// - Show progress: true
+/// - Progress tracker: none (library users opt in by calling
+///   [`TpchGeneratorBuilder::with_progress_tracker`])
 ///
 /// # Examples
 ///
@@ -533,9 +540,16 @@ impl TpchGeneratorBuilder {
         self
     }
 
-    /// Show progress bars during generation
-    pub fn with_show_progress(mut self, show_progress: bool) -> Self {
-        self.config.show_progress = show_progress;
+    /// Install a [`ProgressTracker`](crate::progress::ProgressTracker)
+    /// that will receive `register`/`increment`/`finish` events from the
+    /// runner. See the [`progress`](crate::progress) module for the
+    /// contract and the bundled `IndicatifProgress` implementation
+    /// (available when the `indicatif-progress` feature is enabled).
+    pub fn with_progress_tracker(
+        mut self,
+        tracker: std::sync::Arc<dyn crate::progress::ProgressTracker>,
+    ) -> Self {
+        self.config.progress_tracker = Some(tracker);
         self
     }
 

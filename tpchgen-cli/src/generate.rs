@@ -54,9 +54,8 @@ pub async fn generate_in_chunks<G, I, S>(
     mut sink: S,
     sources: I,
     num_threads: usize,
-    progress_tracker: Option<ProgressTracker>,
+    progress: Option<Arc<dyn ProgressTracker>>,
     table: Table,
-    rows_per_chunk: u64,
 ) -> Result<(), io::Error>
 where
     G: Source + 'static,
@@ -86,7 +85,7 @@ where
     // convert to an async stream to run on tokio
     let mut stream = futures::stream::iter(sources_and_recyclers)
         // each generator writes to a buffer
-        .map(|(source, recycler)| async move {
+        .map(async |(source, recycler)| {
             let buffer = recycler.new_buffer(1024 * 1024 * 8);
             // do the work in a task (on a different thread)
             let mut join_set = JoinSet::new();
@@ -114,13 +113,13 @@ where
     // The writer task runs in a blocking thread to avoid blocking the async
     // runtime. It reads from the channel and writes to the sink (doing File IO)
     let captured_recycler = recycler.clone();
-    let captured_progress_for_buffers = progress_tracker.clone();
+    let captured_progress = progress.clone();
     let writer_task = tokio::task::spawn_blocking(move || {
         while let Some(buffer) = rx.blocking_recv() {
             sink.sink(&buffer)?;
             captured_recycler.return_buffer(buffer);
-            if let Some(ref tracker) = captured_progress_for_buffers {
-                tracker.increment(table, rows_per_chunk);
+            if let Some(ref progress) = captured_progress {
+                progress.increment(table, 1);
             }
         }
         // No more input, flush the sink and return

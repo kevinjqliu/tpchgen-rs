@@ -28,7 +28,14 @@ futures = "0.3.31"
 num_cpus = "1.0"
 log = "0.4.26"
 env_logger = "0.11.7"
-indicatif = "0.18.3"
+indicatif = { version = "0.18.3", optional = true }
+
+[features]
+default = ["indicatif-progress"]
+# Provides `IndicatifProgress`, the bundled `ProgressTracker` impl built on
+# the `indicatif` crate. Disable to avoid the `indicatif` dependency; library
+# users can still implement `ProgressTracker` themselves.
+indicatif-progress = ["dep:indicatif"]
 
 [dev-dependencies]
 assert_cmd = "2.0"
