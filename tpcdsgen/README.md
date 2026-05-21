@@ -44,24 +44,24 @@ scripts that do byte-for-byte (MD5) comparison of `.dat` output. See
 
 ```bash
 # Default (MD5-only): no Java setup required.
-./scripts/test-all-tables.sh --scale 1
+./scripts/compare-all-tables.sh --scale 1
 
 # Byte-for-byte (--full): one-time Java setup + fixture generation.
 ./scripts/bootstrap-trino.sh
 ./scripts/generate-fixtures.sh
-./scripts/test-all-tables.sh --scale 1 --full
+./scripts/compare-all-tables.sh --scale 1 --full
 ```
 
 **vs. C dsdgen reference (`--compat c`):**
 
 ```bash
 # Default (MD5-only): no download needed.
-./scripts/test-all-tables.sh --compat c --scale 1
+./scripts/compare-all-tables.sh --compat c --scale 1
 
 # Byte-for-byte (--full): one-time data download from
 # https://github.com/alamb/tpcds-data into tests/fixtures/scale-N-c/.
 ./scripts/generate-fixtures.sh --compat c --scale 1
-./scripts/test-all-tables.sh --compat c --scale 1 --full
+./scripts/compare-all-tables.sh --compat c --scale 1 --full
 ```
 
 Both suites also support comparing a single table:
@@ -131,8 +131,8 @@ To verify the Rust implementation matches:
 
 ```bash
 # Verify at scale 1
-./scripts/test-all-tables.sh --scale 1
+./scripts/compare-all-tables.sh --scale 1
 
 # Verify at scale 10
-./scripts/test-all-tables.sh --scale 10
+./scripts/compare-all-tables.sh --scale 10
 ```

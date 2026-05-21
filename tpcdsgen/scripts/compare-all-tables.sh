@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# test-all-tables.sh — Run the full conformance suite for one compat
+# compare-all-tables.sh — Run the full conformance suite for one compat
 # mode, byte-for-byte (MD5 + diff) comparing Rust output against
 # reference fixtures. Main entry point used by CI.
 #
@@ -10,7 +10,7 @@ set -euo pipefail
 
 print_usage() {
     cat << 'EOF'
-test-all-tables.sh — Run the full conformance suite for one compat mode.
+compare-all-tables.sh — Run the full conformance suite for one compat mode.
 
 Iterates all 24 TPC-DS tables (dbgen_version is always excluded because
 it contains a generation timestamp), builds the Rust generator in release
@@ -39,7 +39,7 @@ Two reference implementations are supported, selected by --compat:
                                 --full only)
 
 Usage:
-    test-all-tables.sh [OPTIONS]
+    compare-all-tables.sh [OPTIONS]
 
 Options:
     --scale N           Scale factor (default: 1).
@@ -50,11 +50,11 @@ Options:
     --help              Show this help message.
 
 Examples:
-    test-all-tables.sh                  # MD5-only, all tables, scale 1, Trino.
-    test-all-tables.sh --scale 10       # MD5-only, scale 10, Trino.
-    test-all-tables.sh --compat c       # MD5-only, scale 1, C dsdgen.
-    test-all-tables.sh --full           # Byte-for-byte (requires fixtures).
-    test-all-tables.sh --quiet          # Summary-only output.
+    compare-all-tables.sh                  # MD5-only, all tables, scale 1, Trino.
+    compare-all-tables.sh --scale 10       # MD5-only, scale 10, Trino.
+    compare-all-tables.sh --compat c       # MD5-only, scale 1, C dsdgen.
+    compare-all-tables.sh --full           # Byte-for-byte (requires fixtures).
+    compare-all-tables.sh --quiet          # Summary-only output.
 
 Exit codes:
     0 - All tested tables match.

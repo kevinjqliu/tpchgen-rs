@@ -35,7 +35,7 @@ tpcdsgen/
     ├── generate-fixtures.sh     # Generate/download reference fixtures
     │                            #   (Java via --compat trino; C via --compat c)
     ├── compare-table.sh         # Compare one table
-    ├── test-all-tables.sh       # Compare all ported tables
+    ├── compare-all-tables.sh       # Compare all ported tables
     ├── clean-fixtures.sh        # Clean fixtures
     └── README.md                # This file
 ```
@@ -44,7 +44,7 @@ tpcdsgen/
 
 ```bash
 # Default (MD5-only):
-./scripts/test-all-tables.sh
+./scripts/compare-all-tables.sh
 ```
 
 If that fails, re-run byte-for-byte against the `.dat` fixtures — this
@@ -53,7 +53,7 @@ needs a one-time Java bootstrap and fixture generation:
 ```bash
 ./scripts/bootstrap-trino.sh                      # first time only
 ./scripts/generate-fixtures.sh                    # produces .dat files
-./scripts/test-all-tables.sh --full
+./scripts/compare-all-tables.sh --full
 ```
 
 ## Quick Start — C dsdgen conformance (`--compat c`)
@@ -67,12 +67,12 @@ extracts into `tests/fixtures/scale-N-c/`.
 
 ```bash
 # Default (MD5-only): no download needed.
-./scripts/test-all-tables.sh --compat c
+./scripts/compare-all-tables.sh --compat c
 
 # Byte-for-byte (--full): download the C reference data first.
 ./scripts/generate-fixtures.sh --compat c              # sf1
 ./scripts/generate-fixtures.sh --compat c --scale 2    # sf2
-./scripts/test-all-tables.sh --compat c --full
+./scripts/compare-all-tables.sh --compat c --full
 
 # Or compare a single table.
 ./scripts/compare-table.sh reason --compat c                 # MD5-only
@@ -90,7 +90,7 @@ table below is just a roadmap.
 | `bootstrap-trino.sh`       | Clone and build the Java / Trino reference implementation into `../tpcds/`. Run once before Java conformance.                   |
 | `generate-fixtures.sh`    | Populate `tests/fixtures/scale-N-{trino,c}/` with reference data. `--compat trino` (default) runs the Java impl; `--compat c` downloads pre-generated C `dsdgen` data from [alamb/tpcds-data](https://github.com/alamb/tpcds-data). |
 | `compare-table.sh`        | Compare one table's Rust output against the selected reference. Default: MD5-only against `MD5SUMS`. `--full`: byte-for-byte against the `.dat` fixture (MD5 + diff). |
-| `test-all-tables.sh`      | Run the full conformance suite for one compat mode (the main CI entry point). Default: MD5-only. `--full`: byte-for-byte. Honors per-mode skip lists at the top of the script. |
+| `compare-all-tables.sh`   | Run the full conformance suite for one compat mode (the main CI entry point). Default: MD5-only. `--full`: byte-for-byte. Honors per-mode skip lists at the top of the script. |
 | `clean-fixtures.sh`       | Remove all generated fixtures under `tests/fixtures/`.                                                                          |
 
 Run any script with `--help` to print its usage block.
@@ -102,8 +102,8 @@ Run any script with `--help` to print its usage block.
 ### Default (MD5-only)
 ```bash
 ./scripts/compare-table.sh <table>                # one table, vs. Trino
-./scripts/test-all-tables.sh                      # all tables, vs. Trino
-./scripts/test-all-tables.sh --compat c           # all tables, vs. C dsdgen
+./scripts/compare-all-tables.sh                   # all tables, vs. Trino
+./scripts/compare-all-tables.sh --compat c        # all tables, vs. C dsdgen
 ```
 No reference data download needed — the comparison reads
 `MD5SUMS` straight from the repo.
@@ -114,11 +114,11 @@ Use when an MD5 mismatch needs a row-level diff.
 ```bash
 # Java reference: generate fixtures, then compare.
 ./scripts/generate-fixtures.sh                    # one-time
-./scripts/test-all-tables.sh --full
+./scripts/compare-all-tables.sh --full
 
 # C dsdgen reference: download fixtures, then compare.
 ./scripts/generate-fixtures.sh --compat c         # one-time
-./scripts/test-all-tables.sh --compat c --full
+./scripts/compare-all-tables.sh --compat c --full
 ```
 
 ### Cleanup
@@ -182,10 +182,10 @@ path skips the slow reference-data step entirely:
 
 ```yaml
 # Java conformance (MD5-only)
-- run: ./scripts/test-all-tables.sh --quiet
+- run: ./scripts/compare-all-tables.sh --quiet
 
 # C dsdgen conformance (MD5-only)
-- run: ./scripts/test-all-tables.sh --compat c --quiet
+- run: ./scripts/compare-all-tables.sh --compat c --quiet
 ```
 
 If a job needs a row-level diff on failure, add `--full` (and the matching
@@ -195,11 +195,11 @@ fixture step):
 # Java conformance (--full)
 - run: ./scripts/bootstrap-trino.sh
 - run: ./scripts/generate-fixtures.sh --quiet
-- run: ./scripts/test-all-tables.sh --full --quiet
+- run: ./scripts/compare-all-tables.sh --full --quiet
 
 # C dsdgen conformance (--full)
 - run: ./scripts/generate-fixtures.sh --compat c
-- run: ./scripts/test-all-tables.sh --compat c --full --quiet
+- run: ./scripts/compare-all-tables.sh --compat c --full --quiet
 ```
 
 Exit codes make it easy to fail CI on mismatches.

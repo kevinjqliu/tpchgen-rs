@@ -49,7 +49,7 @@ jobs:
     - name: Run conformance tests (Rust vs Java)
       run: |
         cd tpcdsgen
-        ./scripts/test-all-tables.sh
+        ./scripts/compare-all-tables.sh
 
   # Conformance testing against the C dsdgen reference implementation.
   conformance-tests-c:
@@ -83,7 +83,7 @@ jobs:
     - name: Run conformance tests (Rust --compat c vs C dsdgen)
       run: |
         cd tpcdsgen
-        ./scripts/test-all-tables.sh --compat c
+        ./scripts/compare-all-tables.sh --compat c
 
   # Performance benchmarks (optional - only on main)
   benchmarks:
