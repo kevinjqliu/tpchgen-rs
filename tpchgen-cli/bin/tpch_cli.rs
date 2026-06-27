@@ -60,7 +60,7 @@ RUST_LOG=debug tpchgen-cli -s 1 --output-dir=/tmp/tpch
 "#,
     args_conflicts_with_subcommands = true
 )]
-struct Cli {
+pub(super) struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
 
@@ -325,16 +325,9 @@ impl TypedValueParser for TableValueParser {
     }
 }
 
-#[tokio::main]
-async fn main() -> io::Result<()> {
-    // Parse command line arguments
-    let cli = Cli::parse();
-    cli.main().await
-}
-
 impl Cli {
     /// Main function to run the generation
-    async fn main(self) -> io::Result<()> {
+    pub(super) async fn main(self) -> io::Result<()> {
         match self.command {
             Some(Commands::Tbl(args)) => args.run().await,
             Some(Commands::Csv(args)) => args.run().await,
