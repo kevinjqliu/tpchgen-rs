@@ -1,0 +1,16 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "tpcgen"
+dynamic = ["version", "license", "authors"]
+description = "Python CLI for TPC data generator"
+readme = "README.md"
+requires-python = ">=3.8"
+
+[tool.maturin]
+bindings = "bin"
+manifest-path = "../tpchgen-cli/Cargo.toml"
+features = ["bin-tpcgen"]
+no-default-features = true

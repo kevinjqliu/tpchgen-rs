@@ -13,9 +13,20 @@ repository = { workspace = true }
 name = "tpchgen_cli"
 path = "src/lib.rs"
 
+[features]
+default = ["bin-tpchgen-cli", "bin-tpcgen"]
+bin-tpchgen-cli = []
+bin-tpcgen = []
+
 [[bin]]
 name = "tpchgen-cli"
-path = "bin/main.rs"
+path = "bin/tpchgen.rs"
+required-features = ["bin-tpchgen-cli"]
+
+[[bin]]
+name = "tpcgen"
+path = "bin/tpcgen.rs"
+required-features = ["bin-tpcgen"]
 
 [dependencies]
 arrow = "58"

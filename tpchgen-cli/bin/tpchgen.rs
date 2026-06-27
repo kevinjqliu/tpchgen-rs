@@ -1,9 +1,9 @@
 use clap::Parser;
 use std::io;
 
-mod cli;
+mod tpch_cli;
 
-use cli::Cli;
+use tpch_cli::Cli;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {

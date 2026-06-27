@@ -1072,6 +1072,92 @@ async fn test_deprecated_parquet_compression_flag_works() {
     );
 }
 
+/// Test the TPC-H command forms for the `tpcgen` binary.
+#[test]
+fn test_tpcgen_tpch_command_forms() {
+    let forms: &[(&[&str], &[&str], &str)] = &[
+        (&["tpch"], &[], "part.tbl"),
+        (&["tpch", "tbl"], &[], "part.tbl"),
+        (&["tpch", "csv"], &["--delimiter", "|"], "part.csv"),
+        (
+            &["tpch", "parquet"],
+            &["--compression", "SNAPPY", "--row-group-bytes", "1000000"],
+            "part.parquet",
+        ),
+    ];
+
+    for (form, format_args, expected_file) in forms {
+        let temp_dir = tempdir().expect("Failed to create temporary directory");
+
+        cargo_bin_cmd!("tpcgen")
+            .args(*form)
+            .arg("--scale-factor")
+            .arg("0.001")
+            .arg("--tables")
+            .arg("part")
+            .arg("--output-dir")
+            .arg(temp_dir.path())
+            .args(*format_args)
+            .assert()
+            .success();
+
+        let expected_file = temp_dir.path().join(expected_file);
+        assert!(
+            expected_file.exists(),
+            "Expected file {:?} to exist with `tpcgen {}`",
+            expected_file,
+            form.join(" ")
+        );
+    }
+}
+
+/// Test the TPC-DS command forms for the `tpcgen` binary.
+#[test]
+fn test_tpcgen_tpcds_command_forms() {
+    let forms: &[(&[&str], &[&str], &str)] = &[
+        (&["tpcds"], &[], "reason.dat"),
+        (&["tpcds", "dat"], &[], "reason.dat"),
+        (&["tpcds", "csv"], &["--delimiter", "|"], "reason.csv"),
+        (
+            &["tpcds", "parquet"],
+            &["--compression", "SNAPPY", "--row-group-bytes", "1000000"],
+            "reason.parquet",
+        ),
+    ];
+
+    for (form, format_args, expected_file) in forms {
+        let temp_dir = tempdir().expect("Failed to create temporary directory");
+
+        cargo_bin_cmd!("tpcgen")
+            .args(*form)
+            .arg("--scale-factor")
+            .arg("1")
+            .arg("--tables")
+            .arg("reason")
+            .arg("--output-dir")
+            .arg(temp_dir.path())
+            .arg("--parts")
+            .arg("2")
+            .arg("--part")
+            .arg("1")
+            .arg("--num-threads")
+            .arg("1")
+            .arg("--stdout")
+            .arg("--quiet")
+            .args(*format_args)
+            .assert()
+            .success();
+
+        let expected_file = temp_dir.path().join(expected_file);
+        assert!(
+            !expected_file.exists(),
+            "Expected `tpcgen {}` not to create {:?}",
+            form.join(" "),
+            expected_file
+        );
+    }
+}
+
 /// Test that deprecated --format=parquet with --parquet-row-group-bytes still works
 #[tokio::test]
 async fn test_deprecated_parquet_row_group_bytes_flag_works() {

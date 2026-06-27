@@ -11,10 +11,13 @@ on:
 
 jobs:
   wheels:
-    runs-on: ${{ matrix.runner }}
+    runs-on: ${{ matrix.build.runner }}
     strategy:
       matrix:
-        include:
+        package:
+          - tpchgen-cli
+          - tpcgen
+        build:
           # Linux manylinux
           - runner: ubuntu-22.04
             target: x86_64
@@ -76,19 +79,24 @@ jobs:
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
-          target: ${{ matrix.target }}
+          target: ${{ matrix.build.target }}
           args: --release --out dist
-          working-directory: tpchgen-cli
-          manylinux: ${{ matrix.manylinux || '' }}
+          working-directory: ${{ matrix.package }}
+          manylinux: ${{ matrix.build.manylinux || '' }}
       - name: Upload wheels
         if: ${{ inputs.upload-artifacts }}
         uses: actions/upload-artifact@v7
         with:
-          name: wheels-${{ matrix.os }}-${{ matrix.target }}
-          path: tpchgen-cli/dist
+          name: wheels-${{ matrix.package }}-${{ matrix.build.os }}-${{ matrix.build.target }}
+          path: ${{ matrix.package }}/dist
 
   sdist:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package:
+          - tpchgen-cli
+          - tpcgen
     steps:
       - uses: actions/checkout@v7
       - name: Build sdist
@@ -96,10 +104,10 @@ jobs:
         with:
           command: sdist
           args: --out dist
-          working-directory: tpchgen-cli
+          working-directory: ${{ matrix.package }}
       - name: Upload sdist
         if: ${{ inputs.upload-artifacts }}
         uses: actions/upload-artifact@v7
         with:
-          name: wheels-sdist
-          path: tpchgen-cli/dist
+          name: sdist-${{ matrix.package }}
+          path: ${{ matrix.package }}/dist
