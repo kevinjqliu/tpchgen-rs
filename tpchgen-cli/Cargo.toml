@@ -16,7 +16,12 @@ path = "src/lib.rs"
 [[bin]]
 name = "tpchgen-cli"
 path = "bin/tpchgen_cli.rs"
-required-features = ["indicatif-progress"]
+required-features = ["bin-tpchgen-cli", "indicatif-progress"]
+
+[[bin]]
+name = "tpcgen"
+path = "bin/tpcgen_cli.rs"
+required-features = ["bin-tpcgen", "indicatif-progress"]
 
 [dependencies]
 arrow = "59"
@@ -32,12 +37,14 @@ env_logger = "0.11.7"
 indicatif = { version = "0.18.3", optional = true }
 
 [features]
-default = ["indicatif-progress"]
+default = ["indicatif-progress", "bin-tpchgen-cli", "bin-tpcgen"]
 # Enable progress callbacks for applications that want to provide their own
 # progress reporting without pulling in the default terminal progress bars.
 progress = []
 # Enable the default CLI terminal progress bars backed by `indicatif`.
 indicatif-progress = ["progress", "dep:indicatif"]
+bin-tpchgen-cli = []
+bin-tpcgen = []
 
 [dev-dependencies]
 assert_cmd = "2.0"
