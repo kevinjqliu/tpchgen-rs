@@ -12,40 +12,36 @@
  * limitations under the License.
  */
 
-//! TPC-DS Data Generator - Rust Implementation
-//!
-//! Generates TPC-DS benchmark data with byte-for-byte compatibility with the Java reference.
+//! TPC-DS DAT output generation.
 
-use clap::Parser;
-use std::fs::File;
+use std::fs::{create_dir_all, File};
 use std::io::{BufWriter, Write};
 use std::path::Path;
 use std::time::Instant;
 
-use tpcdsgen::config::{Options, Session, Table};
-use tpcdsgen::output::CompatWriter;
-use tpcdsgen::row::*;
-use tpcdsgen::types::Date;
+use crate::config::{Session, Table};
+use crate::output::CompatWriter;
+use crate::row::*;
+use crate::types::Date;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-fn main() -> Result<()> {
-    let options = Options::parse();
-    let session = options.to_session()?;
-
+/// Generate TPC-DS data in DAT format.
+pub fn generate(session: &Session) -> Result<()> {
     println!("TPC-DS Data Generator (Rust)");
     println!("Scale factor: {}", session.get_scaling().get_scale());
     println!("Output directory: {}", session.get_target_directory());
+
+    create_dir_all(session.get_target_directory())?;
 
     let start = Instant::now();
 
     if session.generate_only_one_table() {
         let table = session.get_only_table_to_generate();
-        generate_table(table, &session)?;
+        generate_table(table, session)?;
     } else {
-        // Generate all main tables
         for table in Table::main_tables() {
-            generate_table(table, &session)?;
+            generate_table(table, session)?;
         }
     }
 
@@ -332,8 +328,8 @@ fn generate_inventory(session: &Session) -> Result<()> {
     let mut generator = InventoryRowGenerator::new();
     let scaling = session.get_scaling();
 
-    let item_count = scaling.get_id_count(tpcdsgen::config::Table::Item);
-    let warehouse_count = scaling.get_row_count(tpcdsgen::config::Table::Warehouse);
+    let item_count = scaling.get_id_count(Table::Item);
+    let warehouse_count = scaling.get_row_count(Table::Warehouse);
     let n_days = Date::JULIAN_DATE_MAXIMUM - Date::JULIAN_DATE_MINIMUM;
     let n_weeks = (n_days + 7) / 7;
     let num_rows = item_count * warehouse_count * n_weeks as i64;

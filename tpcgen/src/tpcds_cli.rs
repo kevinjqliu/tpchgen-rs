@@ -1,6 +1,7 @@
 use clap::{ArgAction, Args, Subcommand};
 use std::fmt;
 use std::path::PathBuf;
+use tpcdsgen::config::{CompatMode, Options as TpcdsOptions};
 use tpchgen_cli::{Compression, DEFAULT_PARQUET_ROW_GROUP_BYTES};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -99,6 +100,38 @@ struct CommonArgs {
     #[arg(short = 'T', long = "tables", value_delimiter = ',')]
     tables: Option<Vec<String>>,
 
+    /// Suffix for generated data files
+    #[arg(long = "suffix", default_value = TpcdsOptions::DEFAULT_SUFFIX)]
+    suffix: String,
+
+    /// String representation for null values
+    #[arg(long = "null", default_value = TpcdsOptions::DEFAULT_NULL_STRING)]
+    null_string: String,
+
+    /// Separator between columns
+    #[arg(long = "separator", default_value = "|")]
+    separator: String,
+
+    /// Do not terminate each row with a separator
+    #[arg(long = "do-not-terminate")]
+    do_not_terminate: bool,
+
+    /// Use gender-neutral manager names
+    #[arg(long = "no-sexism")]
+    no_sexism: bool,
+
+    /// Build data in `n` separate chunks
+    #[arg(long = "parallelism", default_value_t = TpcdsOptions::DEFAULT_PARALLELISM)]
+    parallelism: i32,
+
+    /// Overwrite existing data files for tables
+    #[arg(long = "overwrite")]
+    overwrite: bool,
+
+    /// Reference implementation to match
+    #[arg(long = "compat", default_value = "trino")]
+    compat: CompatMode,
+
     /// Verbose output
     ///
     /// When specified, sets the log level to `info` and ignores the `RUST_LOG`
@@ -130,34 +163,61 @@ impl Cli {
 
 impl DatArgs {
     fn run(self) -> Result<()> {
-        self.common.run()
+        self.common.run_dat()
     }
 }
 
 impl CsvArgs {
     fn run(self) -> Result<()> {
         let _ = self.delimiter;
-        self.common.run()
+        self.common.run_not_implemented()
     }
 }
 
 impl ParquetArgs {
     fn run(self) -> Result<()> {
         let _ = (self.compression, self.row_group_bytes);
-        self.common.run()
+        self.common.run_not_implemented()
     }
 }
 
 impl CommonArgs {
-    fn run(self) -> Result<()> {
-        let _ = (
-            self.scale_factor,
-            self.output_dir,
-            self.tables,
-            self.verbose,
-            self.quiet,
-            self.progress_bars_enabled,
-        );
+    fn run_dat(self) -> Result<()> {
+        if let Some(tables) = &self.tables {
+            for table in tables {
+                self.run_dat_for_table(Some(table.clone()))?;
+            }
+        } else {
+            self.run_dat_for_table(None)?;
+        }
+
+        Ok(())
+    }
+
+    fn run_dat_for_table(&self, table: Option<String>) -> Result<()> {
+        let options = self.to_tpcds_options(table);
+        let session = options.to_session()?;
+        tpcdsgen::dat::generate(&session)
+    }
+
+    fn to_tpcds_options(&self, table: Option<String>) -> TpcdsOptions {
+        let mut options = TpcdsOptions::new();
+        options.scale = self.scale_factor;
+        options.directory = self.output_dir.to_string_lossy().into_owned();
+        options.suffix = self.suffix.clone();
+        options.table = table;
+        options.null_string = self.null_string.clone();
+        options.separator = self.separator.clone();
+        options.do_not_terminate = self.do_not_terminate;
+        options.no_sexism = self.no_sexism;
+        options.parallelism = self.parallelism;
+        options.overwrite = self.overwrite;
+        options.compat = self.compat;
+        options
+    }
+
+    fn run_not_implemented(self) -> Result<()> {
+        let _ = self;
         Err(Box::new(NotImplemented))
     }
 }
