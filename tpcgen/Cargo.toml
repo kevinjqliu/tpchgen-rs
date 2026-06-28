@@ -19,7 +19,9 @@ path = "bin/tpcgen.rs"
 
 [dependencies]
 clap = { version = "4.5.32", features = ["derive"] }
-tpcdsgen = { path = "../tpcdsgen", version = "0.1.0" }
+env_logger = "0.11.7"
+log = "0.4.27"
+tpcdsgen = { path = "../tpcdsgen", version = "0.1.0", features = ["indicatif-progress"] }
 tokio = { version = "1.44.1", features = ["full"] }
 tpchgen-cli = { path = "../tpchgen-cli", version = "2.0.2", default-features = false, features = ["indicatif-progress"] }
 

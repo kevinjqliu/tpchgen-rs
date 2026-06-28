@@ -122,6 +122,58 @@ fn test_tpcgen_tpcds_dat_options() {
     );
 }
 
+/// Test that TPC-DS progress bars are auto-suppressed when stderr is not a TTY.
+#[test]
+fn test_tpcgen_tpcds_progress_auto_disabled_on_non_tty() {
+    let temp_dir = tempdir().expect("Failed to create temporary directory");
+
+    let output = cargo_bin_cmd!("tpcgen")
+        .arg("tpcds")
+        .arg("dat")
+        .arg("--scale-factor")
+        .arg("1")
+        .arg("--tables")
+        .arg("reason")
+        .arg("--output-dir")
+        .arg(temp_dir.path())
+        .assert()
+        .success();
+
+    let stderr = String::from_utf8_lossy(&output.get_output().stderr);
+    for glyph in ["█", "▓", "░", "Progress:"] {
+        assert!(
+            !stderr.contains(glyph),
+            "Expected progress to be auto-disabled on non-TTY stderr, but found {glyph:?} in: {stderr}"
+        );
+    }
+}
+
+/// Test that TPC-DS configures logging for the unified `tpcgen` binary.
+#[test]
+fn test_tpcgen_tpcds_verbose_configures_logging() {
+    let temp_dir = tempdir().expect("Failed to create temporary directory");
+
+    let output = cargo_bin_cmd!("tpcgen")
+        .arg("tpcds")
+        .arg("dat")
+        .arg("--scale-factor")
+        .arg("1")
+        .arg("--tables")
+        .arg("reason")
+        .arg("--output-dir")
+        .arg(temp_dir.path())
+        .arg("--verbose")
+        .arg("--no-progress")
+        .assert()
+        .success();
+
+    let stderr = String::from_utf8_lossy(&output.get_output().stderr);
+    assert!(
+        stderr.contains("Verbose output enabled"),
+        "Expected verbose TPC-DS generation to initialize logging, got stderr: {stderr}"
+    );
+}
+
 /// Test that non-DAT TPC-DS command forms still report that generation is unavailable.
 #[test]
 fn test_tpcgen_tpcds_non_dat_command_forms_are_not_implemented() {

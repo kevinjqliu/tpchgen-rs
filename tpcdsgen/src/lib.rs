@@ -9,6 +9,10 @@ pub mod join_key_utils;
 pub mod nulls;
 pub mod output;
 pub mod permutations;
+#[cfg(not(feature = "progress"))]
+mod progress;
+#[cfg(feature = "progress")]
+pub mod progress;
 pub mod pseudo_table_scaling_infos;
 pub mod random;
 pub mod row;

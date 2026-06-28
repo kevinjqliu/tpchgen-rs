@@ -1,7 +1,11 @@
 use clap::{ArgAction, Args, Subcommand};
+use log::{info, LevelFilter};
 use std::fmt;
+use std::io::{self, IsTerminal};
 use std::path::PathBuf;
-use tpcdsgen::config::{CompatMode, Options as TpcdsOptions};
+use std::sync::Arc;
+use tpcdsgen::config::{CompatMode, Options as TpcdsOptions, Table as TpcdsTable};
+use tpcdsgen::progress::{IndicatifProgress, ProgressTracker};
 use tpchgen_cli::{Compression, DEFAULT_PARQUET_ROW_GROUP_BYTES};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -183,21 +187,56 @@ impl ParquetArgs {
 
 impl CommonArgs {
     fn run_dat(self) -> Result<()> {
-        if let Some(tables) = &self.tables {
-            for table in tables {
-                self.run_dat_for_table(Some(table.clone()))?;
-            }
-        } else {
-            self.run_dat_for_table(None)?;
-        }
+        let progress = self.progress_tracker();
+        configure_logging(
+            self.verbose,
+            self.quiet,
+            progress.as_ref().map(|progress| progress.log_writer()),
+        );
+        let progress = progress.map(|progress| progress as Arc<dyn ProgressTracker>);
+        let options = self.to_tpcds_options(None);
+        let session = options.to_session()?;
 
-        Ok(())
+        if let Some(tables) = &self.tables {
+            let tables = parse_tables(tables)?;
+            self.run_dat_for_tables(&session, &tables, progress)
+        } else {
+            self.run_dat_for_session(&session, progress)
+        }
     }
 
-    fn run_dat_for_table(&self, table: Option<String>) -> Result<()> {
-        let options = self.to_tpcds_options(table);
-        let session = options.to_session()?;
-        tpcdsgen::dat::generate(&session)
+    fn run_dat_for_session(
+        &self,
+        session: &tpcdsgen::config::Session,
+        progress: Option<Arc<dyn ProgressTracker>>,
+    ) -> Result<()> {
+        if let Some(progress) = progress {
+            tpcdsgen::dat::generate_with_progress(session, progress)
+        } else {
+            tpcdsgen::dat::generate(session)
+        }
+    }
+
+    fn run_dat_for_tables(
+        &self,
+        session: &tpcdsgen::config::Session,
+        tables: &[TpcdsTable],
+        progress: Option<Arc<dyn ProgressTracker>>,
+    ) -> Result<()> {
+        if let Some(progress) = progress {
+            tpcdsgen::dat::generate_tables_with_progress(session, tables, progress)
+        } else {
+            tpcdsgen::dat::generate_tables(session, tables)
+        }
+    }
+
+    fn progress_tracker(&self) -> Option<Arc<IndicatifProgress>> {
+        self.should_show_progress_bars()
+            .then(|| Arc::new(IndicatifProgress::new()))
+    }
+
+    fn should_show_progress_bars(&self) -> bool {
+        self.progress_bars_enabled && !self.quiet && io::stderr().is_terminal()
     }
 
     fn to_tpcds_options(&self, table: Option<String>) -> TpcdsOptions {
@@ -219,6 +258,37 @@ impl CommonArgs {
     fn run_not_implemented(self) -> Result<()> {
         let _ = self;
         Err(Box::new(NotImplemented))
+    }
+}
+
+fn parse_tables(tables: &[String]) -> Result<Vec<TpcdsTable>> {
+    tables
+        .iter()
+        .map(|table| table.parse::<TpcdsTable>().map_err(Into::into))
+        .collect()
+}
+
+fn configure_logging(
+    verbose: bool,
+    quiet: bool,
+    log_writer: Option<Box<dyn io::Write + Send + 'static>>,
+) {
+    let mut builder = env_logger::builder();
+    if quiet {
+        builder.filter_level(LevelFilter::Error);
+    } else if verbose {
+        builder.filter_level(LevelFilter::Info);
+    } else {
+        builder.filter_level(LevelFilter::Warn).parse_default_env();
+    }
+    if let Some(log_writer) = log_writer {
+        builder.target(env_logger::Target::Pipe(log_writer));
+    }
+
+    let _ = builder.try_init();
+
+    if verbose {
+        info!("Verbose output enabled (ignoring RUST_LOG environment variable)");
     }
 }
 
