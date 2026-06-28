@@ -1,0 +1,187 @@
+use clap::{ArgAction, Args, Subcommand};
+use std::path::PathBuf;
+use tpchgen_cli::{Compression, DEFAULT_PARQUET_ROW_GROUP_BYTES};
+
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+
+#[derive(Args)]
+#[command(version)]
+#[command(args_conflicts_with_subcommands = true)]
+pub(crate) struct Cli {
+    #[command(subcommand)]
+    command: Option<Commands>,
+
+    #[command(flatten)]
+    args: DatArgs,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Generate DAT (pipe-delimited) output
+    Dat(DatArgs),
+    /// Generate CSV output with CSV-specific options
+    Csv(CsvArgs),
+    /// Generate Apache Parquet output with Parquet-specific options
+    Parquet(ParquetArgs),
+}
+
+#[derive(Args)]
+struct DatArgs {
+    #[command(flatten)]
+    common: CommonArgs,
+}
+
+#[derive(Args)]
+struct CsvArgs {
+    #[command(flatten)]
+    common: CommonArgs,
+
+    /// CSV delimiter character (default: ',')
+    ///
+    /// Specifies the delimiter character to use when generating CSV files.
+    ///
+    /// Supports escape sequences: \t (tab), \n (newline), \r (carriage return), \\ (backslash)
+    /// Common delimiters: ',' (comma), '|' (pipe), '\t' (tab), ';' (semicolon)
+    #[arg(long, default_value = ",", value_parser = parse_delimiter)]
+    delimiter: char,
+}
+
+#[derive(Args)]
+struct ParquetArgs {
+    #[command(flatten)]
+    common: CommonArgs,
+
+    /// Parquet block compression format.
+    ///
+    /// Supported values: UNCOMPRESSED, ZSTD(N), SNAPPY, GZIP, LZO, BROTLI, LZ4
+    ///
+    /// Note to use zstd you must supply the "compression" level (1-22)
+    /// as a number in parentheses, e.g. `ZSTD(1)` for level 1 compression.
+    ///
+    /// Using `ZSTD` results in the best compression, but is about 2x slower than
+    /// UNCOMPRESSED. For example, for the lineitem table at SF=10
+    ///
+    ///   ZSTD(1):      1.9G  (0.52 GB/sec)
+    ///   SNAPPY:       2.4G  (0.75 GB/sec)
+    ///   UNCOMPRESSED: 3.8G  (1.41 GB/sec)
+    #[arg(short = 'c', long, default_value = "SNAPPY")]
+    compression: Compression,
+
+    /// Target size in row group bytes in Parquet files
+    ///
+    /// Row groups are the typical unit of parallel processing and compression
+    /// with many query engines. Therefore, smaller row groups enable better
+    /// parallelism and lower peak memory use but may reduce compression
+    /// efficiency.
+    ///
+    /// Note: Parquet files are limited to 32k row groups, so at high scale
+    /// factors, the row group size may be increased to keep the number of row
+    /// groups under this limit.
+    ///
+    /// Typical values range from 10MB to 100MB.
+    #[arg(long, default_value_t = DEFAULT_PARQUET_ROW_GROUP_BYTES)]
+    row_group_bytes: i64,
+}
+
+#[derive(Args)]
+struct CommonArgs {
+    /// Scale factor to create
+    #[arg(short, long, default_value_t = 1.)]
+    scale_factor: f64,
+
+    /// Output directory for generated files (default: current directory)
+    #[arg(short, long, default_value = ".")]
+    output_dir: PathBuf,
+
+    /// Which tables to generate (default: all)
+    #[arg(short = 'T', long = "tables", value_delimiter = ',')]
+    tables: Option<Vec<String>>,
+
+    /// Verbose output
+    ///
+    /// When specified, sets the log level to `info` and ignores the `RUST_LOG`
+    /// environment variable. When not specified, uses `RUST_LOG`
+    #[arg(short, long, default_value_t = false, conflicts_with = "quiet")]
+    verbose: bool,
+
+    /// Quiet mode - only show error-level logs
+    #[arg(short, long, default_value_t = false, conflicts_with = "verbose")]
+    quiet: bool,
+
+    /// Disable progress bars during data generation.
+    ///
+    /// Bars are also auto-suppressed by `--quiet` or when stderr is not a terminal.
+    #[arg(long = "no-progress", action = ArgAction::SetFalse, default_value_t = true)]
+    progress_bars_enabled: bool,
+}
+
+impl Cli {
+    pub(crate) fn run(self) -> Result<()> {
+        match self.command {
+            Some(Commands::Dat(args)) => args.run(),
+            Some(Commands::Csv(args)) => args.run(),
+            Some(Commands::Parquet(args)) => args.run(),
+            None => self.args.run(),
+        }
+    }
+}
+
+impl DatArgs {
+    fn run(self) -> Result<()> {
+        self.common.run()
+    }
+}
+
+impl CsvArgs {
+    fn run(self) -> Result<()> {
+        let _ = self.delimiter;
+        self.common.run()
+    }
+}
+
+impl ParquetArgs {
+    fn run(self) -> Result<()> {
+        let _ = (self.compression, self.row_group_bytes);
+        self.common.run()
+    }
+}
+
+impl CommonArgs {
+    fn run(self) -> Result<()> {
+        let _ = (
+            self.scale_factor,
+            self.output_dir,
+            self.tables,
+            self.verbose,
+            self.quiet,
+            self.progress_bars_enabled,
+        );
+        Ok(())
+    }
+}
+
+fn parse_delimiter(s: &str) -> std::result::Result<char, String> {
+    let parsed = match s {
+        "\\t" => '\t',
+        "\\n" => '\n',
+        "\\r" => '\r',
+        "\\\\" => '\\',
+        _ => {
+            let chars: Vec<char> = s.chars().collect();
+            if chars.len() != 1 {
+                return Err(format!(
+                    "Delimiter must be a single character or escape sequence (\\t, \\n, \\r, \\\\), got: '{}'",
+                    s
+                ));
+            }
+            chars[0]
+        }
+    };
+    if !parsed.is_ascii() {
+        return Err(format!(
+            "Delimiter must be an ASCII character, got: '{}'",
+            parsed
+        ));
+    }
+    Ok(parsed)
+}
