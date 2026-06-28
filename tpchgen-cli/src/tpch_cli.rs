@@ -7,6 +7,11 @@
 //! See the documentation on [`Cli`] for more information on the command line
 
 // Use the library public API
+use crate::progress::IndicatifProgress;
+use crate::{
+    Compression, OutputFormat, Table, TpchGenerator, TpchGeneratorBuilder,
+    DEFAULT_PARQUET_ROW_GROUP_BYTES,
+};
 use clap::builder::TypedValueParser;
 use clap::{ArgAction, Parser};
 use log::{info, LevelFilter};
@@ -14,11 +19,6 @@ use std::io::{self, IsTerminal};
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
-use tpchgen_cli::progress::IndicatifProgress;
-use tpchgen_cli::{
-    Compression, OutputFormat, Table, TpchGenerator, TpchGeneratorBuilder,
-    DEFAULT_PARQUET_ROW_GROUP_BYTES,
-};
 
 #[derive(Parser)]
 #[command(name = "tpchgen")]
@@ -60,7 +60,7 @@ RUST_LOG=debug tpchgen-cli -s 1 --output-dir=/tmp/tpch
 "#,
     args_conflicts_with_subcommands = true
 )]
-struct Cli {
+pub struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
 
@@ -325,25 +325,18 @@ impl TypedValueParser for TableValueParser {
     }
 }
 
-#[tokio::main]
-async fn main() -> io::Result<()> {
-    // Parse command line arguments
-    let cli = Cli::parse();
-    cli.main().await
-}
-
 impl Cli {
-    /// Main function to run the generation
-    async fn main(self) -> io::Result<()> {
+    /// Run data generation for the selected command.
+    pub async fn run(self) -> io::Result<()> {
         match self.command {
             Some(Commands::Tbl(args)) => args.run().await,
             Some(Commands::Csv(args)) => args.run().await,
             Some(Commands::Parquet(args)) => args.run().await,
-            None => self.run().await,
+            None => self.run_default().await,
         }
     }
 
-    async fn run(self) -> io::Result<()> {
+    async fn run_default(self) -> io::Result<()> {
         // Warn about --format migration to subcommands (only when explicitly provided)
         let (format, subcommand) = if let Some(format) = self.args.format {
             let subcommand = match format {
