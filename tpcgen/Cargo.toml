@@ -1,0 +1,27 @@
+[package]
+name = "tpcgen"
+version = "0.1.0"
+authors = { workspace = true }
+description = "Command line tool for TPC benchmark data generation."
+readme = "README.md"
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+
+[lib]
+name = "tpcgen"
+path = "src/lib.rs"
+
+[[bin]]
+name = "tpcgen"
+path = "bin/tpcgen.rs"
+
+[dependencies]
+clap = { version = "4.5.32", features = ["derive"] }
+tokio = { version = "1.44.1", features = ["full"] }
+tpchgen-cli = { path = "../tpchgen-cli", version = "2.0.2", default-features = false, features = ["indicatif-progress"] }
+
+[dev-dependencies]
+assert_cmd = "2.0"
+tempfile = "3.20.0"

@@ -38,6 +38,8 @@ pub mod progress;
 pub mod runner;
 pub mod statistics;
 pub mod tbl;
+#[cfg(feature = "indicatif-progress")]
+pub mod tpch_cli;
 
 use crate::generate::Sink;
 use crate::parquet::IntoSize;
