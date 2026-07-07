@@ -1,7 +1,7 @@
 //! Shared Parquet output helpers.
 
 use arrow::datatypes::SchemaRef;
-use arrow::record_batch::RecordBatch;
+use arrow::record_batch::RecordBatchReader;
 use futures::StreamExt;
 use log::debug;
 use parquet::arrow::arrow_writer::{compute_leaves, ArrowColumnChunk};
@@ -23,11 +23,11 @@ pub trait IntoSize {
     fn into_size(self) -> Result<usize, io::Error>;
 }
 
-/// Converts a set of RecordBatchIterators into a Parquet file.
+/// Converts a set of RecordBatchReaders into a Parquet file.
 ///
 /// Uses num_threads to generate the data in parallel.
 ///
-/// Note the input is an iterator of [`RecordBatch`] iterators; the batches
+/// Note the input is an iterator of [`RecordBatchReader`]s; the batches
 /// produced by each iterator are encoded as their own row group.
 pub async fn generate_parquet<W, I>(
     writer: W,
@@ -40,7 +40,8 @@ pub async fn generate_parquet<W, I>(
 ) -> Result<(), io::Error>
 where
     W: Write + Send + IntoSize + 'static,
-    I: Iterator<Item: Iterator<Item = RecordBatch> + Send> + 'static,
+    I: Iterator + 'static,
+    I::Item: RecordBatchReader + Send,
 {
     debug!(
         "Generating Parquet with {num_threads} threads, using {parquet_compression} compression"
@@ -144,7 +145,7 @@ fn encode_row_group<I>(
     iter: I,
 ) -> Vec<ArrowColumnChunk>
 where
-    I: Iterator<Item = RecordBatch>,
+    I: RecordBatchReader,
 {
     // Create writers for each of the leaf columns
     #[allow(deprecated)]
@@ -157,6 +158,7 @@ where
 
     // generate the data and send it to the tasks (via the sender channels)
     for batch in iter {
+        let batch = batch.unwrap();
         let columns = batch.columns().iter();
         let col_writers = col_writers.iter_mut();
         let fields = schema.fields().iter();
@@ -185,7 +187,6 @@ mod tests {
         Arc,
     };
     use tpchgen::generators::RegionGenerator;
-    use tpchgen_arrow::RecordBatchIterator;
     use tpchgen_arrow::RegionArrow;
 
     #[derive(Debug, Default)]
@@ -214,7 +215,7 @@ mod tests {
 
         generate_parquet(
             writer,
-            Arc::clone(region_source().schema()),
+            region_source().schema(),
             vec![region_source(), region_source()].into_iter(),
             1,
             Compression::UNCOMPRESSED,

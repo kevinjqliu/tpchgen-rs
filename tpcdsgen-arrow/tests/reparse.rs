@@ -11,6 +11,7 @@
 use arrow::array::RecordBatch;
 use arrow::compute::concat_batches;
 use arrow::datatypes::SchemaRef;
+use arrow::record_batch::RecordBatchReader;
 use std::sync::{Arc, LazyLock};
 use tpcdsgen::config::{Session, Table};
 use tpcdsgen::row::{
@@ -26,9 +27,8 @@ use tpcdsgen_arrow::{
     CallCenterArrow, CatalogPageArrow, CatalogReturnsArrow, CatalogSalesArrow,
     CustomerAddressArrow, CustomerArrow, CustomerDemographicsArrow, DateDimArrow,
     HouseholdDemographicsArrow, IncomeBandArrow, InventoryArrow, ItemArrow, PromotionArrow,
-    ReasonArrow, RecordBatchIterator, ShipModeArrow, StoreArrow, StoreReturnsArrow,
-    StoreSalesArrow, TimeDimArrow, WarehouseArrow, WebPageArrow, WebReturnsArrow, WebSalesArrow,
-    WebSiteArrow,
+    ReasonArrow, ShipModeArrow, StoreArrow, StoreReturnsArrow, StoreSalesArrow, TimeDimArrow,
+    WarehouseArrow, WebPageArrow, WebReturnsArrow, WebSalesArrow, WebSiteArrow,
 };
 
 /// Session options for tests (scale factor 1).
@@ -127,10 +127,11 @@ where
 /// by realigning the batches before comparison.
 fn assert_record_batch_streams<L, R>(left: L, right: R, row_limit: usize)
 where
-    L: Iterator<Item = RecordBatch>,
+    L: RecordBatchReader,
     R: Iterator<Item = RecordBatch>,
 {
     // Use FixedSizeBatches to align batch boundaries for comparison.
+    let left = left.map(|batch| batch.expect("arrow generation should not fail"));
     let mut left = FixedSizeBatches::new(left, row_limit);
     let mut right = FixedSizeBatches::new(right, row_limit);
 
@@ -191,7 +192,7 @@ macro_rules! table_test {
                 let source_row_count = SESSION.get_scaling().get_row_count($table);
                 let row_limit = test_row_count($table) as usize;
                 let arrow_gen = $arrow_gen(SESSION.clone());
-                let schema = Arc::clone(arrow_gen.schema());
+                let schema = arrow_gen.schema();
                 let reparsed = reparsed_batches(
                     $gen,
                     &schema,
@@ -220,7 +221,7 @@ macro_rules! table_test {
                 let mut arrow_gen = $arrow_gen(SESSION.clone());
                 arrow_gen.skip_rows_until_starting_row_number(starting_row_number);
 
-                let schema = Arc::clone(arrow_gen.schema());
+                let schema = arrow_gen.schema();
                 let reparsed = reparsed_batches(
                     gen,
                     &schema,
