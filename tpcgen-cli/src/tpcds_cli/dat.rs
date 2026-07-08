@@ -244,7 +244,6 @@ trait RowGeneratorFactory: RowGenerator + Sized {
     fn create() -> Self;
 }
 
-// Implement factory for all simple generators
 macro_rules! impl_factory {
     ($($gen:ty),*) => {
         $(
@@ -255,6 +254,7 @@ macro_rules! impl_factory {
     };
 }
 
+// Implement factory for all simple generators
 impl_factory!(
     CallCenterRowGenerator,
     CatalogPageRowGenerator,
@@ -277,7 +277,14 @@ impl_factory!(
     WebSiteRowGenerator
 );
 
-/// Generate a simple table (one row per row_number, no paired return output)
+// Implement factory for generators that emit sales and returns rows
+impl_factory!(
+    CatalogSalesRowGenerator,
+    StoreSalesRowGenerator,
+    WebSalesRowGenerator
+);
+
+/// Generate a simple table (one row per row_number, no child tables)
 fn generate_simple<G: RowGeneratorFactory>(
     table: Table,
     session: &Session,
@@ -324,68 +331,13 @@ fn generate_store_sales(
     output_options: &OutputOptions,
     progress: &dyn ProgressTracker,
 ) -> Result<()> {
-    let mut generator = StoreSalesRowGenerator::new();
-    let num_orders = session.get_scaling().get_row_count(Table::StoreSales);
-    let return_rows = session.get_scaling().get_row_count(Table::StoreReturns);
-    let sales_name = Table::StoreSales.get_name();
-    let returns_name = Table::StoreReturns.get_name();
-    // Register the scaling row counts, then advance after each written row.
-    progress.register(sales_name, num_orders.try_into().unwrap_or(0));
-    progress.register(returns_name, return_rows.try_into().unwrap_or(0));
-
-    let sales_path = get_output_path(Table::StoreSales, output_options);
-    let returns_path = get_output_path(Table::StoreReturns, output_options);
-
-    let compat_mode = session.get_compat_mode();
-    let mut sales_writer = CompatWriter::new(
-        BufWriter::new(create_output_file(&sales_path, output_options)?),
-        compat_mode,
-    );
-    let mut returns_writer = CompatWriter::new(
-        BufWriter::new(create_output_file(&returns_path, output_options)?),
-        compat_mode,
-    );
-
-    info!("Generating store_sales + store_returns...");
-
-    let mut sales_count = 0i64;
-    let mut returns_count = 0i64;
-    let mut row_number = 1i64;
-
-    while row_number <= num_orders {
-        let result = generator.generate_row_and_child_rows(row_number, session, None, None)?;
-        let rows = result.get_rows();
-
-        if !rows.is_empty() {
-            write_row(&rows[0], &mut sales_writer, output_options)?;
-            sales_count += 1;
-        }
-
-        if rows.len() > 1 {
-            write_row(&rows[1], &mut returns_writer, output_options)?;
-            returns_count += 1;
-            progress.increment(returns_name, 1);
-        }
-
-        if result.should_end_row() {
-            generator.consume_remaining_seeds_for_row();
-            row_number += 1;
-            progress.increment(sales_name, 1);
-        }
-    }
-
-    sales_writer.flush()?;
-    returns_writer.flush()?;
-
-    info!(
-        "Generated store_sales + store_returns: {} sales, {} returns -> {}, {}",
-        sales_count,
-        returns_count,
-        sales_path.display(),
-        returns_path.display()
-    );
-
-    Ok(())
+    generate_sales_and_returns::<StoreSalesRowGenerator>(
+        Table::StoreSales,
+        Table::StoreReturns,
+        session,
+        output_options,
+        progress,
+    )
 }
 
 /// Generate catalog_sales and catalog_returns together
@@ -394,68 +346,13 @@ fn generate_catalog_sales(
     output_options: &OutputOptions,
     progress: &dyn ProgressTracker,
 ) -> Result<()> {
-    let mut generator = CatalogSalesRowGenerator::new();
-    let num_orders = session.get_scaling().get_row_count(Table::CatalogSales);
-    let return_rows = session.get_scaling().get_row_count(Table::CatalogReturns);
-    let sales_name = Table::CatalogSales.get_name();
-    let returns_name = Table::CatalogReturns.get_name();
-    // Register the scaling row counts, then advance after each written row.
-    progress.register(sales_name, num_orders.try_into().unwrap_or(0));
-    progress.register(returns_name, return_rows.try_into().unwrap_or(0));
-
-    let sales_path = get_output_path(Table::CatalogSales, output_options);
-    let returns_path = get_output_path(Table::CatalogReturns, output_options);
-
-    let compat_mode = session.get_compat_mode();
-    let mut sales_writer = CompatWriter::new(
-        BufWriter::new(create_output_file(&sales_path, output_options)?),
-        compat_mode,
-    );
-    let mut returns_writer = CompatWriter::new(
-        BufWriter::new(create_output_file(&returns_path, output_options)?),
-        compat_mode,
-    );
-
-    info!("Generating catalog_sales + catalog_returns...");
-
-    let mut sales_count = 0i64;
-    let mut returns_count = 0i64;
-    let mut row_number = 1i64;
-
-    while row_number <= num_orders {
-        let result = generator.generate_row_and_child_rows(row_number, session, None, None)?;
-        let rows = result.get_rows();
-
-        if !rows.is_empty() {
-            write_row(&rows[0], &mut sales_writer, output_options)?;
-            sales_count += 1;
-        }
-
-        if rows.len() > 1 {
-            write_row(&rows[1], &mut returns_writer, output_options)?;
-            returns_count += 1;
-            progress.increment(returns_name, 1);
-        }
-
-        if result.should_end_row() {
-            generator.consume_remaining_seeds_for_row();
-            row_number += 1;
-            progress.increment(sales_name, 1);
-        }
-    }
-
-    sales_writer.flush()?;
-    returns_writer.flush()?;
-
-    info!(
-        "Generated catalog_sales + catalog_returns: {} sales, {} returns -> {}, {}",
-        sales_count,
-        returns_count,
-        sales_path.display(),
-        returns_path.display()
-    );
-
-    Ok(())
+    generate_sales_and_returns::<CatalogSalesRowGenerator>(
+        Table::CatalogSales,
+        Table::CatalogReturns,
+        session,
+        output_options,
+        progress,
+    )
 }
 
 /// Generate web_sales and web_returns together
@@ -464,17 +361,37 @@ fn generate_web_sales(
     output_options: &OutputOptions,
     progress: &dyn ProgressTracker,
 ) -> Result<()> {
-    let mut generator = WebSalesRowGenerator::new();
-    let num_orders = session.get_scaling().get_row_count(Table::WebSales);
-    let return_rows = session.get_scaling().get_row_count(Table::WebReturns);
-    let sales_name = Table::WebSales.get_name();
-    let returns_name = Table::WebReturns.get_name();
-    // Register the scaling row counts, then advance after each written row.
-    progress.register(sales_name, num_orders.try_into().unwrap_or(0));
-    progress.register(returns_name, return_rows.try_into().unwrap_or(0));
+    generate_sales_and_returns::<WebSalesRowGenerator>(
+        Table::WebSales,
+        Table::WebReturns,
+        session,
+        output_options,
+        progress,
+    )
+}
 
-    let sales_path = get_output_path(Table::WebSales, output_options);
-    let returns_path = get_output_path(Table::WebReturns, output_options);
+/// Generate sales and returns tables in one pass.
+///
+/// Sales generators can emit rows for both output tables. Keeping them paired
+/// preserves row advancement and seed consumption.
+fn generate_sales_and_returns<G: RowGeneratorFactory>(
+    sales_table: Table,
+    returns_table: Table,
+    session: &Session,
+    output_options: &OutputOptions,
+    progress: &dyn ProgressTracker,
+) -> Result<()> {
+    let mut generator = G::create();
+    let source_row_count = session.get_scaling().get_row_count(sales_table);
+    let return_row_count = session.get_scaling().get_row_count(returns_table);
+    let sales_name = sales_table.get_name();
+    let returns_name = returns_table.get_name();
+    // Register the scaling row counts, then advance after each written row.
+    progress.register(sales_name, source_row_count.try_into().unwrap_or(0));
+    progress.register(returns_name, return_row_count.try_into().unwrap_or(0));
+
+    let sales_path = get_output_path(sales_table, output_options);
+    let returns_path = get_output_path(returns_table, output_options);
 
     let compat_mode = session.get_compat_mode();
     let mut sales_writer = CompatWriter::new(
@@ -486,13 +403,17 @@ fn generate_web_sales(
         compat_mode,
     );
 
-    info!("Generating web_sales + web_returns...");
+    info!(
+        "Generating {} + {}...",
+        sales_table.get_name(),
+        returns_table.get_name()
+    );
 
     let mut sales_count = 0i64;
     let mut returns_count = 0i64;
     let mut row_number = 1i64;
 
-    while row_number <= num_orders {
+    while row_number <= source_row_count {
         let result = generator.generate_row_and_child_rows(row_number, session, None, None)?;
         let rows = result.get_rows();
 
@@ -518,7 +439,9 @@ fn generate_web_sales(
     returns_writer.flush()?;
 
     info!(
-        "Generated web_sales + web_returns: {} sales, {} returns -> {}, {}",
+        "Generated {} + {}: {} sales, {} returns -> {}, {}",
+        sales_table.get_name(),
+        returns_table.get_name(),
         sales_count,
         returns_count,
         sales_path.display(),
