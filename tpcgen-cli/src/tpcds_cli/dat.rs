@@ -476,13 +476,9 @@ fn write_row(
         && !output_options.do_not_terminate
         && output_options.separator == '|'
     {
-        // Fast path: row types with a `Display` impl format the DAT line
-        // with no per-field allocations; the rest go through `TableRow`.
-        match row {
-            GeneratedRow::StoreSales(row) => writer.write_display_row(row)?,
-            GeneratedRow::StoreReturns(row) => writer.write_display_row(row)?,
-            row => writer.write_table_row(row, output_options.separator)?,
-        }
+        // Fast path: every row type formats its DAT line via Display with no
+        // per-field allocations.
+        writer.write_display_row(row)?;
         return Ok(());
     }
 

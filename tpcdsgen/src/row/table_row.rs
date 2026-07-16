@@ -28,6 +28,50 @@ pub(crate) fn dat_key(key: i64, is_null: bool) -> DatField<i64> {
     DatField((!is_null && key != -1).then_some(key))
 }
 
+/// DAT field from an already-computed optional value, for callers whose
+/// value is only constructible when non-NULL.
+pub(crate) fn dat_opt<T>(value: Option<T>) -> DatField<T> {
+    DatField(value)
+}
+
+/// DAT field for a boolean, formatted as `Y`/`N`.
+pub(crate) fn dat_bool(value: bool, is_null: bool) -> DatField<&'static str> {
+    dat_field(if value { "Y" } else { "N" }, is_null)
+}
+
+/// A DAT field that prints the literal `NULL` for NULL columns instead of an
+/// empty string — a quirk of the Java call_center and household_demographics
+/// rows that we preserve for byte-for-byte compatibility.
+pub(crate) struct NullLiteralField<T>(Option<T>);
+
+impl<T: fmt::Display> fmt::Display for NullLiteralField<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.0 {
+            Some(value) => value.fmt(f),
+            None => f.write_str("NULL"),
+        }
+    }
+}
+
+/// DAT field printing the literal `NULL` when the row's null bit is set.
+pub(crate) fn dat_field_null_literal<T>(value: T, is_null: bool) -> NullLiteralField<T> {
+    NullLiteralField((!is_null).then_some(value))
+}
+
+/// Zero-padded five-digit zip code (`{:05}`).
+pub(crate) struct Zip5(i32);
+
+impl fmt::Display for Zip5 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:05}", self.0)
+    }
+}
+
+/// DAT field for a zip code, zero-padded to five digits.
+pub(crate) fn dat_zip(zip: i32, is_null: bool) -> DatField<Zip5> {
+    dat_field(Zip5(zip), is_null)
+}
+
 /// TableRow trait matching the Java TableRow interface
 /// Represents a single row of data from any TPC-DS table
 pub trait TableRow: Send + Sync {
