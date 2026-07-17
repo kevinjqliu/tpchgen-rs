@@ -80,7 +80,10 @@ pub fn generate_join_key(
             } else {
                 Ok(RandomValueGenerator::generate_uniform_random_key(
                     1,
-                    scaling.get_row_count(to_table),
+                    scaling
+                        .get_row_count(to_table)
+                        .try_into()
+                        .expect("row count exceeds i64::MAX"),
                     random_number_stream,
                 ))
             }
@@ -99,8 +102,8 @@ fn generate_catalog_page_join_key(
     julian_date: i64,
     scaling: &Scaling,
 ) -> Result<i64> {
-    let pages_per_catalog = ((scaling.get_row_count(Table::CatalogPage) / CATALOGS_PER_YEAR as i64)
-        / (Date::DATE_MAXIMUM.year() - Date::DATE_MINIMUM.year() + 2) as i64)
+    let pages_per_catalog = ((scaling.get_row_count(Table::CatalogPage) / CATALOGS_PER_YEAR as u64)
+        / (Date::DATE_MAXIMUM.year() - Date::DATE_MINIMUM.year() + 2) as u64)
         as i32;
 
     let catalog_type =
@@ -281,11 +284,11 @@ fn generate_scd_join_key(
         scaling,
     );
 
-    Ok(if key > scaling.get_row_count(to_table) {
-        -1
-    } else {
-        key
-    })
+    let row_count = scaling
+        .get_row_count(to_table)
+        .try_into()
+        .expect("row count exceeds i64::MAX");
+    Ok(if key > row_count { -1 } else { key })
 }
 
 /// Generates a join key for web-related tables (web_site, web_page).

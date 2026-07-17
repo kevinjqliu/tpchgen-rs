@@ -39,11 +39,7 @@ impl Csv {
         session: &Session,
         progress: &dyn ProgressTracker,
     ) {
-        let rows: u64 = session
-            .get_scaling()
-            .get_row_count(table)
-            .try_into()
-            .unwrap_or(0);
+        let rows = session.get_scaling().get_row_count(table);
         progress.register(table.get_name(), rows);
     }
 

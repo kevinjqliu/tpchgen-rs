@@ -59,7 +59,7 @@ impl Dat {
     ) {
         let register = |table: Table| {
             let row_count = session.get_scaling().get_row_count(table);
-            progress.register(table.get_name(), row_count.try_into().unwrap_or(0));
+            progress.register(table.get_name(), row_count);
         };
 
         match table {
@@ -234,7 +234,11 @@ fn generate_simple<G: RowGeneratorFactory>(
     progress: &dyn ProgressTracker,
 ) -> Result<()> {
     let mut generator = G::create();
-    let row_count = session.get_scaling().get_row_count(table);
+    let row_count: i64 = session
+        .get_scaling()
+        .get_row_count(table)
+        .try_into()
+        .expect("row count exceeds i64::MAX");
     let table_name = table.get_name();
 
     let path = get_output_path(table, output_dir);
@@ -322,7 +326,11 @@ fn generate_sales_and_returns<G: RowGeneratorFactory>(
     progress: &dyn ProgressTracker,
 ) -> Result<()> {
     let mut generator = G::create();
-    let source_row_count = session.get_scaling().get_row_count(sales_table);
+    let source_row_count: i64 = session
+        .get_scaling()
+        .get_row_count(sales_table)
+        .try_into()
+        .expect("row count exceeds i64::MAX");
     let sales_name = sales_table.get_name();
     let returns_name = returns_table.get_name();
 

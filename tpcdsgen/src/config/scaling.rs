@@ -64,12 +64,14 @@ impl Scaling {
     /// Main output tables are answered from the cache built at construction;
     /// only source tables fall through to the model computation (where they
     /// panic, as before).
-    pub fn get_row_count(&self, table: Table) -> i64 {
+    pub fn get_row_count(&self, table: Table) -> u64 {
         let index = table as usize;
-        if index < CACHED_TABLE_COUNT {
-            return self.row_counts[index];
-        }
-        self.compute_row_count(table)
+        let row_count = if index < CACHED_TABLE_COUNT {
+            self.row_counts[index]
+        } else {
+            self.compute_row_count(table)
+        };
+        row_count.try_into().expect("row count cannot be negative")
     }
 
     /// Compute a table's row count from its ScalingInfo model (Static,
@@ -127,7 +129,9 @@ impl Scaling {
     fn scale_inventory(&self) -> i64 {
         let n_days = Date::JULIAN_DATE_MAXIMUM - Date::JULIAN_DATE_MINIMUM;
         let n_weeks = (n_days + 7) / 7; // Round up to weeks
-        self.get_id_count(Table::Item) * self.get_row_count(Table::Warehouse) * n_weeks as i64
+        self.get_id_count(Table::Item)
+            * self.get_row_count(Table::Warehouse) as i64
+            * n_weeks as i64
     }
 
     /// Convert config::Table to table::Table for accessing metadata
@@ -168,7 +172,7 @@ impl Scaling {
 
     /// Get unique ID count for tables that keep history
     pub fn get_id_count(&self, table: Table) -> i64 {
-        let row_count = self.get_row_count(table);
+        let row_count = self.get_row_count(table) as i64;
         if table.keeps_history() {
             let unique_count = (row_count / 6) * 3;
             match row_count % 6 {
@@ -191,9 +195,11 @@ impl Scaling {
     /// Based on Scaling.getRowCountForDate in Java.
     pub fn get_row_count_for_date(&self, table: Table, julian_date: i64) -> i64 {
         let row_count = match table {
-            Table::StoreSales | Table::CatalogSales | Table::WebSales => self.get_row_count(table),
+            Table::StoreSales | Table::CatalogSales | Table::WebSales => {
+                self.get_row_count(table) as i64
+            }
             Table::Inventory => {
-                self.get_row_count(Table::Warehouse) * self.get_id_count(Table::Item)
+                self.get_row_count(Table::Warehouse) as i64 * self.get_id_count(Table::Item)
             }
             _ => panic!("Invalid table for date scaling: {:?}", table),
         };
@@ -298,12 +304,12 @@ mod tests {
         // Non-history table: ID count equals row count
         let customer_ids = scaling.get_id_count(Table::Customer);
         let customer_rows = scaling.get_row_count(Table::Customer);
-        assert_eq!(customer_ids, customer_rows);
+        assert_eq!(customer_ids as u64, customer_rows);
 
         // History table: ID count is less than row count
         let item_ids = scaling.get_id_count(Table::Item);
         let item_rows = scaling.get_row_count(Table::Item);
-        assert!(item_ids <= item_rows);
+        assert!(item_ids as u64 <= item_rows);
     }
 
     #[test]
@@ -325,7 +331,7 @@ mod tests {
                 };
                 assert_eq!(
                     scaling.get_row_count(table),
-                    expected,
+                    expected as u64,
                     "cached row count diverges from model for {table:?} at scale {scale}"
                 );
             }

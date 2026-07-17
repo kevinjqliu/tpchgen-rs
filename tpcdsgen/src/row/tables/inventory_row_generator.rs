@@ -74,7 +74,10 @@ impl RowGenerator for InventoryRowGenerator {
         index /= item_count;
 
         // Get warehouse count
-        let warehouse_count = scaling.get_row_count(crate::config::Table::Warehouse);
+        let warehouse_count: i64 = scaling
+            .get_row_count(crate::config::Table::Warehouse)
+            .try_into()
+            .expect("row count exceeds i64::MAX");
 
         // Warehouse cycles next
         let inv_warehouse_sk = (index % warehouse_count) + 1;

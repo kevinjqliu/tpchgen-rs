@@ -48,12 +48,12 @@ pub(crate) struct RowIter<G: RowGenerator> {
 }
 
 impl<G: RowGenerator> RowIter<G> {
-    pub(crate) fn new(generator: G, session: Session, row_count: i64) -> Self {
+    pub(crate) fn new(generator: G, session: Session, row_count: u64) -> Self {
         Self {
             generator,
             session,
             current_row: 1,
-            row_count,
+            row_count: row_count.try_into().expect("row count exceeds i64::MAX"),
             pending: VecDeque::new(),
         }
     }

@@ -59,7 +59,7 @@ impl CatalogPageRowGenerator {
         let row_count = session
             .get_scaling()
             .get_row_count(crate::config::table::Table::CatalogPage);
-        let catalog_page_max = ((row_count / CATALOGS_PER_YEAR as i64) as i32)
+        let catalog_page_max = ((row_count / CATALOGS_PER_YEAR as u64) as i32)
             / (Date::DATE_MAXIMUM.year() - Date::DATE_MINIMUM.year() + 2);
         let cp_catalog_number = ((row_number - 1) / catalog_page_max as i64 + 1) as i32;
         let cp_catalog_page_number = ((row_number - 1) % catalog_page_max as i64 + 1) as i32;
