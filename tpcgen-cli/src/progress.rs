@@ -3,19 +3,22 @@
 //! # Overview
 //!
 //! [`ProgressTracker`] is a small, dyn-compatible trait that receives
-//! generation events. Generation code calls:
+//! generation events. Generation code emits these events as applicable:
 //!
 //! 1. [`ProgressTracker::register`] once per progress item, before work
 //!    starts, with the total number of output units the item will produce
 //!    (chunks for TBL/CSV, row groups for Parquet).
-//! 2. [`ProgressTracker::increment`] after output units are written.
+//! 2. [`ProgressTracker::start`] once after all known progress items have
+//!    been registered and before work starts. This hook is optional for
+//!    paths that register items lazily.
+//! 3. [`ProgressTracker::increment`] after output units are written.
 //!    Multiple generation tasks may call it concurrently, so impls
 //!    must be `Send + Sync` and `increment` itself should be lightweight.
-//! 3. [`ProgressTracker::finish`] once on the success path when the
+//! 4. [`ProgressTracker::finish`] once on the success path when the
 //!    generation run exits. Implementations should use `finish` for normal
 //!    success cleanup and `Drop` only as an error or panic fallback.
 //!
-//! `register` and `finish` are invoked serially and may
+//! When invoked, `register`, `start`, and `finish` are serial and may
 //! do bookkeeping or I/O; `increment` may run concurrently while output
 //! is being written.
 //!
@@ -77,6 +80,13 @@ pub trait ProgressTracker: Send + Sync + fmt::Debug {
     /// nothing.
     fn register(&self, _item: &str, _total_units: u64) {}
 
+    /// Optional hook called after all known progress items have been
+    /// registered and before the first [`Self::increment`].
+    ///
+    /// Implementations can use this to finalize setup that depends on the
+    /// registered item set. The default does nothing.
+    fn start(&self) {}
+
     /// Advance the counter for `item` by `units` output units.
     ///
     /// Called after generated output units are written. Multiple
@@ -112,19 +122,25 @@ pub use indicatif_impl::IndicatifProgress;
 #[cfg(feature = "indicatif-progress")]
 mod indicatif_impl {
     use super::ProgressTracker;
+    use indicatif::ProgressDrawTarget;
     use indicatif::{MultiProgress, ProgressBar, ProgressFinish, ProgressStyle};
     use std::collections::BTreeMap;
     use std::io::{self, Write};
     use std::sync::{OnceLock, RwLock};
 
+    const LABEL_WIDTH: usize = 22;
+    const BAR_WIDTH: usize = 18;
+    // 5 Hz redraws every 200 ms, keeping multi-bar updates responsive without repainting too often.
+    const PROGRESS_REFRESH_HZ: u8 = 5;
+    const PROGRESS_CHARS: &str = "=>-";
+
     /// Default [`ProgressTracker`] implementation backed by
     /// [`indicatif::MultiProgress`].
     ///
-    /// Renders one bar per progress item on stderr. Bars are pre-allocated in
-    /// [`ProgressTracker::register`] and are looked up by item identifier
-    /// on each [`ProgressTracker::increment`] call. Lookup uses a `RwLock`
-    /// read on the increment path; this is uncontended after the serial
-    /// `register` phase completes.
+    /// Renders one compact progress bar per progress item on stderr.
+    ///
+    /// Items are added in [`ProgressTracker::register`] and looked up by item
+    /// identifier on each [`ProgressTracker::increment`] call.
     #[derive(Debug)]
     pub struct IndicatifProgress {
         multi: MultiProgress,
@@ -136,7 +152,9 @@ mod indicatif_impl {
         /// [`ProgressTracker::register`].
         pub fn new() -> Self {
             Self {
-                multi: MultiProgress::new(),
+                multi: MultiProgress::with_draw_target(ProgressDrawTarget::stderr_with_hz(
+                    PROGRESS_REFRESH_HZ,
+                )),
                 items: RwLock::new(BTreeMap::new()),
             }
         }
@@ -147,6 +165,14 @@ mod indicatif_impl {
             Box::new(IndicatifLogWriter {
                 multi: self.multi.clone(),
             })
+        }
+
+        #[cfg(test)]
+        fn hidden() -> Self {
+            Self {
+                multi: MultiProgress::with_draw_target(ProgressDrawTarget::hidden()),
+                items: RwLock::new(BTreeMap::new()),
+            }
         }
     }
 
@@ -162,25 +188,42 @@ mod indicatif_impl {
                 return;
             };
 
-            let pb = self.multi.add(ProgressBar::new(total_units));
-            pb.set_style(bar_style().clone());
-            pb.set_message(item.to_owned());
-            let pb = pb.with_finish(ProgressFinish::AndLeave);
-            // Write-lock is only contended during the register phase, which
-            // happens serially before any worker task starts.
-            items.insert(item.to_owned(), pb);
+            // Indicatif treats zero-length items as complete.
+            let bar_len = total_units.max(1);
+            let item_key = item.to_owned();
+            let pb = self.multi.add(
+                ProgressBar::new(bar_len)
+                    .with_style(bar_style())
+                    .with_message(item_key.clone())
+                    .with_finish(ProgressFinish::AndLeave),
+            );
+            items.insert(item_key, pb);
+        }
+
+        fn start(&self) {
+            let bars = {
+                let Ok(items) = self.items.read() else {
+                    return;
+                };
+                items.values().cloned().collect::<Vec<_>>()
+            };
+
+            // Draw each registered item at 0% before work starts.
+            for bar in bars {
+                bar.force_draw();
+            }
+            // Reduce flicker by moving the cursor instead of clearing lines once the item set is stable.
+            self.multi.set_move_cursor(true);
         }
 
         fn increment(&self, item: &str, units: u64) {
-            // Minimize the read-lock scope so concurrent `increment` callers
-            // don't serialize on it. Cloning the bar is a cheap `Arc` bump,
-            // and `ProgressBar::inc` is internally thread-safe.
             let bar = {
                 let Ok(items) = self.items.read() else {
                     return;
                 };
                 items.get(item).cloned()
             };
+
             if let Some(bar) = bar {
                 bar.inc(units);
             }
@@ -193,20 +236,26 @@ mod indicatif_impl {
                 };
                 items.values().cloned().collect::<Vec<_>>()
             };
+
             for bar in bars {
                 bar.finish_using_style();
             }
         }
     }
 
-    fn bar_style() -> &'static ProgressStyle {
+    fn bar_style() -> ProgressStyle {
         static STYLE: OnceLock<ProgressStyle> = OnceLock::new();
-        STYLE.get_or_init(|| {
-            ProgressStyle::default_bar()
-                .template("{msg:10} [{bar:28}]   Progress: {percent:>3}%")
-                .expect("static progress bar template is valid")
-                .progress_chars("█▓░")
-        })
+        STYLE
+            .get_or_init(|| {
+                let template = format!(
+                    "{{msg:!{LABEL_WIDTH}}} [{{bar:{BAR_WIDTH}.cyan/blue}}] ({{percent:>3}}%)"
+                );
+                ProgressStyle::default_bar()
+                    .template(&template)
+                    .expect("progress bar template is valid")
+                    .progress_chars(PROGRESS_CHARS)
+            })
+            .clone()
     }
 
     struct IndicatifLogWriter {
@@ -235,7 +284,7 @@ mod indicatif_impl {
 
         #[test]
         fn registers_and_increments() {
-            let t = IndicatifProgress::new();
+            let t = IndicatifProgress::hidden();
             t.register("lineitem", 60);
             t.register("orders", 15);
             t.increment("lineitem", 1);
@@ -247,27 +296,40 @@ mod indicatif_impl {
         }
 
         #[test]
+        fn zero_total_items_start_at_zero() {
+            let t = IndicatifProgress::hidden();
+            t.register("store_returns", 0);
+
+            let items = t.items.read().unwrap();
+            assert_eq!(items["store_returns"].position(), 0);
+            assert_eq!(items["store_returns"].length(), Some(1));
+            assert!(!items["store_returns"].is_finished());
+        }
+
+        #[test]
         fn reaches_total() {
-            let t = IndicatifProgress::new();
+            let t = IndicatifProgress::hidden();
             t.register("orders", 5);
             for _ in 0..5 {
                 t.increment("orders", 1);
             }
-            assert_eq!(t.items.read().unwrap()["orders"].position(), 5);
+            let items = t.items.read().unwrap();
+            assert_eq!(items["orders"].position(), 5);
+            assert!(!items["orders"].is_finished());
         }
 
         #[test]
         fn unknown_item_is_no_op() {
             // Incrementing an item not registered must not panic.
-            let t = IndicatifProgress::new();
+            let t = IndicatifProgress::hidden();
             t.register("orders", 1);
             t.increment("lineitem", 1);
             assert_eq!(t.items.read().unwrap()["orders"].position(), 0);
         }
 
         #[test]
-        fn finish_marks_registered_bars_finished() {
-            let t = IndicatifProgress::new();
+        fn finish_marks_registered_items_finished() {
+            let t = IndicatifProgress::hidden();
             t.register("orders", 2);
             t.increment("orders", 2);
             t.finish();

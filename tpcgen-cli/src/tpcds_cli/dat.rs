@@ -51,6 +51,35 @@ impl Dat {
         Ok(Self { output_dir })
     }
 
+    pub(super) fn register_table(
+        &self,
+        table: Table,
+        session: &Session,
+        progress: &dyn ProgressTracker,
+    ) {
+        let register = |table: Table| {
+            let row_count = session.get_scaling().get_row_count(table);
+            progress.register(table.get_name(), row_count.try_into().unwrap_or(0));
+        };
+
+        match table {
+            Table::StoreSales => {
+                register(Table::StoreSales);
+                register(Table::StoreReturns);
+            }
+            Table::CatalogSales => {
+                register(Table::CatalogSales);
+                register(Table::CatalogReturns);
+            }
+            Table::WebSales => {
+                register(Table::WebSales);
+                register(Table::WebReturns);
+            }
+            Table::StoreReturns | Table::CatalogReturns | Table::WebReturns => {}
+            _ => register(table),
+        }
+    }
+
     pub(super) fn generate_table(
         &self,
         table: Table,
@@ -207,8 +236,6 @@ fn generate_simple<G: RowGeneratorFactory>(
     let mut generator = G::create();
     let row_count = session.get_scaling().get_row_count(table);
     let table_name = table.get_name();
-    // Register the scaling row count, then advance after each written row.
-    progress.register(table_name, row_count.try_into().unwrap_or(0));
 
     let path = get_output_path(table, output_dir);
     let file = File::create(&path)?;
@@ -296,12 +323,8 @@ fn generate_sales_and_returns<G: RowGeneratorFactory>(
 ) -> Result<()> {
     let mut generator = G::create();
     let source_row_count = session.get_scaling().get_row_count(sales_table);
-    let return_row_count = session.get_scaling().get_row_count(returns_table);
     let sales_name = sales_table.get_name();
     let returns_name = returns_table.get_name();
-    // Register the scaling row counts, then advance after each written row.
-    progress.register(sales_name, source_row_count.try_into().unwrap_or(0));
-    progress.register(returns_name, return_row_count.try_into().unwrap_or(0));
 
     let sales_path = get_output_path(sales_table, output_dir);
     let returns_path = get_output_path(returns_table, output_dir);
