@@ -34,13 +34,13 @@ impl PseudoTableScalingInfos {
         .expect("Failed to create ACTIVE_COUNTIES scaling info")
     }
 
-    pub fn get_active_cities_row_count_for_scale(scale: f64) -> u64 {
+    pub fn get_active_cities_row_count_for_scale(scale: f64) -> i64 {
         Self::get_active_cities()
             .get_row_count_for_scale(scale)
             .expect("Failed to get active cities row count")
     }
 
-    pub fn get_active_counties_row_count_for_scale(scale: f64) -> u64 {
+    pub fn get_active_counties_row_count_for_scale(scale: f64) -> i64 {
         Self::get_active_counties()
             .get_row_count_for_scale(scale)
             .expect("Failed to get active counties row count")

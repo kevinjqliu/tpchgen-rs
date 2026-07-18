@@ -67,8 +67,7 @@ impl RowGenerator for InventoryRowGenerator {
         let mut index = row_number - 1;
 
         // Get item count (unique item IDs, not row count since Item keeps history)
-        let item_count = i64::try_from(scaling.get_id_count(crate::config::Table::Item))
-            .expect("item count exceeds i64::MAX");
+        let item_count = scaling.get_id_count(crate::config::Table::Item);
 
         // Item cycles fastest
         let inv_item_sk_unique = (index % item_count) + 1;

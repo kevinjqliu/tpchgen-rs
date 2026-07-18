@@ -273,11 +273,8 @@ fn generate_scd_join_key(
     }
 
     let id_count = scaling.get_id_count(to_table);
-    let unique_key = RandomValueGenerator::generate_uniform_random_key(
-        1,
-        id_count.try_into().expect("ID count exceeds i64::MAX"),
-        random_number_stream,
-    );
+    let unique_key =
+        RandomValueGenerator::generate_uniform_random_key(1, id_count, random_number_stream);
 
     // Match the surrogate key based on the julian date for SCD tables
     let key = slowly_changing_dimension_utils::match_surrogate_key(
@@ -358,8 +355,7 @@ fn get_web_site_duration(scaling: &Scaling) -> i64 {
         .get_row_count_for_scale(scaling.get_scale())
         .expect("Failed to get row count for concurrent web sites");
 
-    (Date::JULIAN_DATE_MAXIMUM as i64 - Date::JULIAN_DATE_MINIMUM as i64)
-        * i64::try_from(row_count).expect("row count exceeds i64::MAX")
+    (Date::JULIAN_DATE_MAXIMUM as i64 - Date::JULIAN_DATE_MINIMUM as i64) * row_count
 }
 
 /// Checks if a web site is replaced (has an even join key).
