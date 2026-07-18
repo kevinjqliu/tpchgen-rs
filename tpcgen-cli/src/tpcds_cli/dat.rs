@@ -243,13 +243,9 @@ fn generate_simple<G: RowGeneratorFactory>(
 
     info!("Generating {}...", table.get_name());
 
-    for row_number in 1..=row_count {
-        let result = generator.generate_row_and_child_rows(
-            row_number.try_into().expect("row number exceeds i64::MAX"),
-            session,
-            None,
-            None,
-        )?;
+    let last_row_number = row_count.try_into().expect("row count exceeds i64::MAX");
+    for row_number in 1..=last_row_number {
+        let result = generator.generate_row_and_child_rows(row_number, session, None, None)?;
 
         for row in result.get_rows() {
             writer.write_display_row(row)?;
@@ -346,15 +342,10 @@ fn generate_sales_and_returns<G: RowGeneratorFactory>(
 
     let mut sales_count = 0u64;
     let mut returns_count = 0u64;
-    let mut row_number = 1u64;
+    let mut row_number = 1i64;
 
-    while row_number <= source_row_count {
-        let result = generator.generate_row_and_child_rows(
-            row_number.try_into().expect("row number exceeds i64::MAX"),
-            session,
-            None,
-            None,
-        )?;
+    while u64::try_from(row_number).expect("row number cannot be negative") <= source_row_count {
+        let result = generator.generate_row_and_child_rows(row_number, session, None, None)?;
         let rows = result.get_rows();
 
         if !rows.is_empty() {

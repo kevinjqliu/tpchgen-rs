@@ -67,10 +67,9 @@ impl Scaling {
     pub fn get_row_count(&self, table: Table) -> u64 {
         let index = table as usize;
         if index < CACHED_TABLE_COUNT {
-            self.row_counts[index]
-        } else {
-            self.compute_row_count(table)
+            return self.row_counts[index];
         }
+        self.compute_row_count(table)
     }
 
     /// Compute a table's row count from its ScalingInfo model (Static,

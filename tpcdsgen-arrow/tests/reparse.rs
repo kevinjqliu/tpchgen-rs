@@ -42,11 +42,10 @@ fn test_row_count(table: Table) -> u64 {
     // reasonable for large fact tables.
     const MAX_REPARSE_SOURCE_ROWS: u64 = 10_000;
 
-    source_row_count(table).min(MAX_REPARSE_SOURCE_ROWS)
-}
-
-fn source_row_count(table: Table) -> u64 {
-    SESSION.get_scaling().get_row_count(table)
+    SESSION
+        .get_scaling()
+        .get_row_count(table)
+        .min(MAX_REPARSE_SOURCE_ROWS)
 }
 
 /// Re-parse `tbl` format with the Arrow CSV reader.
@@ -192,7 +191,7 @@ macro_rules! table_test {
 
             #[test]
             fn from_start() {
-                let source_row_count = source_row_count($table);
+                let source_row_count = SESSION.get_scaling().get_row_count($table);
                 let row_limit = test_row_count($table) as usize;
                 let arrow_gen = $arrow_gen(SESSION.clone());
                 let schema = arrow_gen.schema();
@@ -212,7 +211,7 @@ macro_rules! table_test {
 
             #[test]
             fn skip() {
-                let source_row_count = source_row_count($table);
+                let source_row_count = SESSION.get_scaling().get_row_count($table);
                 let starting_row_number = skip_starting_row($table, source_row_count);
                 let remaining_source_rows = source_row_count
                     - u64::try_from(starting_row_number)

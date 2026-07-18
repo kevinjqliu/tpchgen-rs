@@ -259,14 +259,18 @@ impl RowGenerator for WebSalesRowGenerator {
         use WebSalesGeneratorColumn::*;
 
         let scaling = session.get_scaling();
-        let item_count = scaling.get_id_count(crate::config::Table::Item) as usize;
+        let item_count = scaling.get_id_count(crate::config::Table::Item);
+        let permutation_size = item_count
+            .try_into()
+            .expect("item count exceeds usize::MAX");
+        let last_item_index = item_count.try_into().expect("item count exceeds i32::MAX");
 
         // Initialize item permutation if needed
         if self.item_permutation.is_none() {
             let stream = self
                 .abstract_generator
                 .get_random_number_stream(&WsPermutation);
-            self.item_permutation = Some(make_permutation(item_count, stream));
+            self.item_permutation = Some(make_permutation(permutation_size, stream));
         }
 
         // Start a new order if we've finished the previous one
@@ -275,7 +279,7 @@ impl RowGenerator for WebSalesRowGenerator {
 
             let stream = self.abstract_generator.get_random_number_stream(&WsItemSk);
             self.item_index =
-                RandomValueGenerator::generate_uniform_random_int(1, item_count as i32, stream);
+                RandomValueGenerator::generate_uniform_random_int(1, last_item_index, stream);
 
             // WebSales has 8-16 line items per order (vs 4-14 for CatalogSales)
             let stream = self
@@ -298,7 +302,7 @@ impl RowGenerator for WebSalesRowGenerator {
 
         // Items need to be unique within an order
         self.item_index += 1;
-        if self.item_index > item_count as i32 {
+        if self.item_index > last_item_index {
             self.item_index = 1;
         }
 
