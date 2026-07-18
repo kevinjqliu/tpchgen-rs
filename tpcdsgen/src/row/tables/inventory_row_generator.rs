@@ -64,7 +64,7 @@ impl RowGenerator for InventoryRowGenerator {
 
         // Decode the row number into item, warehouse, and date indices
         // This is a cross-join: item x warehouse x date
-        let mut index = row_number - 1;
+        let mut index = u64::try_from(row_number).expect("row number cannot be negative") - 1;
 
         // Get item count (unique item IDs, not row count since Item keeps history)
         let item_count = scaling.get_id_count(crate::config::Table::Item);
@@ -74,23 +74,23 @@ impl RowGenerator for InventoryRowGenerator {
         index /= item_count;
 
         // Get warehouse count
-        let warehouse_count: i64 = scaling
-            .get_row_count(crate::config::Table::Warehouse)
-            .try_into()
-            .expect("row count exceeds i64::MAX");
+        let warehouse_count = scaling.get_row_count(crate::config::Table::Warehouse);
 
         // Warehouse cycles next
         let inv_warehouse_sk = (index % warehouse_count) + 1;
         index /= warehouse_count;
 
         // Date cycles slowest - inventory is updated weekly
-        let inv_date_sk = Date::JULIAN_DATE_MINIMUM as i64 + (index * 7);
+        let inv_date_sk = Date::JULIAN_DATE_MINIMUM as i64
+            + i64::try_from(index * 7).expect("inventory row index exceeds i64::MAX");
 
         // The join between item and inventory is tricky. The item_id selected above identifies
         // a unique part num but item is a slowly changing dimension, so we need to account for
         // that in selecting the surrogate key to join with
         let inv_item_sk = match_surrogate_key(
-            inv_item_sk_unique,
+            inv_item_sk_unique
+                .try_into()
+                .expect("item ID exceeds i64::MAX"),
             inv_date_sk,
             crate::config::Table::Item,
             scaling,
@@ -107,7 +107,9 @@ impl RowGenerator for InventoryRowGenerator {
             null_bit_map,
             inv_date_sk,
             inv_item_sk,
-            inv_warehouse_sk,
+            inv_warehouse_sk
+                .try_into()
+                .expect("warehouse ID exceeds i64::MAX"),
             inv_quantity_on_hand,
         );
 

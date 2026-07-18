@@ -170,12 +170,9 @@ pub fn match_surrogate_key(
         _ => panic!("unique % 3 did not equal 0, 1, or 2"),
     }
 
-    let row_count = scaling
-        .get_row_count(table)
-        .try_into()
-        .expect("row count exceeds i64::MAX");
-    if surrogate_key > row_count {
-        surrogate_key = row_count;
+    let row_count = scaling.get_row_count(table);
+    if u64::try_from(surrogate_key).is_ok_and(|key| key > row_count) {
+        surrogate_key = row_count.try_into().expect("row count exceeds i64::MAX");
     }
 
     surrogate_key
@@ -262,6 +259,6 @@ mod tests {
             crate::config::Table::Item,
             &scaling,
         );
-        assert_eq!(surrogate as u64, row_count);
+        assert_eq!(u64::try_from(surrogate).unwrap(), row_count);
     }
 }

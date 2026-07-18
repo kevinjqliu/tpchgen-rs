@@ -234,11 +234,7 @@ fn generate_simple<G: RowGeneratorFactory>(
     progress: &dyn ProgressTracker,
 ) -> Result<()> {
     let mut generator = G::create();
-    let row_count: i64 = session
-        .get_scaling()
-        .get_row_count(table)
-        .try_into()
-        .expect("row count exceeds i64::MAX");
+    let row_count = session.get_scaling().get_row_count(table);
     let table_name = table.get_name();
 
     let path = get_output_path(table, output_dir);
@@ -248,7 +244,12 @@ fn generate_simple<G: RowGeneratorFactory>(
     info!("Generating {}...", table.get_name());
 
     for row_number in 1..=row_count {
-        let result = generator.generate_row_and_child_rows(row_number, session, None, None)?;
+        let result = generator.generate_row_and_child_rows(
+            row_number.try_into().expect("row number exceeds i64::MAX"),
+            session,
+            None,
+            None,
+        )?;
 
         for row in result.get_rows() {
             writer.write_display_row(row)?;
@@ -326,11 +327,7 @@ fn generate_sales_and_returns<G: RowGeneratorFactory>(
     progress: &dyn ProgressTracker,
 ) -> Result<()> {
     let mut generator = G::create();
-    let source_row_count: i64 = session
-        .get_scaling()
-        .get_row_count(sales_table)
-        .try_into()
-        .expect("row count exceeds i64::MAX");
+    let source_row_count = session.get_scaling().get_row_count(sales_table);
     let sales_name = sales_table.get_name();
     let returns_name = returns_table.get_name();
 
@@ -347,12 +344,17 @@ fn generate_sales_and_returns<G: RowGeneratorFactory>(
         returns_table.get_name()
     );
 
-    let mut sales_count = 0i64;
-    let mut returns_count = 0i64;
-    let mut row_number = 1i64;
+    let mut sales_count = 0u64;
+    let mut returns_count = 0u64;
+    let mut row_number = 1u64;
 
     while row_number <= source_row_count {
-        let result = generator.generate_row_and_child_rows(row_number, session, None, None)?;
+        let result = generator.generate_row_and_child_rows(
+            row_number.try_into().expect("row number exceeds i64::MAX"),
+            session,
+            None,
+            None,
+        )?;
         let rows = result.get_rows();
 
         if !rows.is_empty() {

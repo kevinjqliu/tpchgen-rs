@@ -74,7 +74,7 @@ pub struct CatalogSalesRowGenerator {
     abstract_generator: AbstractRowGenerator,
     item_permutation: Option<Vec<i32>>,
     julian_date: i64,
-    next_date_index: i64,
+    next_date_index: u64,
     remaining_line_items: i32,
     order_info: OrderInfo,
     ticket_item_base: i32,
@@ -101,7 +101,9 @@ impl CatalogSalesRowGenerator {
         let scaling = session.get_scaling();
 
         // Move to a new date if the row number is ahead of the nextDateIndex
-        while row_number > self.next_date_index {
+        while u64::try_from(row_number).expect("row number cannot be negative")
+            > self.next_date_index
+        {
             self.julian_date += 1;
             self.next_date_index += scaling
                 .get_row_count_for_date(crate::config::Table::CatalogSales, self.julian_date);

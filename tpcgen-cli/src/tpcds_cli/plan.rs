@@ -4,7 +4,7 @@ use std::ops::RangeInclusive;
 use tpcdsgen::config::{Scaling, Table};
 
 /// Parquet files can have at most 32767 row groups
-const MAX_ROW_GROUPS: i64 = 32767;
+const MAX_ROW_GROUPS: u64 = 32767;
 
 /// How to generate a TPC-DS table as a Parquet file: a list of contiguous
 /// source row ranges, each of which is generated as one row group.
@@ -28,23 +28,23 @@ impl TpcdsGenerationPlan {
     /// Compute the row group layout for `table` given the target
     /// `row_group_bytes`.
     pub(super) fn new(table: Table, scaling: &Scaling, row_group_bytes: usize) -> Self {
-        let source_rows: i64 = scaling
-            .get_row_count(table.source_table())
-            .try_into()
-            .expect("row count exceeds i64::MAX");
+        let source_rows = scaling.get_row_count(table.source_table());
         let estimated_bytes = source_rows.saturating_mul(estimated_bytes_per_source_row(table));
-        let num_row_groups = (estimated_bytes / row_group_bytes.max(1) as i64 + 1)
+        let num_row_groups = (estimated_bytes / row_group_bytes.max(1) as u64 + 1)
             .min(MAX_ROW_GROUPS)
             .min(source_rows)
             .max(1);
         // ceiling division so the last row group is the one that comes up short
-        let rows_per_group = ((source_rows + num_row_groups - 1) / num_row_groups).max(1);
+        let rows_per_group = source_rows.div_ceil(num_row_groups).max(1);
 
         let mut ranges = Vec::with_capacity(num_row_groups as usize);
         let mut start = 1;
         while start <= source_rows {
             let end = (start + rows_per_group - 1).min(source_rows);
-            ranges.push(start..=end);
+            ranges.push(
+                start.try_into().expect("row number exceeds i64::MAX")
+                    ..=end.try_into().expect("row number exceeds i64::MAX"),
+            );
             start = end + 1;
         }
         // An empty table still needs one (empty) range so that a valid
@@ -134,7 +134,7 @@ impl IntoIterator for TpcdsGenerationPlan {
 ///
 /// Remember you have to divide by the **source** row count (which is different
 /// for sales vs returns tables) to get the bytes per source row.
-fn estimated_bytes_per_source_row(table: Table) -> i64 {
+fn estimated_bytes_per_source_row(table: Table) -> u64 {
     match table {
         Table::CallCenter => 423,
         Table::CatalogPage => 113,
@@ -179,14 +179,14 @@ mod tests {
     }
 
     /// Assert the ranges cover `1..=expected_source_rows` contiguously
-    fn assert_covers(plan: &TpcdsGenerationPlan, expected_source_rows: i64) {
+    fn assert_covers(plan: &TpcdsGenerationPlan, expected_source_rows: u64) {
         let mut next_row = 1;
         for range in &plan.ranges {
             assert_eq!(*range.start(), next_row);
             assert!(range.end() >= range.start());
             next_row = range.end() + 1;
         }
-        assert_eq!(next_row, expected_source_rows + 1);
+        assert_eq!(u64::try_from(next_row).unwrap(), expected_source_rows + 1);
     }
 
     #[test]
@@ -226,10 +226,7 @@ mod tests {
         // ceiling division can leave the count just under the cap
         assert!(plan.row_group_count() <= MAX_ROW_GROUPS as usize);
         assert!(plan.row_group_count() > (MAX_ROW_GROUPS - 2) as usize);
-        let source_rows = Scaling::new(3000.0)
-            .get_row_count(Table::StoreSales)
-            .try_into()
-            .expect("row count exceeds i64::MAX");
+        let source_rows = Scaling::new(3000.0).get_row_count(Table::StoreSales);
         assert_covers(&plan, source_rows);
     }
 

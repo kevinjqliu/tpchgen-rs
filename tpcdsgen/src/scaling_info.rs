@@ -17,7 +17,7 @@ pub struct ScalingInfo {
     /// Scaling model to use
     scaling_model: ScalingModel,
     /// Map from scale factors to row counts
-    scales_to_row_counts_map: HashMap<i32, i32>, // Using i32 for scale keys for simpler lookup
+    scales_to_row_counts_map: HashMap<i32, u64>, // Using i32 for scale keys for simpler lookup
     /// Update percentage
     update_percentage: i32,
 }
@@ -32,7 +32,7 @@ impl ScalingInfo {
     pub fn new(
         multiplier: i32,
         scaling_model: ScalingModel,
-        row_counts_per_scale: &[i32],
+        row_counts_per_scale: &[u64],
         update_percentage: i32,
     ) -> Result<Self> {
         check_argument!(
@@ -50,7 +50,6 @@ impl ScalingInfo {
 
         let mut scales_to_row_counts_map = HashMap::new();
         for (i, &row_count) in row_counts_per_scale.iter().enumerate() {
-            check_argument!(row_count >= 0, "row counts cannot be negative");
             // Convert float scale to int key for HashMap (multiply by 1000 to preserve precision)
             let scale_key = (Self::DEFINED_SCALES[i] * 1000.0) as i32;
             scales_to_row_counts_map.insert(scale_key, row_count);
@@ -80,12 +79,13 @@ impl ScalingInfo {
     }
 
     /// Get row count for a given scale (getRowCountForScale)
-    pub fn get_row_count_for_scale(&self, scale: f64) -> Result<i64> {
+    pub fn get_row_count_for_scale(&self, scale: f64) -> Result<u64> {
+        check_argument!(scale >= 0.0, "scale must be greater than or equal to zero");
         check_argument!(scale <= 100000.0, "scale must be less than 100000");
 
         let scale_key = (scale * 1000.0) as i32;
         if let Some(&row_count) = self.scales_to_row_counts_map.get(&scale_key) {
-            return Ok(row_count as i64);
+            return Ok(row_count);
         }
 
         // Get the scaling model for the table
@@ -97,15 +97,15 @@ impl ScalingInfo {
     }
 
     /// Compute count using static scale model
-    fn compute_count_using_static_scale(&self) -> Result<i64> {
+    fn compute_count_using_static_scale(&self) -> Result<u64> {
         self.get_row_count_for_scale(1.0)
     }
 
     /// Compute count using logarithmic scale model (computeCountUsingLogScale)
-    fn compute_count_using_log_scale(&self, scale: f64) -> Result<i64> {
+    fn compute_count_using_log_scale(&self, scale: f64) -> Result<u64> {
         let scale_slot = Self::get_scale_slot(scale)?;
-        let delta = self.get_row_count_for_scale(Self::DEFINED_SCALES[scale_slot])?
-            - self.get_row_count_for_scale(Self::DEFINED_SCALES[scale_slot - 1])?;
+        let delta = self.get_row_count_for_scale(Self::DEFINED_SCALES[scale_slot])? as i128
+            - self.get_row_count_for_scale(Self::DEFINED_SCALES[scale_slot - 1])? as i128;
 
         let float_offset = (scale - Self::DEFINED_SCALES[scale_slot - 1])
             / (Self::DEFINED_SCALES[scale_slot] - Self::DEFINED_SCALES[scale_slot - 1]);
@@ -114,10 +114,12 @@ impl ScalingInfo {
             self.get_row_count_for_scale(Self::DEFINED_SCALES[0])?
         } else {
             self.get_row_count_for_scale(Self::DEFINED_SCALES[1])?
-        };
+        } as i128;
 
-        let count = ((float_offset * delta as f64) as i64) + base_row_count;
-        Ok(if count == 0 { 1 } else { count })
+        let count = ((float_offset * delta as f64) as i128) + base_row_count;
+        (if count == 0 { 1 } else { count })
+            .try_into()
+            .map_err(|_| TpcdsError::new("computed row count was negative"))
     }
 
     /// Get scale slot for a given scale (getScaleSlot)
@@ -133,13 +135,13 @@ impl ScalingInfo {
     }
 
     /// Compute count using linear scale model (computeCountUsingLinearScale)
-    fn compute_count_using_linear_scale(&self, scale: f64) -> Result<i64> {
-        let mut row_count = 0i64;
+    fn compute_count_using_linear_scale(&self, scale: f64) -> Result<u64> {
+        let mut row_count = 0u64;
         let mut target_gb = scale;
 
         if scale < 1.0 {
             let base_count = self.get_row_count_for_scale(Self::DEFINED_SCALES[1])?;
-            row_count = (scale * base_count as f64).round() as i64;
+            row_count = (scale * base_count as f64).round() as u64;
             return Ok(if row_count == 0 { 1 } else { row_count });
         }
 
@@ -183,10 +185,6 @@ mod tests {
         // Test wrong array length
         let wrong_counts = [0, 100, 500];
         assert!(ScalingInfo::new(0, ScalingModel::Static, &wrong_counts, 0).is_err());
-
-        // Test negative row count
-        let negative_counts = [0, -100, 500, 2000, 5000, 12000, 30000, 65000, 80000, 100000];
-        assert!(ScalingInfo::new(0, ScalingModel::Static, &negative_counts, 0).is_err());
     }
 
     #[test]
@@ -265,6 +263,7 @@ mod tests {
 
         // Test scale too large
         assert!(scaling_info.get_row_count_for_scale(100001.0).is_err());
+        assert!(scaling_info.get_row_count_for_scale(-1.0).is_err());
     }
 
     #[test]
