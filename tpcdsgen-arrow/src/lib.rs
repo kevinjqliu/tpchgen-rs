@@ -43,7 +43,7 @@ pub(crate) struct RowIter<G: RowGenerator> {
     generator: G,
     session: Session,
     current_row: i64,
-    row_count: u64,
+    last_row_number: i64,
     pending: VecDeque<GeneratedRow>,
 }
 
@@ -53,7 +53,9 @@ impl<G: RowGenerator> RowIter<G> {
             generator,
             session,
             current_row: 1,
-            row_count,
+            last_row_number: row_count
+                .try_into()
+                .expect("row count exceeds supported row number range"),
             pending: VecDeque::new(),
         }
     }
@@ -75,11 +77,7 @@ impl<G: RowGenerator> RowIter<G> {
         ending_row_number: i64,
     ) {
         self.skip_rows_until_starting_row_number(starting_row_number);
-        self.row_count = self.row_count.min(
-            ending_row_number
-                .try_into()
-                .expect("ending row number cannot be negative"),
-        );
+        self.last_row_number = self.last_row_number.min(ending_row_number);
     }
 }
 
@@ -88,7 +86,7 @@ impl<G: RowGenerator> Iterator for RowIter<G> {
 
     fn next(&mut self) -> Option<GeneratedRow> {
         while self.pending.is_empty() {
-            if u64::try_from(self.current_row).is_ok_and(|row| row > self.row_count) {
+            if self.current_row > self.last_row_number {
                 return None;
             }
             let result = self
