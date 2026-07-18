@@ -323,7 +323,11 @@ fn generate_sales_and_returns<G: RowGeneratorFactory>(
     progress: &dyn ProgressTracker,
 ) -> Result<()> {
     let mut generator = G::create();
-    let source_row_count = session.get_scaling().get_row_count(sales_table);
+    let source_row_count = session
+        .get_scaling()
+        .get_row_count(sales_table)
+        .try_into()
+        .expect("row count exceeds i64::MAX");
     let sales_name = sales_table.get_name();
     let returns_name = returns_table.get_name();
 
@@ -340,11 +344,11 @@ fn generate_sales_and_returns<G: RowGeneratorFactory>(
         returns_table.get_name()
     );
 
-    let mut sales_count = 0u64;
-    let mut returns_count = 0u64;
+    let mut sales_count = 0i64;
+    let mut returns_count = 0i64;
     let mut row_number = 1i64;
 
-    while u64::try_from(row_number).expect("row number cannot be negative") <= source_row_count {
+    while row_number <= source_row_count {
         let result = generator.generate_row_and_child_rows(row_number, session, None, None)?;
         let rows = result.get_rows();
 

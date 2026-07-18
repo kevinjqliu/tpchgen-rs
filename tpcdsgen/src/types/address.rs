@@ -171,18 +171,20 @@ impl Address {
                 table
             ),
         };
-        let row_count = scaling.get_row_count(config_table);
+        let row_count = scaling.get_row_count(config_table) as i32;
         let city = if table.is_small() {
             let max_cities =
-                PseudoTableScalingInfos::get_active_cities_row_count_for_scale(scaling.get_scale());
-            let max_city_index = row_count
-                .min(max_cities)
-                .checked_sub(1)
-                .expect("city row count must be positive")
-                .try_into()
-                .expect("city row count exceeds i32::MAX");
-            let random_int =
-                RandomValueGenerator::generate_uniform_random_int(0, max_city_index, stream);
+                PseudoTableScalingInfos::get_active_cities_row_count_for_scale(scaling.get_scale())
+                    as i32;
+            let random_int = RandomValueGenerator::generate_uniform_random_int(
+                0,
+                if max_cities > row_count {
+                    row_count - 1
+                } else {
+                    max_cities - 1
+                },
+                stream,
+            );
             get_city_at_index(random_int as usize)
                 .unwrap_or("Midway")
                 .to_string()
@@ -196,14 +198,16 @@ impl Address {
         let region_number = if table.is_small() {
             let max_counties = PseudoTableScalingInfos::get_active_counties_row_count_for_scale(
                 scaling.get_scale(),
-            );
-            let max_county_index = row_count
-                .min(max_counties)
-                .checked_sub(1)
-                .expect("county row count must be positive")
-                .try_into()
-                .expect("county row count exceeds i32::MAX");
-            RandomValueGenerator::generate_uniform_random_int(0, max_county_index, stream) as usize
+            ) as i32;
+            RandomValueGenerator::generate_uniform_random_int(
+                0,
+                if max_counties > row_count {
+                    row_count - 1
+                } else {
+                    max_counties - 1
+                },
+                stream,
+            ) as usize
         } else {
             FipsCountyDistribution::pick_random_index(FipsWeights::Uniform, stream).unwrap_or(0)
         };

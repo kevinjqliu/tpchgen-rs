@@ -286,16 +286,12 @@ impl RowGenerator for CatalogSalesRowGenerator {
         use CatalogSalesGeneratorColumn::*;
 
         let scaling = session.get_scaling();
-        let item_count = scaling.get_id_count(crate::config::Table::Item);
-        let permutation_size = item_count
-            .try_into()
-            .expect("item count exceeds usize::MAX");
-        let last_item_index = item_count.try_into().expect("item count exceeds i32::MAX");
+        let item_count = scaling.get_id_count(crate::config::Table::Item) as usize;
 
         // Initialize item permutation and date tracking if needed
         if self.item_permutation.is_none() {
             let stream = self.abstract_generator.get_random_number_stream(&CsPermute);
-            self.item_permutation = Some(make_permutation(permutation_size, stream));
+            self.item_permutation = Some(make_permutation(item_count, stream));
 
             // Initialize date tracking
             self.julian_date = Date::JULIAN_DATA_START_DATE;
@@ -312,7 +308,7 @@ impl RowGenerator for CatalogSalesRowGenerator {
                 .abstract_generator
                 .get_random_number_stream(&CsSoldItemSk);
             self.ticket_item_base =
-                RandomValueGenerator::generate_uniform_random_int(1, last_item_index, stream);
+                RandomValueGenerator::generate_uniform_random_int(1, item_count as i32, stream);
 
             let stream = self
                 .abstract_generator
@@ -343,7 +339,7 @@ impl RowGenerator for CatalogSalesRowGenerator {
         // Items need to be unique within an order
         // Use a sequence within the permutation
         self.ticket_item_base += 1;
-        if self.ticket_item_base > last_item_index {
+        if self.ticket_item_base > item_count as i32 {
             self.ticket_item_base = 1;
         }
 

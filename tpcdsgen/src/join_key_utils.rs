@@ -102,16 +102,15 @@ fn generate_catalog_page_join_key(
     julian_date: i64,
     scaling: &Scaling,
 ) -> Result<i64> {
-    let pages_per_catalog = (scaling.get_row_count(Table::CatalogPage) / CATALOGS_PER_YEAR as u64)
-        / (Date::DATE_MAXIMUM.year() - Date::DATE_MINIMUM.year() + 2) as u64;
+    let pages_per_catalog = ((scaling.get_row_count(Table::CatalogPage) / CATALOGS_PER_YEAR as u64)
+        / (Date::DATE_MAXIMUM.year() - Date::DATE_MINIMUM.year() + 2) as u64)
+        as i32;
 
     let catalog_type =
         CatalogPageTypesDistribution::pick_random_catalog_page_type(random_number_stream)?;
     let page = RandomValueGenerator::generate_uniform_random_int(
         1,
-        pages_per_catalog
-            .try_into()
-            .expect("catalog page count exceeds i32::MAX"),
+        pages_per_catalog,
         random_number_stream,
     );
 
@@ -140,9 +139,7 @@ fn generate_catalog_page_join_key(
         }
     }
 
-    Ok(i64::from(count)
-        * i64::try_from(pages_per_catalog).expect("catalog page count exceeds i64::MAX")
-        + i64::from(page))
+    Ok((count * pages_per_catalog + page) as i64)
 }
 
 /// Generates a join key to the date_dim table.
@@ -290,12 +287,11 @@ fn generate_scd_join_key(
         scaling,
     );
 
-    let row_count = scaling.get_row_count(to_table);
-    Ok(if u64::try_from(key).is_ok_and(|key| key > row_count) {
-        -1
-    } else {
-        key
-    })
+    let row_count = scaling
+        .get_row_count(to_table)
+        .try_into()
+        .expect("row count exceeds i64::MAX");
+    Ok(if key > row_count { -1 } else { key })
 }
 
 /// Generates a join key for web-related tables (web_site, web_page).

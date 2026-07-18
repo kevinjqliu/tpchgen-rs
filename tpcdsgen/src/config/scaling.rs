@@ -125,10 +125,9 @@ impl Scaling {
     /// }
     /// ```
     fn scale_inventory(&self) -> u64 {
-        let n_days = u64::try_from(Date::JULIAN_DATE_MAXIMUM - Date::JULIAN_DATE_MINIMUM)
-            .expect("date range cannot be negative");
+        let n_days = Date::JULIAN_DATE_MAXIMUM - Date::JULIAN_DATE_MINIMUM;
         let n_weeks = (n_days + 7) / 7; // Round up to weeks
-        self.get_id_count(Table::Item) * self.get_row_count(Table::Warehouse) * n_weeks
+        self.get_id_count(Table::Item) * self.get_row_count(Table::Warehouse) * n_weeks as u64
     }
 
     /// Convert config::Table to table::Table for accessing metadata

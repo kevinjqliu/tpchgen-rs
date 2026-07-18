@@ -37,15 +37,20 @@ static SESSION: LazyLock<Session> = LazyLock::new(Session::default);
 const DAT_SEPARATOR: char = '|';
 
 /// Number of rows to test for `table`.
-fn test_row_count(table: Table) -> u64 {
+fn test_row_count(table: Table) -> i64 {
     // Test up to 10k rows, rather than the entire table, to keep testing time
     // reasonable for large fact tables.
-    const MAX_REPARSE_SOURCE_ROWS: u64 = 10_000;
+    const MAX_REPARSE_SOURCE_ROWS: i64 = 10_000;
 
+    source_row_count(table).min(MAX_REPARSE_SOURCE_ROWS)
+}
+
+fn source_row_count(table: Table) -> i64 {
     SESSION
         .get_scaling()
         .get_row_count(table)
-        .min(MAX_REPARSE_SOURCE_ROWS)
+        .try_into()
+        .expect("row count exceeds i64::MAX")
 }
 
 /// Re-parse `tbl` format with the Arrow CSV reader.
@@ -78,7 +83,7 @@ fn reparsed_batches<G, F>(
     schema: &SchemaRef,
     select: F,
     starting_row_number: i64,
-    source_row_count: u64,
+    source_row_count: i64,
 ) -> impl Iterator<Item = RecordBatch>
 where
     G: RowGenerator,
@@ -91,9 +96,7 @@ where
     std::iter::from_fn(move || {
         let mut data = Vec::new();
 
-        while data.len() < REPARSE_BUFFER_TARGET_BYTES
-            && u64::try_from(source_row).is_ok_and(|row| row <= source_row_count)
-        {
+        while data.len() < REPARSE_BUFFER_TARGET_BYTES && source_row <= source_row_count {
             let result = gen
                 .generate_row_and_child_rows(source_row, &SESSION, None, None)
                 .expect("row gen");
@@ -157,8 +160,8 @@ where
 ///
 /// Defaults to source row 100 and has special handling for slowly changing
 /// dimension (SCD) tables.
-fn skip_starting_row(table: Table, source_row_count: u64) -> i64 {
-    let max_skip_row = i64::try_from(source_row_count.min(100)).expect("skip row exceeds i64::MAX");
+fn skip_starting_row(table: Table, source_row_count: i64) -> i64 {
+    let max_skip_row = source_row_count.min(100);
     if !matches!(
         table,
         Table::CallCenter | Table::Store | Table::WebPage | Table::WebSite | Table::Item
@@ -191,7 +194,7 @@ macro_rules! table_test {
 
             #[test]
             fn from_start() {
-                let source_row_count = SESSION.get_scaling().get_row_count($table);
+                let source_row_count = source_row_count($table);
                 let row_limit = test_row_count($table) as usize;
                 let arrow_gen = $arrow_gen(SESSION.clone());
                 let schema = arrow_gen.schema();
@@ -211,12 +214,9 @@ macro_rules! table_test {
 
             #[test]
             fn skip() {
-                let source_row_count = SESSION.get_scaling().get_row_count($table);
+                let source_row_count = source_row_count($table);
                 let starting_row_number = skip_starting_row($table, source_row_count);
-                let remaining_source_rows = source_row_count
-                    - u64::try_from(starting_row_number)
-                        .expect("starting row number cannot be negative")
-                    + 1;
+                let remaining_source_rows = source_row_count - starting_row_number + 1;
                 let row_limit =
                     test_row_count($table).min(remaining_source_rows).min(1024) as usize;
 
