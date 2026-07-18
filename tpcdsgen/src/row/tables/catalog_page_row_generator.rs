@@ -59,10 +59,15 @@ impl CatalogPageRowGenerator {
         let row_count = session
             .get_scaling()
             .get_row_count(crate::config::table::Table::CatalogPage);
-        let catalog_page_max = ((row_count / CATALOGS_PER_YEAR as u64) as i32)
-            / (Date::DATE_MAXIMUM.year() - Date::DATE_MINIMUM.year() + 2);
-        let cp_catalog_number = ((row_number - 1) / catalog_page_max as i64 + 1) as i32;
-        let cp_catalog_page_number = ((row_number - 1) % catalog_page_max as i64 + 1) as i32;
+        let catalog_page_count = (row_count / CATALOGS_PER_YEAR as u64)
+            / (Date::DATE_MAXIMUM.year() - Date::DATE_MINIMUM.year() + 2) as u64;
+        let row_index = u64::try_from(row_number).expect("row number cannot be negative") - 1;
+        let cp_catalog_number = (row_index / catalog_page_count + 1)
+            .try_into()
+            .expect("catalog number exceeds i32::MAX");
+        let cp_catalog_page_number = (row_index % catalog_page_count + 1)
+            .try_into()
+            .expect("catalog page number exceeds i32::MAX");
 
         // Calculate catalog interval and type
         let catalog_interval = (cp_catalog_number - 1) % CATALOGS_PER_YEAR;
