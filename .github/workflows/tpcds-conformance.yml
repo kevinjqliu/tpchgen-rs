@@ -9,6 +9,7 @@ on:
       - '.github/**'
   pull_request:
     branches: [ main, master ]
+  merge_group:
 
 permissions:
   contents: read
