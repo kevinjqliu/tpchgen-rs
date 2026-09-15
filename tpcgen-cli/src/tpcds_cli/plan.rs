@@ -29,12 +29,10 @@ impl TpcdsGenerationPlan {
     /// `row_group_bytes`, restricted to `row_range` of the table's source
     /// rows.
     ///
-    /// `row_range` is typically a whole table (`1..=source_rows`, see
-    /// [`Self::new`]) or one `--parts`/`--part` chunk (see
+    /// `row_range` is typically a whole table (`1..=source_rows`) or one
+    /// `--parts`/`--part` chunk (see
     /// [`tpcdsgen::config::Session::get_source_row_range`]); either way the
-    /// row groups it produces cover exactly `row_range`, so the row group
-    /// count naturally shrinks for a smaller chunk instead of needing a
-    /// separate scaling step.
+    /// row groups it produces cover exactly `row_range`.
     pub(super) fn new_for_range(
         table: Table,
         row_group_bytes: usize,

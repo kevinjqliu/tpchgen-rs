@@ -2,6 +2,7 @@
 
 use super::generate::part_aware_path;
 use super::plan::TpcdsGenerationPlan;
+use super::progress::share_handle_across_parts;
 use crate::parquet::generate_parquet;
 use crate::progress::{ProgressHandle, ProgressTracker};
 use crate::temp_path::inprogress_path;
@@ -9,6 +10,7 @@ use crate::worker_queue::WorkerQueue;
 use arrow::datatypes::SchemaRef;
 use arrow::record_batch::RecordBatchReader;
 use parquet::basic::{Compression, Encoding};
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufWriter};
 use std::path::PathBuf;
@@ -130,6 +132,11 @@ impl Parquet {
     /// budget (see [`WorkerQueue`]). Scheduling the largest tables first
     /// keeps all cores busy while the trailing row groups of each table
     /// are encoded, instead of waiting for one table at a time.
+    ///
+    /// A table split across `--parts` gets one bar for all its parts
+    /// combined, not one bar per part: every `(Table, Session)` entry is
+    /// planned first so each table's total row group count, summed across
+    /// its parts, is known before registering.
     pub(super) async fn generate_tables(
         &self,
         tables: Vec<(Table, Session)>,
@@ -143,9 +150,7 @@ impl Parquet {
             validate_column_encodings(&tables, encodings)?;
         }
 
-        // Plan each table and pre-register the row group totals so trackers
-        // can size their bars before the first increment
-        let mut work: Vec<(Table, Session, TpcdsGenerationPlan, ProgressHandle)> = tables
+        let planned: Vec<(Table, Session, TpcdsGenerationPlan)> = tables
             .into_iter()
             .map(|(table, session)| {
                 let plan = TpcdsGenerationPlan::new_for_range(
@@ -153,9 +158,31 @@ impl Parquet {
                     self.row_group_bytes,
                     session.get_source_row_range(table),
                 );
-                let progress = progress
-                    .clone()
-                    .register(table.get_name(), plan.row_group_count() as u64);
+                (table, session, plan)
+            })
+            .collect();
+
+        let mut totals: HashMap<Table, u64> = HashMap::new();
+        for (table, _, plan) in &planned {
+            *totals.entry(*table).or_default() += plan.row_group_count() as u64;
+        }
+        let mut handles: HashMap<Table, std::vec::IntoIter<ProgressHandle>> = totals
+            .into_iter()
+            .map(|(table, total)| {
+                let num_parts = planned.iter().filter(|(t, _, _)| *t == table).count();
+                let handle = progress.clone().register(table.get_name(), total);
+                (table, share_handle_across_parts(handle, num_parts).into_iter())
+            })
+            .collect();
+
+        let mut work: Vec<(Table, Session, TpcdsGenerationPlan, ProgressHandle)> = planned
+            .into_iter()
+            .map(|(table, session, plan)| {
+                let progress = handles
+                    .get_mut(&table)
+                    .expect("table registered above")
+                    .next()
+                    .expect("one handle per planned part");
                 (table, session, plan, progress)
             })
             .collect();
