@@ -10,7 +10,6 @@ use parquet::file::metadata::ParquetMetaDataReader;
 use std::collections::BTreeSet;
 use std::fs;
 use std::fs::File;
-use std::ops::RangeInclusive;
 use std::path::{Path, PathBuf};
 use tempfile::tempdir;
 use tpcdsgen::config::{Session, SessionBuilder, Table};
@@ -1270,7 +1269,7 @@ fn test_tpcgen_cli_tpcds_dat_parts_outputs_directory() {
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_catalog_page() {
-    test_dat_parts("catalog_page", 1.0, 4, [11_718, 0, 0, 0]);
+    test_dat_parts("catalog_page", 1.0, 4, &[11_718, 0, 0, 0]);
 }
 
 #[test]
@@ -1279,7 +1278,7 @@ fn test_tpcgen_cli_tpcds_dat_parts_customer_demographics() {
         "customer_demographics",
         1.0,
         4,
-        [480_200, 480_200, 480_200, 480_200],
+        &[480_200, 480_200, 480_200, 480_200],
     );
 }
 
@@ -1289,7 +1288,7 @@ fn test_tpcgen_cli_tpcds_dat_parts_inventory() {
         "inventory",
         1.0,
         4,
-        [2_936_250, 2_936_250, 2_936_250, 2_936_250],
+        &[2_936_250, 2_936_250, 2_936_250, 2_936_250],
     );
 }
 
@@ -1318,7 +1317,7 @@ fn test_tpcgen_cli_tpcds_dat_parts_dbgen_version() {
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_catalog_page() {
-    test_csv_parts("catalog_page", 1.0, 4, [11_718, 0, 0, 0]);
+    test_csv_parts("catalog_page", 1.0, 4, &[11_718, 0, 0, 0]);
 }
 
 #[test]
@@ -1327,7 +1326,7 @@ fn test_tpcgen_cli_tpcds_csv_parts_customer_demographics() {
         "customer_demographics",
         1.0,
         4,
-        [480_200, 480_200, 480_200, 480_200],
+        &[480_200, 480_200, 480_200, 480_200],
     );
 }
 
@@ -1335,7 +1334,7 @@ fn test_tpcgen_cli_tpcds_csv_parts_customer_demographics() {
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_catalog_returns() {
-    test_parquet_parts("catalog_returns", 1.0, 4, [144_067, 0, 0, 0]);
+    test_parquet_parts("catalog_returns", 1.0, 4, &[144_067, 0, 0, 0]);
 }
 
 #[test]
@@ -1344,7 +1343,7 @@ fn test_tpcgen_cli_tpcds_parquet_parts_customer_demographics() {
         "customer_demographics",
         1.0,
         4,
-        [480_200, 480_200, 480_200, 480_200],
+        &[480_200, 480_200, 480_200, 480_200],
     );
 }
 
@@ -1417,12 +1416,7 @@ fn part_path(parts_dir: &Path, table_name: &str, chunk: usize, ext: &str) -> Pat
 /// For example, given 4 parts, and `expected_rows` is `[n, 0, 0, 0]` a single
 /// file with n rows is expected, and no files for the other three parts should
 /// exist.
-fn test_dat_parts<const PARTS: usize>(
-    table_name: &str,
-    scale_factor: f64,
-    parts: usize,
-    expected_rows: [usize; PARTS],
-) {
+fn test_dat_parts(table_name: &str, scale_factor: f64, parts: usize, expected_rows: &[usize]) {
     assert_eq!(expected_rows.len(), parts, "one row count per part");
 
     let unsplit_dir = tempdir().expect("Failed to create temporary directory");
@@ -1433,9 +1427,9 @@ fn test_dat_parts<const PARTS: usize>(
     let parts_dir = tempdir().expect("Failed to create temporary directory");
     generate_parts("dat", table_name, scale_factor, parts, parts_dir.path());
 
-    assert_part_file_count(parts_dir.path(), table_name, &expected_rows);
+    assert_part_file_count(parts_dir.path(), table_name, expected_rows);
     let mut concatenated = Vec::new();
-    for (chunk, expected_rows) in (1..=parts).zip(expected_rows) {
+    for (chunk, expected_rows) in (1..=parts).zip(expected_rows.iter().copied()) {
         let path = part_path(parts_dir.path(), table_name, chunk, "dat");
         if expected_rows == 0 {
             assert!(!path.exists(), "an empty part must write no file: {path:?}");
@@ -1460,12 +1454,7 @@ fn test_dat_parts<const PARTS: usize>(
 /// file, and that every part holds the expected number of rows.
 ///
 /// See  [`test_dat_parts`]  for details on `expected_rows`.
-fn test_csv_parts<const PARTS: usize>(
-    table_name: &str,
-    scale_factor: f64,
-    parts: usize,
-    expected_rows: [usize; PARTS],
-) {
+fn test_csv_parts(table_name: &str, scale_factor: f64, parts: usize, expected_rows: &[usize]) {
     assert_eq!(expected_rows.len(), parts, "one row count per part");
 
     let unsplit_dir = tempdir().expect("Failed to create temporary directory");
@@ -1476,7 +1465,7 @@ fn test_csv_parts<const PARTS: usize>(
     let parts_dir = tempdir().expect("Failed to create temporary directory");
     generate_parts("csv", table_name, scale_factor, parts, parts_dir.path());
 
-    assert_part_file_count(parts_dir.path(), table_name, &expected_rows);
+    assert_part_file_count(parts_dir.path(), table_name, expected_rows);
 
     let mut lines = unsplit.lines();
     let header = lines.next().expect("unsplit CSV has a header");
@@ -1485,7 +1474,7 @@ fn test_csv_parts<const PARTS: usize>(
     expected.push_str(&lines.map(|line| format!("{line}\n")).collect::<String>());
 
     let mut reconstructed = String::new();
-    for (chunk, expected_rows) in (1..=parts).zip(expected_rows) {
+    for (chunk, expected_rows) in (1..=parts).zip(expected_rows.iter().copied()) {
         let path = part_path(parts_dir.path(), table_name, chunk, "csv");
         if expected_rows == 0 {
             assert!(!path.exists(), "an empty part must write no file: {path:?}");
@@ -1524,12 +1513,7 @@ fn test_csv_parts<const PARTS: usize>(
 /// Parquet output, and that every part holds the expected number of rows.
 ///
 /// See  [`test_dat_parts`]  for details on `expected_rows`.
-fn test_parquet_parts<const PARTS: usize>(
-    table_name: &str,
-    scale_factor: f64,
-    parts: usize,
-    expected_rows: [usize; PARTS],
-) {
+fn test_parquet_parts(table_name: &str, scale_factor: f64, parts: usize, expected_rows: &[usize]) {
     assert_eq!(expected_rows.len(), parts, "one row count per part");
 
     let unsplit_dir = tempdir().expect("Failed to create temporary directory");
@@ -1540,10 +1524,10 @@ fn test_parquet_parts<const PARTS: usize>(
     let parts_dir = tempdir().expect("Failed to create temporary directory");
     generate_parts("parquet", table_name, scale_factor, parts, parts_dir.path());
 
-    assert_part_file_count(parts_dir.path(), table_name, &expected_rows);
+    assert_part_file_count(parts_dir.path(), table_name, expected_rows);
 
     let mut part_batches = vec![];
-    for (chunk, expected_rows) in (1..=parts).zip(expected_rows) {
+    for (chunk, expected_rows) in (1..=parts).zip(expected_rows.iter().copied()) {
         let path = part_path(parts_dir.path(), table_name, chunk, "parquet");
         if expected_rows == 0 {
             assert!(!path.exists(), "an empty part must write no file: {path:?}");
