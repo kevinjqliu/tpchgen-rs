@@ -502,7 +502,7 @@ fn test_tpcgen_cli_tpcds_dat_multiple_table_selection_command_forms() {
         cargo_bin_cmd!("tpcgen-cli")
             .args(*form)
             .arg("--scale-factor")
-            .arg("0")
+            .arg("0.001")
             .arg("--tables")
             .arg("reason,ship_mode")
             .arg("--output-dir")
@@ -546,7 +546,7 @@ fn test_tpcgen_cli_tpcds_row_outputs_deduplicate_selected_tables() {
                 .arg("tpcds")
                 .arg(format)
                 .arg("--scale-factor")
-                .arg("0")
+                .arg("0.001")
                 .arg("--tables")
                 .arg(tables)
                 .arg("--output-dir")
@@ -601,7 +601,7 @@ fn generate_parquet_files(table_args: &[String]) -> BTreeSet<String> {
         .arg("tpcds")
         .arg("parquet")
         .arg("--scale-factor")
-        .arg("0");
+        .arg("0.001");
     for tables in table_args {
         command.arg("--tables").arg(tables);
     }
@@ -684,7 +684,7 @@ fn test_tpcgen_cli_tpcds_dat_individual_table_selection_outputs_requested_table(
             .arg("tpcds")
             .arg("dat")
             .arg("--scale-factor")
-            .arg("0")
+            .arg("0.001")
             .arg("--tables")
             .arg(table.get_name())
             .arg("--output-dir")
@@ -763,7 +763,7 @@ fn test_tpcgen_tpcds_dat_dbgen_version_command_line() {
 
 /// Test that default DAT output options generate every main TPC-DS output file.
 ///
-/// This overrides only scale factor and output directory: scale factor 0 keeps
+/// This overrides only scale factor and output directory: scale factor 0.001 keeps
 /// the integration test fast, while output directory isolates generated files.
 #[test]
 fn test_tpcgen_cli_tpcds_dat_default_options_generate_all_outputs() {
@@ -773,7 +773,7 @@ fn test_tpcgen_cli_tpcds_dat_default_options_generate_all_outputs() {
         .arg("tpcds")
         .arg("dat")
         .arg("--scale-factor")
-        .arg("0")
+        .arg("0.001")
         .arg("--output-dir")
         .arg(temp_dir.path())
         .assert()
@@ -1263,35 +1263,14 @@ fn test_tpcgen_cli_tpcds_dat_parts_outputs_directory() {
 // ----------------
 // Test that concatenating a file created with `--parts`
 // exactly reproduces a single-file output
+// Most of the tables are below the 1M minimum size, so only testing the larger tables is sufficient to verify the behavior.
 // ----------------
-#[test]
-fn test_tpcgen_cli_tpcds_dat_parts_call_center() {
-    test_dat_parts("call_center", 1.0, 4, [6, 0, 0, 0]);
-}
+
+// DAT
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_catalog_page() {
     test_dat_parts("catalog_page", 1.0, 4, [11_718, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_dat_parts_catalog_returns() {
-    test_dat_parts("catalog_returns", 1.0, 4, [144_067, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_dat_parts_catalog_sales() {
-    test_dat_parts("catalog_sales", 1.0, 4, [1_441_548, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_dat_parts_customer() {
-    test_dat_parts("customer", 1.0, 4, [100_000, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_dat_parts_customer_address() {
-    test_dat_parts("customer_address", 1.0, 4, [50_000, 0, 0, 0]);
 }
 
 #[test]
@@ -1305,21 +1284,6 @@ fn test_tpcgen_cli_tpcds_dat_parts_customer_demographics() {
 }
 
 #[test]
-fn test_tpcgen_cli_tpcds_dat_parts_date_dim() {
-    test_dat_parts("date_dim", 1.0, 4, [73_049, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_dat_parts_household_demographics() {
-    test_dat_parts("household_demographics", 1.0, 4, [7_200, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_dat_parts_income_band() {
-    test_dat_parts("income_band", 1.0, 4, [20, 0, 0, 0]);
-}
-
-#[test]
 fn test_tpcgen_cli_tpcds_dat_parts_inventory() {
     test_dat_parts(
         "inventory",
@@ -1327,71 +1291,6 @@ fn test_tpcgen_cli_tpcds_dat_parts_inventory() {
         4,
         [2_936_250, 2_936_250, 2_936_250, 2_936_250],
     );
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_dat_parts_item() {
-    test_dat_parts("item", 1.0, 4, [18_000, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_dat_parts_promotion() {
-    test_dat_parts("promotion", 1.0, 4, [300, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_dat_parts_reason() {
-    test_dat_parts("reason", 1.0, 4, [35, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_dat_parts_ship_mode() {
-    test_dat_parts("ship_mode", 1.0, 4, [20, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_dat_parts_store() {
-    test_dat_parts("store", 1.0, 4, [12, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_dat_parts_store_returns() {
-    test_dat_parts("store_returns", 1.0, 4, [287_514, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_dat_parts_store_sales() {
-    test_dat_parts("store_sales", 1.0, 4, [2_880_404, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_dat_parts_time_dim() {
-    test_dat_parts("time_dim", 1.0, 4, [86_400, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_dat_parts_warehouse() {
-    test_dat_parts("warehouse", 1.0, 4, [5, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_dat_parts_web_page() {
-    test_dat_parts("web_page", 1.0, 4, [60, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_dat_parts_web_returns() {
-    test_dat_parts("web_returns", 1.0, 4, [71_763, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_dat_parts_web_sales() {
-    test_dat_parts("web_sales", 1.0, 4, [719_384, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_dat_parts_web_site() {
-    test_dat_parts("web_site", 1.0, 4, [30, 0, 0, 0]);
 }
 
 /// dbgen_version records the command line that generated it, so a `--parts`
@@ -1406,42 +1305,20 @@ fn test_tpcgen_cli_tpcds_dat_parts_dbgen_version() {
     let contents =
         fs::read_to_string(&path).unwrap_or_else(|err| panic!("Expected {path:?} to exist: {err}"));
     assert_eq!(contents.lines().count(), 1, "chunk 1 holds the single row");
-    assert_empty_parts_write_no_file(parts_dir.path(), "dbgen_version", 2..=4, "dat");
+    for chunk in 2..=4 {
+        let path = part_path(parts_dir.path(), "dbgen_version", chunk, "dat");
+        assert!(
+            !path.exists(),
+            "chunk {chunk} generates no rows, so it must write no file: {path:?}"
+        );
+    }
 }
 
-// ----------------
-// Test that concatenating CSV files created with `--parts`
-// exactly reproduces a single-file output
-// ----------------
-
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_call_center() {
-    test_csv_parts("call_center", 1.0, 4, [6, 0, 0, 0]);
-}
+// CSV
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_catalog_page() {
     test_csv_parts("catalog_page", 1.0, 4, [11_718, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_catalog_returns() {
-    test_csv_parts("catalog_returns", 1.0, 4, [144_067, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_catalog_sales() {
-    test_csv_parts("catalog_sales", 1.0, 4, [1_441_548, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_customer() {
-    test_csv_parts("customer", 1.0, 4, [100_000, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_customer_address() {
-    test_csv_parts("customer_address", 1.0, 4, [50_000, 0, 0, 0]);
 }
 
 #[test]
@@ -1454,151 +1331,11 @@ fn test_tpcgen_cli_tpcds_csv_parts_customer_demographics() {
     );
 }
 
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_date_dim() {
-    test_csv_parts("date_dim", 1.0, 4, [73_049, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_household_demographics() {
-    test_csv_parts("household_demographics", 1.0, 4, [7_200, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_income_band() {
-    test_csv_parts("income_band", 1.0, 4, [20, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_inventory() {
-    test_csv_parts(
-        "inventory",
-        1.0,
-        4,
-        [2_936_250, 2_936_250, 2_936_250, 2_936_250],
-    );
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_item() {
-    test_csv_parts("item", 1.0, 4, [18_000, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_promotion() {
-    test_csv_parts("promotion", 1.0, 4, [300, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_reason() {
-    test_csv_parts("reason", 1.0, 4, [35, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_ship_mode() {
-    test_csv_parts("ship_mode", 1.0, 4, [20, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_store() {
-    test_csv_parts("store", 1.0, 4, [12, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_store_returns() {
-    test_csv_parts("store_returns", 1.0, 4, [287_514, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_store_sales() {
-    test_csv_parts("store_sales", 1.0, 4, [2_880_404, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_time_dim() {
-    test_csv_parts("time_dim", 1.0, 4, [86_400, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_warehouse() {
-    test_csv_parts("warehouse", 1.0, 4, [5, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_web_page() {
-    test_csv_parts("web_page", 1.0, 4, [60, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_web_returns() {
-    test_csv_parts("web_returns", 1.0, 4, [71_763, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_web_sales() {
-    test_csv_parts("web_sales", 1.0, 4, [719_384, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_web_site() {
-    test_csv_parts("web_site", 1.0, 4, [30, 0, 0, 0]);
-}
-
-/// See [`test_tpcgen_cli_tpcds_dat_parts_dbgen_version`]: dbgen_version's row
-/// embeds the command line, so only the part layout can be checked. The one
-/// written chunk still carries the CSV header.
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_dbgen_version() {
-    let parts_dir = tempdir().expect("Failed to create temporary directory");
-    generate_parts("csv", "dbgen_version", 1.0, 4, parts_dir.path());
-
-    let path = parts_dir.path().join("dbgen_version/dbgen_version.1.csv");
-    let contents =
-        fs::read_to_string(&path).unwrap_or_else(|err| panic!("Expected {path:?} to exist: {err}"));
-    let mut lines = contents.lines();
-    assert!(
-        lines
-            .next()
-            .is_some_and(|header| header.starts_with("dv_version")),
-        "chunk 1 starts with the CSV header"
-    );
-    assert_eq!(lines.count(), 1, "chunk 1 holds the single row");
-    assert_empty_parts_write_no_file(parts_dir.path(), "dbgen_version", 2..=4, "csv");
-}
-
-// ----------------
-// Test that concatenating Parquet files created with `--parts`
-// exactly reproduces a single-file output
-// ----------------
-
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_call_center() {
-    test_parquet_parts("call_center", 1.0, 4, [6, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_catalog_page() {
-    test_parquet_parts("catalog_page", 1.0, 4, [11_718, 0, 0, 0]);
-}
+// PARQUET
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_catalog_returns() {
     test_parquet_parts("catalog_returns", 1.0, 4, [144_067, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_catalog_sales() {
-    test_parquet_parts("catalog_sales", 1.0, 4, [1_441_548, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_customer() {
-    test_parquet_parts("customer", 1.0, 4, [100_000, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_customer_address() {
-    test_parquet_parts("customer_address", 1.0, 4, [50_000, 0, 0, 0]);
 }
 
 #[test]
@@ -1609,112 +1346,6 @@ fn test_tpcgen_cli_tpcds_parquet_parts_customer_demographics() {
         4,
         [480_200, 480_200, 480_200, 480_200],
     );
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_date_dim() {
-    test_parquet_parts("date_dim", 1.0, 4, [73_049, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_household_demographics() {
-    test_parquet_parts("household_demographics", 1.0, 4, [7_200, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_income_band() {
-    test_parquet_parts("income_band", 1.0, 4, [20, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_inventory() {
-    test_parquet_parts(
-        "inventory",
-        1.0,
-        4,
-        [2_936_250, 2_936_250, 2_936_250, 2_936_250],
-    );
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_item() {
-    test_parquet_parts("item", 1.0, 4, [18_000, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_promotion() {
-    test_parquet_parts("promotion", 1.0, 4, [300, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_reason() {
-    test_parquet_parts("reason", 1.0, 4, [35, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_ship_mode() {
-    test_parquet_parts("ship_mode", 1.0, 4, [20, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_store() {
-    test_parquet_parts("store", 1.0, 4, [12, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_store_returns() {
-    test_parquet_parts("store_returns", 1.0, 4, [287_514, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_store_sales() {
-    test_parquet_parts("store_sales", 1.0, 4, [2_880_404, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_time_dim() {
-    test_parquet_parts("time_dim", 1.0, 4, [86_400, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_warehouse() {
-    test_parquet_parts("warehouse", 1.0, 4, [5, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_web_page() {
-    test_parquet_parts("web_page", 1.0, 4, [60, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_web_returns() {
-    test_parquet_parts("web_returns", 1.0, 4, [71_763, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_web_sales() {
-    test_parquet_parts("web_sales", 1.0, 4, [719_384, 0, 0, 0]);
-}
-
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_web_site() {
-    test_parquet_parts("web_site", 1.0, 4, [30, 0, 0, 0]);
-}
-
-/// See [`test_tpcgen_cli_tpcds_dat_parts_dbgen_version`]: dbgen_version's row
-/// embeds the command line, so only the part layout can be checked.
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_dbgen_version() {
-    let parts_dir = tempdir().expect("Failed to create temporary directory");
-    generate_parts("parquet", "dbgen_version", 1.0, 4, parts_dir.path());
-
-    let path = parts_dir
-        .path()
-        .join("dbgen_version/dbgen_version.1.parquet");
-    assert!(path.exists(), "Expected {path:?} to exist");
-    let (batch, _row_groups) = read_concatenated_parquet(&path);
-    assert_eq!(batch.num_rows(), 1, "chunk 1 holds the single row");
-    assert_empty_parts_write_no_file(parts_dir.path(), "dbgen_version", 2..=4, "parquet");
 }
 
 /// Run the CLI once for `table_name` in `format`, writing a single unsplit
@@ -1755,22 +1386,6 @@ fn generate_parts(
         .arg(parts.to_string())
         .assert()
         .success();
-}
-
-/// Assert there are no files for any of the `chunks`
-fn assert_empty_parts_write_no_file(
-    parts_dir: &Path,
-    table_name: &str,
-    chunks: RangeInclusive<usize>,
-    ext: &str,
-) {
-    for chunk in chunks {
-        let path = part_path(parts_dir, table_name, chunk, ext);
-        assert!(
-            !path.exists(),
-            "chunk {chunk} generates no rows, so it must write no file: {path:?}"
-        );
-    }
 }
 
 /// Assert `table_name`'s `--parts` directory holds exactly one file for each
