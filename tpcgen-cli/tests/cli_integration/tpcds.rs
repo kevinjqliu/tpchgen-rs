@@ -1217,7 +1217,7 @@ fn test_tpcgen_cli_tpcds_dat_parts_small_table_stays_in_chunk_one() {
         .assert()
         .success();
 
-    let path = temp_dir.path().join(format!("reason/reason.5.dat"));
+    let path = temp_dir.path().join("reason/reason.5.dat");
     assert!(!path.exists(), "Expected only 4 parts");
 
     let expected_rows = [35, 0, 0, 0];
