@@ -1218,7 +1218,7 @@ fn test_tpcgen_cli_tpcds_dat_parts_small_table_stays_in_chunk_one() {
         .success();
 
     let path = temp_dir.path().join(format!("reason/reason.5.dat"));
-    assert!(!path.exists(), "Expected only 4 chunks");
+    assert!(!path.exists(), "Expected only 4 parts");
 
     let expected_rows = [35, 0, 0, 0];
     for (chunk, expected_rows) in (1..=4).zip(expected_rows.iter()) {
@@ -1233,11 +1233,9 @@ fn test_tpcgen_cli_tpcds_dat_parts_small_table_stays_in_chunk_one() {
     }
 }
 
-/// Test that `--parts 1` nests output the same way as any other part count
-/// (`reason/reason.1.dat`), matching `tpchgen-cli`; only the absence of
-/// `--parts` uses a flat, unnumbered file.
+/// Test that `--parts 1` puts the output in the `parts` directory,
 #[test]
-fn test_tpcgen_cli_tpcds_dat_parts_one_matches_tpch_naming() {
+fn test_tpcgen_cli_tpcds_dat_parts_outputs_directory() {
     let temp_dir = tempdir().expect("Failed to create temporary directory");
 
     cargo_bin_cmd!("tpcgen-cli")
@@ -1264,19 +1262,60 @@ fn test_tpcgen_cli_tpcds_dat_parts_one_matches_tpch_naming() {
     );
 }
 
-/// Test that concatenating every `--parts` chunk of a DAT table, in order,
-/// reproduces exactly the unsplit single-file output (dsdgen's chunks are a
-/// position-independent partition of the same row sequence).
+// ----------------
+// Test that concatenating a file created with `--parts`
+// exactly reproduces a single-file output
+// ----------------
 #[test]
-fn test_tpcgen_cli_tpcds_dat_parts_concatenation_matches_unsplit_output() {
+fn test_tpcgen_cli_tpcds_dat_parts_call_center() {
+    test_dat_parts("call_center", 1.0, 4);
+}
+
+#[test]
+fn test_tpcgen_cli_tpcds_dat_parts_catalog_page() {
+    test_dat_parts("catalog_page", 1.0, 4);
+}
+
+// TODO FILL IN OTHER TABLES HERE
+
+
+// ----------------
+// Test that concatenating CSV files created with `--parts`
+// exactly reproduces a single-file output
+// ----------------
+
+#[test]
+fn test_tpcgen_cli_tpcds_csv_parts_call_center() {
+    test_csv_parts("call_center", 1.0, 4);
+}
+
+// TODO FILL IN OTHER TABLES HERE
+
+
+// ----------------
+// Test that concatenating Parquet files created with `--parts`
+// exactly reproduces a single-file output
+// ----------------
+
+#[test]
+fn test_tpcgen_cli_tpcds_parquet_parts_call_center() {
+    test_parquet_parts("call_center", 1.0, 4);
+}
+
+// TODO FILL IN OTHER TABLES HERE
+
+
+/// Test that concatenating a file created with `--parts`
+/// exactly reproduces a single-file output
+fn test_dat_parts(table_name: &str, scale_factor: f64, parts: usize) {
     let unsplit_dir = tempdir().expect("Failed to create temporary directory");
     cargo_bin_cmd!("tpcgen-cli")
         .arg("tpcds")
         .arg("dat")
         .arg("--scale-factor")
-        .arg("1")
+        .arg(scale_factor.to_string())
         .arg("--tables")
-        .arg("call_center")
+        .arg(table_name)
         .arg("--output-dir")
         .arg(unsplit_dir.path())
         .assert()
@@ -1289,62 +1328,64 @@ fn test_tpcgen_cli_tpcds_dat_parts_concatenation_matches_unsplit_output() {
         .arg("tpcds")
         .arg("dat")
         .arg("--scale-factor")
-        .arg("1")
+        .arg(scale_factor.to_string())
         .arg("--tables")
-        .arg("call_center")
+        .arg(table_name)
         .arg("--output-dir")
         .arg(parts_dir.path())
         .arg("--parts")
-        .arg("4")
+        .arg(parts.to_string())
         .assert()
         .success();
 
+    let num_files = fs::read_dir(parts_dir.path().join(table_name))
+        .expect("Failed to read generated output directory")
+        .count();
+    assert_eq!(num_files, parts, "Unexpected number of --parts output files");
     let mut concatenated = Vec::new();
-    for chunk in 1..=4 {
+    for chunk in 1..=parts {
         let path = parts_dir
             .path()
-            .join(format!("call_center/call_center.{chunk}.dat"));
+            .join(format!("{table_name}/{table_name}.{chunk}.dat"));
         concatenated.extend(fs::read(&path).unwrap_or_else(|err| panic!("{path:?} exists: {err}")));
     }
 
     assert_eq!(
         concatenated, unsplit,
-        "Expected concatenated --parts chunks to reproduce the unsplit DAT output"
+        "Expected concatenated chunks are not the same as unsplit"
     );
 }
 
-/// Test the same concatenation property for CSV, ignoring each part's own
-/// repeated header line (every part is an independently valid CSV file with
-/// its own header).
-#[test]
-fn test_tpcgen_cli_tpcds_csv_parts_concatenation_matches_unsplit_output() {
+/// Test that concatenating CSV files results in the same output as a single CSV
+/// file
+fn test_csv_parts(table_name: &str, scale_factor: f64, parts: usize) {
     let unsplit_dir = tempdir().expect("Failed to create temporary directory");
     cargo_bin_cmd!("tpcgen-cli")
         .arg("tpcds")
         .arg("csv")
         .arg("--scale-factor")
-        .arg("1")
+        .arg(scale_factor.to_string())
         .arg("--tables")
-        .arg("call_center")
+        .arg(table_name)
         .arg("--output-dir")
         .arg(unsplit_dir.path())
         .assert()
         .success();
     let unsplit =
-        fs::read_to_string(unsplit_dir.path().join("call_center.csv")).expect("unsplit exists");
+        fs::read_to_string(unsplit_dir.path().join(format!("{table_name}.csv"))).expect("unsplit exists");
 
     let parts_dir = tempdir().expect("Failed to create temporary directory");
     cargo_bin_cmd!("tpcgen-cli")
         .arg("tpcds")
         .arg("csv")
         .arg("--scale-factor")
-        .arg("1")
+        .arg(scale_factor.to_string())
         .arg("--tables")
-        .arg("call_center")
+        .arg(table_name)
         .arg("--output-dir")
         .arg(parts_dir.path())
         .arg("--parts")
-        .arg("4")
+        .arg(parts.to_string())
         .assert()
         .success();
 
@@ -1355,10 +1396,10 @@ fn test_tpcgen_cli_tpcds_csv_parts_concatenation_matches_unsplit_output() {
     expected.push_str(&lines.map(|line| format!("{line}\n")).collect::<String>());
 
     let mut reconstructed = String::new();
-    for chunk in 1..=4 {
+    for chunk in 1..=parts {
         let path = parts_dir
             .path()
-            .join(format!("call_center/call_center.{chunk}.csv"));
+            .join(format!("{table_name}/{table_name}.{chunk}.csv"));
         let contents =
             fs::read_to_string(&path).unwrap_or_else(|err| panic!("{path:?} exists: {err}"));
         let mut chunk_lines = contents.lines();
@@ -1381,62 +1422,49 @@ fn test_tpcgen_cli_tpcds_csv_parts_concatenation_matches_unsplit_output() {
     );
 }
 
-/// Test that `--parts` on Parquet output produces one file per part whose
-/// row counts sum to the unsplit file's row count.
-#[test]
-fn test_tpcgen_cli_tpcds_parquet_parts_row_counts_sum_to_unsplit() {
+
+/// Test that `--parts` on Parquet output produces one file which is the same
+fn test_parquet_parts(table_name: &str, scale_factor: f64, parts: usize) {
     let unsplit_dir = tempdir().expect("Failed to create temporary directory");
     cargo_bin_cmd!("tpcgen-cli")
         .arg("tpcds")
         .arg("parquet")
         .arg("--scale-factor")
-        .arg("1")
+        .arg(scale_factor.to_string())
         .arg("--tables")
-        .arg("call_center")
+        .arg(table_name)
         .arg("--output-dir")
         .arg(unsplit_dir.path())
         .assert()
         .success();
-    let unsplit_row_count = parquet_row_count(&unsplit_dir.path().join("call_center.parquet"));
+    let (unsplit, _row_groups) = read_concatenated_parquet(&unsplit_dir.path().join(format!("{table_name}.parquet")));
 
     let parts_dir = tempdir().expect("Failed to create temporary directory");
     cargo_bin_cmd!("tpcgen-cli")
         .arg("tpcds")
         .arg("parquet")
         .arg("--scale-factor")
-        .arg("1")
+        .arg(scale_factor.to_string())
         .arg("--tables")
-        .arg("call_center")
+        .arg(table_name)
         .arg("--output-dir")
         .arg(parts_dir.path())
         .arg("--parts")
-        .arg("4")
+        .arg(parts.to_string())
         .assert()
         .success();
 
-    let mut total = 0usize;
-    for chunk in 1..=4 {
+    let mut part_batches = vec![];
+    for chunk in 1..=parts {
         let path = parts_dir
             .path()
-            .join(format!("call_center/call_center.{chunk}.parquet"));
+            .join(format!("{table_name}/{table_name}.{chunk}.parquet"));
         assert!(path.exists(), "Expected {path:?} to exist");
-        total += parquet_row_count(&path);
+        part_batches.push(read_concatenated_parquet(&path).0);
     }
-
+    let reconstructed = concat_batches(&unsplit.schema(), &part_batches).expect("Failed to concatenate part batches");
     assert_eq!(
-        total, unsplit_row_count,
-        "Expected summed --parts row counts to match the unsplit Parquet row count"
+        reconstructed, unsplit,
+        "Expected concatenated --parts Parquet batches to match the unsplit Parquet batch"
     );
-}
-
-/// Return the total row count across all row groups of a Parquet file.
-fn parquet_row_count(path: &Path) -> usize {
-    let file = File::open(path).unwrap_or_else(|err| panic!("Failed to open {path:?}: {err}"));
-    let builder =
-        ParquetRecordBatchReaderBuilder::try_new(file).expect("Failed to read Parquet metadata");
-    builder
-        .build()
-        .expect("Failed to build Parquet reader")
-        .map(|batch| batch.expect("Failed to read Parquet batch").num_rows())
-        .sum()
 }
