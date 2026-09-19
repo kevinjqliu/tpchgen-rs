@@ -447,308 +447,141 @@ mod tests {
 
     #[test]
     fn test_call_center_ranges() {
-        let test = RowSizeTest {
-            table: Table::CallCenter,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=6, 1..=0, 1..=0],
-        };
-
-        test.run();
+        RowSizeTest::new(Table::CallCenter, &[1..=6, 1..=0, 1..=0]).run();
     }
 
     #[test]
     fn test_catalog_page_ranges() {
-        let test = RowSizeTest {
-            table: Table::CatalogPage,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=11718, 1..=0, 1..=0],
-        };
-
-        test.run();
+        RowSizeTest::new(Table::CatalogPage, &[1..=11718, 1..=0, 1..=0]).run();
     }
 
     #[test]
     fn test_catalog_returns_ranges() {
         // catalog_returns is split over its paired catalog_sales source rows
-        let test = RowSizeTest {
-            table: Table::CatalogReturns,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=160000, 1..=0, 1..=0],
-        };
-
-        test.run();
+        RowSizeTest::new(Table::CatalogReturns, &[1..=160000, 1..=0, 1..=0]).run();
     }
 
     #[test]
     fn test_catalog_sales_ranges() {
-        let test = RowSizeTest {
-            table: Table::CatalogSales,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=160000, 1..=0, 1..=0],
-        };
-
-        test.run();
+        RowSizeTest::new(Table::CatalogSales, &[1..=160000, 1..=0, 1..=0]).run();
     }
 
     #[test]
     fn test_customer_ranges() {
-        let test = RowSizeTest {
-            table: Table::Customer,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=100000, 1..=0, 1..=0],
-        };
-
-        test.run();
+        RowSizeTest::new(Table::Customer, &[1..=100000, 1..=0, 1..=0]).run();
     }
 
     #[test]
     fn test_customer_address_ranges() {
-        let test = RowSizeTest {
-            table: Table::CustomerAddress,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=50000, 1..=0, 1..=0],
-        };
-
-        test.run();
+        RowSizeTest::new(Table::CustomerAddress, &[1..=50000, 1..=0, 1..=0]).run();
     }
 
     #[test]
     fn test_customer_demographics_ranges() {
         // 1,920,800 rows clears the 1M threshold, so it really is split. 3 does
         // not divide it evenly: the 2 extra rows go to the first 2 chunks.
-        let test = RowSizeTest {
-            table: Table::CustomerDemographics,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=640267, 640268..=1280534, 1280535..=1920800],
-        };
-
-        test.run();
+        RowSizeTest::new(
+            Table::CustomerDemographics,
+            &[1..=640267, 640268..=1280534, 1280535..=1920800],
+        )
+        .run();
     }
 
     #[test]
     fn test_date_dim_ranges() {
-        let test = RowSizeTest {
-            table: Table::DateDim,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=73049, 1..=0, 1..=0],
-        };
-
-        test.run();
+        RowSizeTest::new(Table::DateDim, &[1..=73049, 1..=0, 1..=0]).run();
     }
 
     #[test]
     fn test_household_demographics_ranges() {
-        let test = RowSizeTest {
-            table: Table::HouseholdDemographics,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=7200, 1..=0, 1..=0],
-        };
-
-        test.run();
+        RowSizeTest::new(Table::HouseholdDemographics, &[1..=7200, 1..=0, 1..=0]).run();
     }
 
     #[test]
     fn test_income_band_ranges() {
-        let test = RowSizeTest {
-            table: Table::IncomeBand,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=20, 1..=0, 1..=0],
-        };
-
-        test.run();
+        RowSizeTest::new(Table::IncomeBand, &[1..=20, 1..=0, 1..=0]).run();
     }
 
     #[test]
     fn test_inventory_ranges() {
         // 11,745,000 rows clears the 1M threshold and divides evenly by 3
-        let test = RowSizeTest {
-            table: Table::Inventory,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=3915000, 3915001..=7830000, 7830001..=11745000],
-        };
-
-        test.run();
+        RowSizeTest::new(
+            Table::Inventory,
+            &[1..=3915000, 3915001..=7830000, 7830001..=11745000],
+        )
+        .run();
     }
 
     #[test]
     fn test_item_ranges() {
-        let test = RowSizeTest {
-            table: Table::Item,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=18000, 1..=0, 1..=0],
-        };
-
-        test.run();
+        RowSizeTest::new(Table::Item, &[1..=18000, 1..=0, 1..=0]).run();
     }
 
     #[test]
     fn test_promotion_ranges() {
-        let test = RowSizeTest {
-            table: Table::Promotion,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=300, 1..=0, 1..=0],
-        };
-
-        test.run();
+        RowSizeTest::new(Table::Promotion, &[1..=300, 1..=0, 1..=0]).run();
     }
 
     #[test]
     fn test_reason_ranges() {
-        let test = RowSizeTest {
-            table: Table::Reason,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=35, 1..=0, 1..=0],
-        };
-
-        test.run();
+        RowSizeTest::new(Table::Reason, &[1..=35, 1..=0, 1..=0]).run();
     }
 
     #[test]
     fn test_ship_mode_ranges() {
-        let test = RowSizeTest {
-            table: Table::ShipMode,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=20, 1..=0, 1..=0],
-        };
-
-        test.run();
+        RowSizeTest::new(Table::ShipMode, &[1..=20, 1..=0, 1..=0]).run();
     }
 
     #[test]
     fn test_store_ranges() {
-        let test = RowSizeTest {
-            table: Table::Store,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=12, 1..=0, 1..=0],
-        };
-
-        test.run();
+        RowSizeTest::new(Table::Store, &[1..=12, 1..=0, 1..=0]).run();
     }
 
     #[test]
     fn test_store_returns_ranges() {
         // store_returns is split over its paired store_sales source rows
-        let test = RowSizeTest {
-            table: Table::StoreReturns,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=240000, 1..=0, 1..=0],
-        };
-
-        test.run();
+        RowSizeTest::new(Table::StoreReturns, &[1..=240000, 1..=0, 1..=0]).run();
     }
 
     #[test]
     fn test_store_sales_ranges() {
-        let test = RowSizeTest {
-            table: Table::StoreSales,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=240000, 1..=0, 1..=0],
-        };
-
-        test.run();
+        RowSizeTest::new(Table::StoreSales, &[1..=240000, 1..=0, 1..=0]).run();
     }
 
     #[test]
     fn test_time_dim_ranges() {
-        let test = RowSizeTest {
-            table: Table::TimeDim,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=86400, 1..=0, 1..=0],
-        };
-
-        test.run();
+        RowSizeTest::new(Table::TimeDim, &[1..=86400, 1..=0, 1..=0]).run();
     }
 
     #[test]
     fn test_warehouse_ranges() {
-        let test = RowSizeTest {
-            table: Table::Warehouse,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=5, 1..=0, 1..=0],
-        };
-
-        test.run();
+        RowSizeTest::new(Table::Warehouse, &[1..=5, 1..=0, 1..=0]).run();
     }
 
     #[test]
     fn test_web_page_ranges() {
-        let test = RowSizeTest {
-            table: Table::WebPage,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=60, 1..=0, 1..=0],
-        };
-
-        test.run();
+        RowSizeTest::new(Table::WebPage, &[1..=60, 1..=0, 1..=0]).run();
     }
 
     #[test]
     fn test_web_returns_ranges() {
         // web_returns is split over its paired web_sales source rows
-        let test = RowSizeTest {
-            table: Table::WebReturns,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=60000, 1..=0, 1..=0],
-        };
-
-        test.run();
+        RowSizeTest::new(Table::WebReturns, &[1..=60000, 1..=0, 1..=0]).run();
     }
 
     #[test]
     fn test_web_sales_ranges() {
-        let test = RowSizeTest {
-            table: Table::WebSales,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=60000, 1..=0, 1..=0],
-        };
-
-        test.run();
+        RowSizeTest::new(Table::WebSales, &[1..=60000, 1..=0, 1..=0]).run();
     }
 
     #[test]
     fn test_web_site_ranges() {
-        let test = RowSizeTest {
-            table: Table::WebSite,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=30, 1..=0, 1..=0],
-        };
-
-        test.run();
+        RowSizeTest::new(Table::WebSite, &[1..=30, 1..=0, 1..=0]).run();
     }
 
     #[test]
     fn test_dbgen_version_ranges() {
-        let test = RowSizeTest {
-            table: Table::DbgenVersion,
-            scale_factor: 1.0,
-            total_chunks: 3,
-            expected_ranges: &[1..=1, 1..=0, 1..=0],
-        };
-
-        test.run();
+        RowSizeTest::new(Table::DbgenVersion, &[1..=1, 1..=0, 1..=0]).run();
     }
 
     // Larger tables at scale factor 1000, split 10 ways. Both have hundreds of
@@ -757,12 +590,10 @@ mod tests {
 
     #[test]
     fn test_store_sales_ranges_sf1000() {
-        let test = RowSizeTest {
-            table: Table::StoreSales,
-            scale_factor: 1000.0,
-            total_chunks: 10,
-            // 240,000,000 source rows / 10 chunks = 24,000,000 rows each
-            expected_ranges: &[
+        // 240,000,000 source rows / 10 chunks = 24,000,000 rows each
+        RowSizeTest::new(
+            Table::StoreSales,
+            &[
                 1..=24000000,
                 24000001..=48000000,
                 48000001..=72000000,
@@ -774,19 +605,17 @@ mod tests {
                 192000001..=216000000,
                 216000001..=240000000,
             ],
-        };
-
-        test.run();
+        )
+        .with_scale_factor(1000.0)
+        .run();
     }
 
     #[test]
     fn test_catalog_sales_ranges_sf1000() {
-        let test = RowSizeTest {
-            table: Table::CatalogSales,
-            scale_factor: 1000.0,
-            total_chunks: 10,
-            // 160,000,000 source rows / 10 chunks = 16,000,000 rows each
-            expected_ranges: &[
+        // 160,000,000 source rows / 10 chunks = 16,000,000 rows each
+        RowSizeTest::new(
+            Table::CatalogSales,
+            &[
                 1..=16000000,
                 16000001..=32000000,
                 32000001..=48000000,
@@ -798,31 +627,45 @@ mod tests {
                 128000001..=144000000,
                 144000001..=160000000,
             ],
-        };
-
-        test.run();
+        )
+        .with_scale_factor(1000.0)
+        .run();
     }
 
-    /// Verify that the row ranges for a table given scale factor and chunk configuration.
+    /// Verify the source row range each chunk of a table generates.
     struct RowSizeTest {
         table: Table,
         scale_factor: f64,
-        total_chunks: i32,
-        /// Expected ranges. Note that range is inclusive:
+        /// Expected range for each chunk, so the number of chunks is the
+        /// length of this slice. Note the ranges are inclusive:
         /// * `1..=6` means rows 1 through 6
         /// * `1..=0` means no rows
         expected_ranges: &'static [RangeInclusive<u64>],
     }
 
     impl RowSizeTest {
+        /// Test `table` at scale factor 1 with the default split threshold.
+        fn new(table: Table, expected_ranges: &'static [RangeInclusive<u64>]) -> Self {
+            Self {
+                table,
+                scale_factor: 1.0,
+                expected_ranges,
+            }
+        }
+
+        fn with_scale_factor(mut self, scale_factor: f64) -> Self {
+            self.scale_factor = scale_factor;
+            self
+        }
+
         fn run(self) {
             let Self {
                 table,
                 scale_factor,
-                total_chunks,
                 expected_ranges,
             } = self;
 
+            let total_chunks = expected_ranges.len() as i32;
             let actual_ranges: Vec<_> = (1..=total_chunks)
                 .map(|chunk_number| {
                     SessionBuilder::new()
