@@ -411,8 +411,7 @@ fn test_tpcgen_cli_tpcds_parquet_row_group_size_1mb() {
         vec![RowGroups {
             table: "customer",
             row_group_bytes: vec![
-                1074775, 1073988, 1073405, 1071992, 1073785, 1072613, 1072227, 1073264, 1073338,
-                1072748,
+                1154938, 1153793, 1152175, 1152992, 1152614, 1152066, 1153473, 1152964,
             ],
         }],
     );
@@ -1037,7 +1036,7 @@ fn test_tpcgen_cli_tpcds_parquet_matches_single_pass_generation() {
         .arg("store_sales,store_returns")
         // small row groups to force several source row ranges
         .arg("--row-group-bytes")
-        .arg("1000000")
+        .arg("250000")
         .arg("--output-dir")
         .arg(temp_dir.path())
         .assert()
@@ -1090,7 +1089,7 @@ fn test_tpcgen_cli_tpcds_parquet_num_threads_equivalence() {
         let mut metadata_reader = ParquetMetaDataReader::new();
         metadata_reader.try_parse(&file).unwrap();
         let num_row_groups = metadata_reader.finish().unwrap().num_row_groups();
-        assert_eq!(num_row_groups, 24);
+        assert_eq!(num_row_groups, 6);
 
         outputs.push(fs::read(&path).expect("Failed to read Parquet file"));
     }

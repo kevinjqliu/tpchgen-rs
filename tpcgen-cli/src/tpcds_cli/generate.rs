@@ -211,7 +211,7 @@ fn generate_simple<G: RowGeneratorFactory, O: TableOutput>(
 
     info!("Generating {}...", table.get_name());
 
-    let mut generated_rows = 0i64;
+    let mut generated_rows = 0u64;
     for row_number in row_range {
         let result = generator.generate_row_and_child_rows(row_number, session, None, None)?;
 
@@ -268,8 +268,8 @@ fn generate_sales_and_returns<G: RowGeneratorFactory, O: TableOutput>(
         returns_table.get_name()
     );
 
-    let mut sales_count = 0i64;
-    let mut returns_count = 0i64;
+    let mut sales_count = 0u64;
+    let mut returns_count = 0u64;
     let mut row_number = *source_row_range.start();
 
     while row_number <= last_row_number {

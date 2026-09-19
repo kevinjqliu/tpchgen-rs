@@ -7,7 +7,7 @@ use std::ops::RangeInclusive;
 /// it. Matches dsdgen's `tools/parallel.c` [1].
 ///
 /// [1]: https://github.com/trinodb/tpcds/blob/b594136818cc95bd6b34a352327611b329017281/src/main/java/io/trino/tpcds/Parallel.java#L28
-const SMALL_TABLE_ROW_THRESHOLD: i64 = 1_000_000;
+const SMALL_TABLE_ROW_THRESHOLD: u64 = 1_000_000;
 
 /// Split `total_rows` into `total_chunks` pieces and return the 1-based
 /// `(first_row, row_count)` for `chunk_number`.
@@ -16,7 +16,7 @@ const SMALL_TABLE_ROW_THRESHOLD: i64 = 1_000_000;
 /// `Parallel.splitWork` [1].
 ///
 /// [1]: https://github.com/trinodb/tpcds/blob/b594136818cc95bd6b34a352327611b329017281/src/main/java/io/trino/tpcds/Parallel.java#L24-L51
-fn split_work(total_rows: i64, chunk_number: i32, total_chunks: i32) -> (i64, i64) {
+fn split_work(total_rows: u64, chunk_number: i32, total_chunks: i32) -> (u64, u64) {
     if total_rows < SMALL_TABLE_ROW_THRESHOLD {
         return if chunk_number == 1 {
             (1, total_rows)
@@ -25,8 +25,8 @@ fn split_work(total_rows: i64, chunk_number: i32, total_chunks: i32) -> (i64, i6
         };
     }
 
-    let total_chunks = total_chunks as i64;
-    let chunk_number = chunk_number as i64;
+    let total_chunks = total_chunks as u64;
+    let chunk_number = chunk_number as u64;
     let rowset_size = total_rows / total_chunks;
     let extra_rows = total_rows % total_chunks;
 
@@ -162,7 +162,7 @@ impl Session {
     /// [`Table::StoreReturns`]), which is split using its paired sales
     /// table's row count via [`Table::source_table`]. An empty range is
     /// returned as `first_row..=(first_row - 1)`.
-    pub fn get_source_row_range(&self, table: Table) -> RangeInclusive<i64> {
+    pub fn get_source_row_range(&self, table: Table) -> RangeInclusive<u64> {
         let total_rows = self.scaling.get_row_count(table.source_table());
         let (first_row, row_count) = split_work(total_rows, self.chunk_number, self.total_chunks);
         first_row..=(first_row + row_count - 1)
@@ -505,7 +505,7 @@ mod tests {
     fn test_split_work_remainder_spread_over_first_chunks() {
         // 1,000,001 rows over 4 chunks: the first chunk absorbs the remainder.
         let total = 1_000_001;
-        let chunks: Vec<(i64, i64)> = (1..=4).map(|c| split_work(total, c, 4)).collect();
+        let chunks: Vec<(u64, u64)> = (1..=4).map(|c| split_work(total, c, 4)).collect();
         assert_eq!(
             chunks,
             vec![

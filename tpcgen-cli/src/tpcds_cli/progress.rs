@@ -37,35 +37,26 @@ pub(super) fn register_table(
     session: &Session,
     progress: Arc<dyn ProgressTracker>,
 ) -> TableProgress {
-    let register = |table: Table, row_count: i64| {
-        // Row counts are always non negative, so this conversion never fails.
-        // Clamp rather than panic if that ever changes: a wrong progress total
-        // should not abort generation.
-        debug_assert!(
-            row_count >= 0,
-            "negative row count for {}: {row_count}",
-            table.get_name()
-        );
-        let row_count = u64::try_from(row_count).unwrap_or(0);
+    let register = |table: Table| {
+        let row_count = session.get_scaling().get_row_count(table);
         progress.clone().register(table.get_name(), row_count)
     };
-    let full_row_count = |table: Table| session.get_scaling().get_row_count(table);
 
     match table {
         Table::StoreSales => TableProgress::Paired {
-            sales: register(Table::StoreSales, full_row_count(Table::StoreSales)),
-            returns: register(Table::StoreReturns, full_row_count(Table::StoreReturns)),
+            sales: register(Table::StoreSales),
+            returns: register(Table::StoreReturns),
         },
         Table::CatalogSales => TableProgress::Paired {
-            sales: register(Table::CatalogSales, full_row_count(Table::CatalogSales)),
-            returns: register(Table::CatalogReturns, full_row_count(Table::CatalogReturns)),
+            sales: register(Table::CatalogSales),
+            returns: register(Table::CatalogReturns),
         },
         Table::WebSales => TableProgress::Paired {
-            sales: register(Table::WebSales, full_row_count(Table::WebSales)),
-            returns: register(Table::WebReturns, full_row_count(Table::WebReturns)),
+            sales: register(Table::WebSales),
+            returns: register(Table::WebReturns),
         },
         Table::StoreReturns | Table::CatalogReturns | Table::WebReturns => TableProgress::None,
-        _ => TableProgress::Single(register(table, full_row_count(table))),
+        _ => TableProgress::Single(register(table)),
     }
 }
 
@@ -106,13 +97,11 @@ pub(super) fn share_across_parts(progress: TableProgress, num_parts: usize) -> V
             .into_iter()
             .map(TableProgress::Single)
             .collect(),
-        TableProgress::Paired { sales, returns } => {
-            share_handle_across_parts(sales, num_parts)
-                .into_iter()
-                .zip(share_handle_across_parts(returns, num_parts))
-                .map(|(sales, returns)| TableProgress::Paired { sales, returns })
-                .collect()
-        }
+        TableProgress::Paired { sales, returns } => share_handle_across_parts(sales, num_parts)
+            .into_iter()
+            .zip(share_handle_across_parts(returns, num_parts))
+            .map(|(sales, returns)| TableProgress::Paired { sales, returns })
+            .collect(),
     }
 }
 
@@ -164,7 +153,10 @@ mod tests {
         // represents the whole table or one `--parts` chunk of it: parts
         // share one bar sized to the full table, not a per-chunk total.
         let tracker = Arc::new(RecordingProgress::default());
-        let whole = SessionBuilder::new().with_scale_factor(1.0).build().unwrap();
+        let whole = SessionBuilder::new()
+            .with_scale_factor(1.0)
+            .build()
+            .unwrap();
         let one_of_four = SessionBuilder::new()
             .with_scale_factor(1.0)
             .with_chunk_number(2)
@@ -219,13 +211,16 @@ mod tests {
         };
 
         let mut parts = share_across_parts(progress, 2).into_iter();
-        let (TableProgress::Paired {
-            sales: sales1,
-            returns: returns1,
-        }, TableProgress::Paired {
-            sales: sales2,
-            returns: returns2,
-        }) = (parts.next().unwrap(), parts.next().unwrap())
+        let (
+            TableProgress::Paired {
+                sales: sales1,
+                returns: returns1,
+            },
+            TableProgress::Paired {
+                sales: sales2,
+                returns: returns2,
+            },
+        ) = (parts.next().unwrap(), parts.next().unwrap())
         else {
             panic!("expected two paired parts");
         };
