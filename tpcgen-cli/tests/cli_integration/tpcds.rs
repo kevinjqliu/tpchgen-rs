@@ -1268,122 +1268,132 @@ fn test_tpcgen_cli_tpcds_dat_parts_outputs_directory() {
 // ----------------
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_call_center() {
-    test_dat_parts("call_center", 1.0, 4);
+    test_dat_parts("call_center", 1.0, 4, [6, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_catalog_page() {
-    test_dat_parts("catalog_page", 1.0, 4);
+    test_dat_parts("catalog_page", 1.0, 4, [11_718, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_catalog_returns() {
-    test_dat_parts("catalog_returns", 1.0, 4);
+    test_dat_parts("catalog_returns", 1.0, 4, [144_067, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_catalog_sales() {
-    test_dat_parts("catalog_sales", 1.0, 4);
+    test_dat_parts("catalog_sales", 1.0, 4, [1_441_548, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_customer() {
-    test_dat_parts("customer", 1.0, 4);
+    test_dat_parts("customer", 1.0, 4, [100_000, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_customer_address() {
-    test_dat_parts("customer_address", 1.0, 4);
+    test_dat_parts("customer_address", 1.0, 4, [50_000, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_customer_demographics() {
-    test_dat_parts("customer_demographics", 1.0, 4);
+    test_dat_parts(
+        "customer_demographics",
+        1.0,
+        4,
+        [480_200, 480_200, 480_200, 480_200],
+    );
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_date_dim() {
-    test_dat_parts("date_dim", 1.0, 4);
+    test_dat_parts("date_dim", 1.0, 4, [73_049, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_household_demographics() {
-    test_dat_parts("household_demographics", 1.0, 4);
+    test_dat_parts("household_demographics", 1.0, 4, [7_200, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_income_band() {
-    test_dat_parts("income_band", 1.0, 4);
+    test_dat_parts("income_band", 1.0, 4, [20, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_inventory() {
-    test_dat_parts("inventory", 1.0, 4);
+    test_dat_parts(
+        "inventory",
+        1.0,
+        4,
+        [2_936_250, 2_936_250, 2_936_250, 2_936_250],
+    );
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_item() {
-    test_dat_parts("item", 1.0, 4);
+    test_dat_parts("item", 1.0, 4, [18_000, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_promotion() {
-    test_dat_parts("promotion", 1.0, 4);
+    test_dat_parts("promotion", 1.0, 4, [300, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_reason() {
-    test_dat_parts("reason", 1.0, 4);
+    test_dat_parts("reason", 1.0, 4, [35, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_ship_mode() {
-    test_dat_parts("ship_mode", 1.0, 4);
+    test_dat_parts("ship_mode", 1.0, 4, [20, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_store() {
-    test_dat_parts("store", 1.0, 4);
+    test_dat_parts("store", 1.0, 4, [12, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_store_returns() {
-    test_dat_parts("store_returns", 1.0, 4);
+    test_dat_parts("store_returns", 1.0, 4, [287_514, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_store_sales() {
-    test_dat_parts("store_sales", 1.0, 4);
+    test_dat_parts("store_sales", 1.0, 4, [2_880_404, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_time_dim() {
-    test_dat_parts("time_dim", 1.0, 4);
+    test_dat_parts("time_dim", 1.0, 4, [86_400, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_warehouse() {
-    test_dat_parts("warehouse", 1.0, 4);
+    test_dat_parts("warehouse", 1.0, 4, [5, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_web_page() {
-    test_dat_parts("web_page", 1.0, 4);
+    test_dat_parts("web_page", 1.0, 4, [60, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_web_returns() {
-    test_dat_parts("web_returns", 1.0, 4);
+    test_dat_parts("web_returns", 1.0, 4, [71_763, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_web_sales() {
-    test_dat_parts("web_sales", 1.0, 4);
+    test_dat_parts("web_sales", 1.0, 4, [719_384, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_web_site() {
-    test_dat_parts("web_site", 1.0, 4);
+    test_dat_parts("web_site", 1.0, 4, [30, 0, 0, 0]);
 }
 
 /// dbgen_version records the command line that generated it, so a `--parts`
@@ -1416,122 +1426,132 @@ fn test_tpcgen_cli_tpcds_dat_parts_dbgen_version() {
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_call_center() {
-    test_csv_parts("call_center", 1.0, 4);
+    test_csv_parts("call_center", 1.0, 4, [6, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_catalog_page() {
-    test_csv_parts("catalog_page", 1.0, 4);
+    test_csv_parts("catalog_page", 1.0, 4, [11_718, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_catalog_returns() {
-    test_csv_parts("catalog_returns", 1.0, 4);
+    test_csv_parts("catalog_returns", 1.0, 4, [144_067, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_catalog_sales() {
-    test_csv_parts("catalog_sales", 1.0, 4);
+    test_csv_parts("catalog_sales", 1.0, 4, [1_441_548, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_customer() {
-    test_csv_parts("customer", 1.0, 4);
+    test_csv_parts("customer", 1.0, 4, [100_000, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_customer_address() {
-    test_csv_parts("customer_address", 1.0, 4);
+    test_csv_parts("customer_address", 1.0, 4, [50_000, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_customer_demographics() {
-    test_csv_parts("customer_demographics", 1.0, 4);
+    test_csv_parts(
+        "customer_demographics",
+        1.0,
+        4,
+        [480_200, 480_200, 480_200, 480_200],
+    );
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_date_dim() {
-    test_csv_parts("date_dim", 1.0, 4);
+    test_csv_parts("date_dim", 1.0, 4, [73_049, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_household_demographics() {
-    test_csv_parts("household_demographics", 1.0, 4);
+    test_csv_parts("household_demographics", 1.0, 4, [7_200, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_income_band() {
-    test_csv_parts("income_band", 1.0, 4);
+    test_csv_parts("income_band", 1.0, 4, [20, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_inventory() {
-    test_csv_parts("inventory", 1.0, 4);
+    test_csv_parts(
+        "inventory",
+        1.0,
+        4,
+        [2_936_250, 2_936_250, 2_936_250, 2_936_250],
+    );
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_item() {
-    test_csv_parts("item", 1.0, 4);
+    test_csv_parts("item", 1.0, 4, [18_000, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_promotion() {
-    test_csv_parts("promotion", 1.0, 4);
+    test_csv_parts("promotion", 1.0, 4, [300, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_reason() {
-    test_csv_parts("reason", 1.0, 4);
+    test_csv_parts("reason", 1.0, 4, [35, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_ship_mode() {
-    test_csv_parts("ship_mode", 1.0, 4);
+    test_csv_parts("ship_mode", 1.0, 4, [20, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_store() {
-    test_csv_parts("store", 1.0, 4);
+    test_csv_parts("store", 1.0, 4, [12, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_store_returns() {
-    test_csv_parts("store_returns", 1.0, 4);
+    test_csv_parts("store_returns", 1.0, 4, [287_514, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_store_sales() {
-    test_csv_parts("store_sales", 1.0, 4);
+    test_csv_parts("store_sales", 1.0, 4, [2_880_404, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_time_dim() {
-    test_csv_parts("time_dim", 1.0, 4);
+    test_csv_parts("time_dim", 1.0, 4, [86_400, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_warehouse() {
-    test_csv_parts("warehouse", 1.0, 4);
+    test_csv_parts("warehouse", 1.0, 4, [5, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_web_page() {
-    test_csv_parts("web_page", 1.0, 4);
+    test_csv_parts("web_page", 1.0, 4, [60, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_web_returns() {
-    test_csv_parts("web_returns", 1.0, 4);
+    test_csv_parts("web_returns", 1.0, 4, [71_763, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_web_sales() {
-    test_csv_parts("web_sales", 1.0, 4);
+    test_csv_parts("web_sales", 1.0, 4, [719_384, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_web_site() {
-    test_csv_parts("web_site", 1.0, 4);
+    test_csv_parts("web_site", 1.0, 4, [30, 0, 0, 0]);
 }
 
 /// See [`test_tpcgen_cli_tpcds_dat_parts_dbgen_version`]: dbgen_version's row
@@ -1571,122 +1591,132 @@ fn test_tpcgen_cli_tpcds_csv_parts_dbgen_version() {
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_call_center() {
-    test_parquet_parts("call_center", 1.0, 4);
+    test_parquet_parts("call_center", 1.0, 4, [6, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_catalog_page() {
-    test_parquet_parts("catalog_page", 1.0, 4);
+    test_parquet_parts("catalog_page", 1.0, 4, [11_718, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_catalog_returns() {
-    test_parquet_parts("catalog_returns", 1.0, 4);
+    test_parquet_parts("catalog_returns", 1.0, 4, [144_067, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_catalog_sales() {
-    test_parquet_parts("catalog_sales", 1.0, 4);
+    test_parquet_parts("catalog_sales", 1.0, 4, [1_441_548, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_customer() {
-    test_parquet_parts("customer", 1.0, 4);
+    test_parquet_parts("customer", 1.0, 4, [100_000, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_customer_address() {
-    test_parquet_parts("customer_address", 1.0, 4);
+    test_parquet_parts("customer_address", 1.0, 4, [50_000, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_customer_demographics() {
-    test_parquet_parts("customer_demographics", 1.0, 4);
+    test_parquet_parts(
+        "customer_demographics",
+        1.0,
+        4,
+        [480_200, 480_200, 480_200, 480_200],
+    );
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_date_dim() {
-    test_parquet_parts("date_dim", 1.0, 4);
+    test_parquet_parts("date_dim", 1.0, 4, [73_049, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_household_demographics() {
-    test_parquet_parts("household_demographics", 1.0, 4);
+    test_parquet_parts("household_demographics", 1.0, 4, [7_200, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_income_band() {
-    test_parquet_parts("income_band", 1.0, 4);
+    test_parquet_parts("income_band", 1.0, 4, [20, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_inventory() {
-    test_parquet_parts("inventory", 1.0, 4);
+    test_parquet_parts(
+        "inventory",
+        1.0,
+        4,
+        [2_936_250, 2_936_250, 2_936_250, 2_936_250],
+    );
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_item() {
-    test_parquet_parts("item", 1.0, 4);
+    test_parquet_parts("item", 1.0, 4, [18_000, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_promotion() {
-    test_parquet_parts("promotion", 1.0, 4);
+    test_parquet_parts("promotion", 1.0, 4, [300, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_reason() {
-    test_parquet_parts("reason", 1.0, 4);
+    test_parquet_parts("reason", 1.0, 4, [35, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_ship_mode() {
-    test_parquet_parts("ship_mode", 1.0, 4);
+    test_parquet_parts("ship_mode", 1.0, 4, [20, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_store() {
-    test_parquet_parts("store", 1.0, 4);
+    test_parquet_parts("store", 1.0, 4, [12, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_store_returns() {
-    test_parquet_parts("store_returns", 1.0, 4);
+    test_parquet_parts("store_returns", 1.0, 4, [287_514, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_store_sales() {
-    test_parquet_parts("store_sales", 1.0, 4);
+    test_parquet_parts("store_sales", 1.0, 4, [2_880_404, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_time_dim() {
-    test_parquet_parts("time_dim", 1.0, 4);
+    test_parquet_parts("time_dim", 1.0, 4, [86_400, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_warehouse() {
-    test_parquet_parts("warehouse", 1.0, 4);
+    test_parquet_parts("warehouse", 1.0, 4, [5, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_web_page() {
-    test_parquet_parts("web_page", 1.0, 4);
+    test_parquet_parts("web_page", 1.0, 4, [60, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_web_returns() {
-    test_parquet_parts("web_returns", 1.0, 4);
+    test_parquet_parts("web_returns", 1.0, 4, [71_763, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_web_sales() {
-    test_parquet_parts("web_sales", 1.0, 4);
+    test_parquet_parts("web_sales", 1.0, 4, [719_384, 0, 0, 0]);
 }
 
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_web_site() {
-    test_parquet_parts("web_site", 1.0, 4);
+    test_parquet_parts("web_site", 1.0, 4, [30, 0, 0, 0]);
 }
 
 /// See [`test_tpcgen_cli_tpcds_dat_parts_dbgen_version`]: dbgen_version's row
@@ -1760,9 +1790,20 @@ fn part_path(parts_dir: &Path, table_name: &str, chunk: usize, ext: &str) -> Pat
     parts_dir.join(format!("{table_name}/{table_name}.{chunk}.{ext}"))
 }
 
-/// Test that concatenating a file created with `--parts`
-/// exactly reproduces a single-file output
-fn test_dat_parts(table_name: &str, scale_factor: f64, parts: usize) {
+/// Test that concatenating a file created with `--parts` exactly reproduces a
+/// single-file output, and that every part holds the expected number of rows.
+///
+/// `expected_rows` has one entry per part. Tables under dsdgen's 1M row split
+/// threshold put every row in part 1 and leave the rest empty, so most tables
+/// expect `[n, 0, 0, 0]`.
+fn test_dat_parts<const PARTS: usize>(
+    table_name: &str,
+    scale_factor: f64,
+    parts: usize,
+    expected_rows: [usize; PARTS],
+) {
+    assert_eq!(expected_rows.len(), parts, "one row count per part");
+
     let unsplit_dir = tempdir().expect("Failed to create temporary directory");
     generate_unsplit("dat", table_name, scale_factor, unsplit_dir.path());
     let unsplit = fs::read(unsplit_dir.path().join(format!("{table_name}.dat")))
@@ -1779,9 +1820,15 @@ fn test_dat_parts(table_name: &str, scale_factor: f64, parts: usize) {
         "Unexpected number of --parts output files"
     );
     let mut concatenated = Vec::new();
-    for chunk in 1..=parts {
+    for (chunk, expected_rows) in (1..=parts).zip(expected_rows) {
         let path = part_path(parts_dir.path(), table_name, chunk, "dat");
-        concatenated.extend(fs::read(&path).unwrap_or_else(|err| panic!("{path:?} exists: {err}")));
+        let contents = fs::read(&path).unwrap_or_else(|err| panic!("{path:?} exists: {err}"));
+        assert_eq!(
+            contents.iter().filter(|byte| **byte == b'\n').count(),
+            expected_rows,
+            "Unexpected number of rows in chunk {chunk}"
+        );
+        concatenated.extend(contents);
     }
 
     assert_eq!(
@@ -1791,8 +1838,18 @@ fn test_dat_parts(table_name: &str, scale_factor: f64, parts: usize) {
 }
 
 /// Test that concatenating CSV files results in the same output as a single CSV
-/// file
-fn test_csv_parts(table_name: &str, scale_factor: f64, parts: usize) {
+/// file, and that every part holds the expected number of rows.
+///
+/// `expected_rows` counts data rows, not the header every part repeats. See
+/// [`test_dat_parts`] for why most tables expect `[n, 0, 0, 0]`.
+fn test_csv_parts<const PARTS: usize>(
+    table_name: &str,
+    scale_factor: f64,
+    parts: usize,
+    expected_rows: [usize; PARTS],
+) {
+    assert_eq!(expected_rows.len(), parts, "one row count per part");
+
     let unsplit_dir = tempdir().expect("Failed to create temporary directory");
     generate_unsplit("csv", table_name, scale_factor, unsplit_dir.path());
     let unsplit = fs::read_to_string(unsplit_dir.path().join(format!("{table_name}.csv")))
@@ -1816,7 +1873,7 @@ fn test_csv_parts(table_name: &str, scale_factor: f64, parts: usize) {
     expected.push_str(&lines.map(|line| format!("{line}\n")).collect::<String>());
 
     let mut reconstructed = String::new();
-    for chunk in 1..=parts {
+    for (chunk, expected_rows) in (1..=parts).zip(expected_rows) {
         let path = part_path(parts_dir.path(), table_name, chunk, "csv");
         let contents =
             fs::read_to_string(&path).unwrap_or_else(|err| panic!("{path:?} exists: {err}"));
@@ -1827,8 +1884,15 @@ fn test_csv_parts(table_name: &str, scale_factor: f64, parts: usize) {
             reconstructed.push_str(header);
             reconstructed.push('\n');
         }
+        let rows: Vec<&str> = chunk_lines.collect();
+        assert_eq!(
+            rows.len(),
+            expected_rows,
+            "Unexpected number of rows in chunk {chunk}"
+        );
         reconstructed.push_str(
-            &chunk_lines
+            &rows
+                .iter()
                 .map(|line| format!("{line}\n"))
                 .collect::<String>(),
         );
@@ -1840,8 +1904,18 @@ fn test_csv_parts(table_name: &str, scale_factor: f64, parts: usize) {
     );
 }
 
-/// Test that `--parts` on Parquet output produces one file which is the same
-fn test_parquet_parts(table_name: &str, scale_factor: f64, parts: usize) {
+/// Test that concatenating the `--parts` Parquet files reproduces the unsplit
+/// Parquet output, and that every part holds the expected number of rows.
+///
+/// See [`test_dat_parts`] for why most tables expect `[n, 0, 0, 0]`.
+fn test_parquet_parts<const PARTS: usize>(
+    table_name: &str,
+    scale_factor: f64,
+    parts: usize,
+    expected_rows: [usize; PARTS],
+) {
+    assert_eq!(expected_rows.len(), parts, "one row count per part");
+
     let unsplit_dir = tempdir().expect("Failed to create temporary directory");
     generate_unsplit("parquet", table_name, scale_factor, unsplit_dir.path());
     let (unsplit, _row_groups) =
@@ -1859,10 +1933,16 @@ fn test_parquet_parts(table_name: &str, scale_factor: f64, parts: usize) {
     );
 
     let mut part_batches = vec![];
-    for chunk in 1..=parts {
+    for (chunk, expected_rows) in (1..=parts).zip(expected_rows) {
         let path = part_path(parts_dir.path(), table_name, chunk, "parquet");
         assert!(path.exists(), "Expected {path:?} to exist");
-        part_batches.push(read_concatenated_parquet(&path).0);
+        let (batch, _row_groups) = read_concatenated_parquet(&path);
+        assert_eq!(
+            batch.num_rows(),
+            expected_rows,
+            "Unexpected number of rows in chunk {chunk}"
+        );
+        part_batches.push(batch);
     }
     let reconstructed = concat_batches(&unsplit.schema(), &part_batches)
         .expect("Failed to concatenate part batches");
