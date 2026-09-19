@@ -3,19 +3,22 @@ use crate::error::{InvalidOptionError, Result};
 use std::ops::RangeInclusive;
 
 /// Threshold above which tables are not split across chunks. For tables with
-/// fewer than this many rows, chunk 1 generates the whole table . Matches
-/// dsdgen's `tools/parallel.c` [1].
+/// fewer than this many rows, chunk 1 generates the whole table . Matches the
+/// C `dsdgen`'s `kTotalRows < 1000000` check in `tools/parallel.c` [1] and
+/// Trino's `Parallel.SMALL_TABLE_THRESHOLD` [2].
 ///
-/// [1]: https://github.com/trinodb/tpcds/blob/b594136818cc95bd6b34a352327611b329017281/src/main/java/io/trino/tpcds/Parallel.java#L28
+/// [1]: https://github.com/gregrahn/tpcds-kit/blob/5a3a81796992b725c2a8b216767e142609966752/tools/parallel.c#L75
+/// [2]: https://github.com/trinodb/tpcds/blob/b594136818cc95bd6b34a352327611b329017281/src/main/java/io/trino/tpcds/Parallel.java#L28
 const SMALL_TABLE_ROW_THRESHOLD: u64 = 1_000_000;
 
 /// Split `total_rows` into `total_chunks` pieces and return the 1-based
 /// `(first_row, row_count)` for `chunk_number`.
 ///
-/// Ports dsdgen's `split_work` (`tools/parallel.c`) / Trino's
-/// `Parallel.splitWork` [1].
+/// Ports the C `dsdgen`'s `split_work` (`tools/parallel.c`) [1] / Trino's
+/// `Parallel.splitWork` [2].
 ///
-/// [1]: https://github.com/trinodb/tpcds/blob/b594136818cc95bd6b34a352327611b329017281/src/main/java/io/trino/tpcds/Parallel.java#L24-L51
+/// [1]: https://github.com/gregrahn/tpcds-kit/blob/5a3a81796992b725c2a8b216767e142609966752/tools/parallel.c#L58-L107
+/// [2]: https://github.com/trinodb/tpcds/blob/b594136818cc95bd6b34a352327611b329017281/src/main/java/io/trino/tpcds/Parallel.java#L24-L51
 fn split_work(total_rows: u64, chunk_number: i32, total_chunks: i32) -> (u64, u64) {
     if total_rows < SMALL_TABLE_ROW_THRESHOLD {
         return if chunk_number == 1 {
@@ -139,29 +142,20 @@ impl Session {
         self.chunk_number
     }
 
-    /// Return the total number of chunks this session's table generation is
-    /// split across.
+    /// Return the total number of chunks for table generation
     pub fn get_total_chunks(&self) -> i32 {
         self.total_chunks
     }
 
-    /// Return `true` if `--parts` was requested, even for a single part
-    /// (`--parts 1`).
+    /// Return `true` if `--parts` was requested.
     ///
-    /// Independent of [`Self::get_total_chunks`]: `--parts 1` and no
-    /// `--parts` both split into one chunk, but only the former should use
-    /// numbered, per-part output naming.
+    /// Note this also returns true for `--parts 1`
     pub fn is_partitioned(&self) -> bool {
         self.partitioned
     }
 
-    /// Return the 1-based, inclusive range of `table`'s source rows this
-    /// session's chunk is responsible for generating.
-    ///
-    /// Works for every table, including a returns table (e.g.
-    /// [`Table::StoreReturns`]), which is split using its paired sales
-    /// table's row count via [`Table::source_table`]. An empty range is
-    /// returned as `first_row..=(first_row - 1)`.
+    /// Return the 1-based, inclusive range of `table`'s source rows generated
+    /// by this session.
     pub fn get_source_row_range(&self, table: Table) -> RangeInclusive<u64> {
         let total_rows = self.scaling.get_row_count(table.source_table());
         let (first_row, row_count) = split_work(total_rows, self.chunk_number, self.total_chunks);
@@ -243,7 +237,7 @@ impl SessionBuilder {
         self
     }
 
-    /// Set the total number of chunks table generation is split across.
+    /// Set the total number of chunks for table generation.
     pub fn with_total_chunks(mut self, total_chunks: i32) -> Self {
         self.total_chunks = total_chunks;
         self
