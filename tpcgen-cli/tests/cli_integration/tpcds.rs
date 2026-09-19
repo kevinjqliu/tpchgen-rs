@@ -1321,7 +1321,13 @@ fn test_tpcgen_cli_tpcds_dat_parts_outputs_directory() {
 // ----------------
 // Test that concatenating a file created with `--parts`
 // exactly reproduces a single-file output
-// Most of the tables are below the 1M minimum size, so only testing the larger tables is sufficient to verify the behavior.
+//
+// Most of the tables are below the 1M minimum size, so only testing the larger
+// tables is sufficient to verify the behavior.
+//
+// For now, to avoid long test times, we test only a subset of the larger tables.
+// testing the whole thing is tracked by
+// https://github.com/datafusion-contrib/tpcgen-rs/issues/457
 // ----------------
 
 // DAT
