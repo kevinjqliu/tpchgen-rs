@@ -5,6 +5,7 @@
 //! way. Keeping that in one place stops the two from drifting.
 
 use crate::progress::{ProgressHandle, ProgressTracker};
+use std::ops::RangeInclusive;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use tpcdsgen::config::{Session, Table};
@@ -23,22 +24,47 @@ pub(super) enum TableProgress {
     },
 }
 
-/// Register progress for one requested table, sized to its full row count.
+/// Number of rows in a source row range, treating an empty chunk as zero.
+fn range_len(range: RangeInclusive<u64>) -> u64 {
+    if range.is_empty() {
+        0
+    } else {
+        range.end() - range.start() + 1
+    }
+}
+
+/// Register progress for one requested table, sized to the rows `sessions`
+/// will actually generate.
+///
+/// `sessions` holds one session per requested part. Callers register once, then
+/// split the result with [`share_across_parts`].
 ///
 /// A returns table's row count is only ever an approximate upper bound (actual
-/// returns are data-driven per source row).
-///
-/// The total is independent of `--parts`: callers generating a table across
-/// several parts register it once, then split result with
-/// [`share_across_parts`].
+/// returns are data-driven per source row), and is counted in returned rows
+/// rather than source rows
 pub(super) fn register_table(
     table: Table,
-    session: &Session,
+    sessions: &[Session],
     progress: Arc<dyn ProgressTracker>,
 ) -> TableProgress {
-    let register = |table: Table| {
-        let row_count = session.get_scaling().get_row_count(table);
-        progress.clone().register(table.get_name(), row_count)
+    let scaling = sessions[0].get_scaling();
+    let requested_source_rows: u64 = sessions
+        .iter()
+        .map(|session| range_len(session.get_source_row_range(table)))
+        .sum();
+    let all_source_rows = scaling.get_row_count(table.source_table());
+
+    let register = |registered: Table| {
+        let total = if registered == table {
+            requested_source_rows
+        } else if all_source_rows == 0 {
+            0
+        } else {
+            // u128 so the numerator cannot overflow at large scale factors.
+            (scaling.get_row_count(registered) as u128 * requested_source_rows as u128
+                / all_source_rows as u128) as u64
+        };
+        progress.clone().register(registered.get_name(), total)
     };
 
     match table {
@@ -146,29 +172,86 @@ mod tests {
         (handle, increments, completions)
     }
 
-    #[test]
-    fn register_table_total_ignores_chunking() {
-        // A table's registered total must be the same whether the session
-        // represents the whole table or one `--parts` chunk of it: parts
-        // share one bar sized to the full table, not a per-chunk total.
-        let tracker = Arc::new(RecordingProgress::default());
-        let whole = SessionBuilder::new()
-            .with_scale_factor(1.0)
-            .build()
-            .unwrap();
-        let one_of_four = SessionBuilder::new()
-            .with_scale_factor(1.0)
-            .with_chunk_number(2)
-            .with_total_chunks(4)
+    /// Sessions for every chunk of a `--parts total_chunks` run.
+    fn all_parts(scale_factor: f64, total_chunks: i32) -> Vec<Session> {
+        (1..=total_chunks)
+            .map(|chunk_number| chunk(scale_factor, chunk_number, total_chunks))
+            .collect()
+    }
+
+    /// A session for one `--parts total_chunks --part chunk_number` run.
+    fn chunk(scale_factor: f64, chunk_number: i32, total_chunks: i32) -> Session {
+        SessionBuilder::new()
+            .with_scale_factor(scale_factor)
+            .with_chunk_number(chunk_number)
+            .with_total_chunks(total_chunks)
             .with_partitioned(true)
             .build()
+            .unwrap()
+    }
+
+    #[test]
+    fn register_table_total_covers_every_requested_part() {
+        // `--parts 4` runs all four chunks in this process, so the shared bar
+        // is sized to the whole table, exactly as an unpartitioned run is.
+        let tracker = Arc::new(RecordingProgress::default());
+        let whole = SessionBuilder::new()
+            .with_scale_factor(5.0)
+            .build()
             .unwrap();
 
-        register_table(Table::Reason, &whole, tracker.clone());
-        register_table(Table::Reason, &one_of_four, tracker.clone());
+        register_table(Table::StoreSales, &[whole], tracker.clone());
+        register_table(Table::StoreSales, &all_parts(5.0, 4), tracker.clone());
 
         let registered = tracker.registered.lock().unwrap();
-        assert_eq!(registered[0], registered[1]);
+        assert_eq!(registered[0..2], registered[2..4]);
+    }
+
+    #[test]
+    fn register_table_total_is_sized_to_a_single_requested_part() {
+        // `--parts 4 --part 2` generates only chunk 2, so a bar sized to the
+        // whole table would top out at a quarter and then snap to "done".
+        let tracker = Arc::new(RecordingProgress::default());
+        let whole = SessionBuilder::new()
+            .with_scale_factor(7.0)
+            .build()
+            .unwrap();
+        let one_of_four = chunk(7.0, 2, 4);
+        let all_rows = range_len(whole.get_source_row_range(Table::CatalogSales));
+        let part_rows = range_len(one_of_four.get_source_row_range(Table::CatalogSales));
+        assert!(
+            part_rows > 0 && part_rows < all_rows,
+            "chunk must be a strict subset"
+        );
+
+        register_table(Table::CatalogSales, &[whole], tracker.clone());
+        register_table(Table::CatalogSales, &[one_of_four], tracker.clone());
+
+        let registered = tracker.registered.lock().unwrap();
+        assert_eq!(registered[0], ("catalog_sales".to_owned(), all_rows));
+        assert_eq!(registered[2], ("catalog_sales".to_owned(), part_rows));
+        // The returns bar counts returned rows, not source rows, so its
+        // (approximate) whole-table total is scaled to this chunk's share.
+        let whole_returns = registered[1].1;
+        assert_eq!(
+            registered[3],
+            (
+                "catalog_returns".to_owned(),
+                whole_returns * part_rows / all_rows
+            )
+        );
+    }
+
+    #[test]
+    fn register_table_total_is_zero_for_an_empty_chunk() {
+        // `reason` is far below the 1M threshold, so every chunk past the
+        // first is empty and its bar has nothing to report.
+        let tracker = Arc::new(RecordingProgress::default());
+
+        register_table(Table::Reason, &[chunk(1.0, 2, 4)], tracker.clone());
+
+        let registered = tracker.registered.lock().unwrap();
+        assert_eq!(registered[0].1, 0);
     }
 
     #[test]

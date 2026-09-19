@@ -295,8 +295,7 @@ impl CommonArgs {
                         .map(|&part| self.to_session(Some(table.get_name().to_string()), part))
                         .collect::<Result<Vec<_>>>()?;
                     // One bar per table, shared across all its parts.
-                    let table_progress =
-                        output.register_table(*table, &sessions[0], progress.clone());
+                    let table_progress = output.register_table(*table, &sessions, progress.clone());
                     let part_progress = share_across_parts(table_progress, sessions.len());
                     for (session, progress) in sessions.into_iter().zip(part_progress) {
                         table_sessions.push((*table, session, progress));
@@ -315,8 +314,7 @@ impl CommonArgs {
                         .map(|&part| self.to_session(Some(table.get_name().to_string()), part))
                         .collect::<Result<Vec<_>>>()?;
                     // One bar per table, shared across all its parts.
-                    let table_progress =
-                        output.register_table(*table, &sessions[0], progress.clone());
+                    let table_progress = output.register_table(*table, &sessions, progress.clone());
                     let part_progress = share_across_parts(table_progress, sessions.len());
                     for (session, progress) in sessions.into_iter().zip(part_progress) {
                         table_sessions.push((*table, session, progress));

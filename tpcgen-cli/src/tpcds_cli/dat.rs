@@ -57,10 +57,10 @@ impl Dat {
     pub(super) fn register_table(
         &self,
         table: Table,
-        session: &Session,
+        sessions: &[Session],
         progress: Arc<dyn ProgressTracker>,
     ) -> TableProgress {
-        register_table(table, session, progress)
+        register_table(table, sessions, progress)
     }
 
     pub(super) fn generate_table(
