@@ -450,13 +450,13 @@ mod tests {
             table: Table::CallCenter,
             scale_factor: 1.0,
             total_chunks: 3,
-            expected_ranges: &[1..=1000000, 1000001..=2000000, 2000001..=3000000],
+            expected_ranges: &[1..=6, 1..=0, 1..=0],
         };
 
         test.run();
     }
 
-    // TODO add tests for all other tables
+    // TODO add tests for all other tables at scale factor 1a
 
     // TODO add tests for 2 larger tables at scale factor 1000 with 10 chunks each
 
@@ -465,6 +465,9 @@ mod tests {
         table: Table,
         scale_factor: f64,
         total_chunks: i32,
+        /// Expected ranges. Note that range is inclusive:
+        /// * `1..=6` means rows 1 through 6
+        /// * `1..=0` means no rows
         expected_ranges: &'static [RangeInclusive<u64>],
     }
 
@@ -477,26 +480,19 @@ mod tests {
                 expected_ranges,
             } = self;
 
-            for (chunk_num, expected_range) in expected_ranges.into_iter().enumerate() {
-                let session = SessionBuilder::new()
-                    .with_scale_factor(scale_factor)
-                    .with_chunk_number(chunk_num as i32 + 1)
-                    .with_total_chunks(total_chunks)
-                    .build()
-                    .unwrap();
+            let actual_ranges: Vec<_> = expected_ranges.into_iter().enumerate()
+                .map(|(chunk_num, expected_range)| {
+                     SessionBuilder::new()
+                        .with_scale_factor(scale_factor)
+                        .with_chunk_number(chunk_num as i32 + 1)
+                        .with_total_chunks(total_chunks)
+                        .build()
+                        .unwrap()
+                        .get_source_row_range(table)
+                }).collect();
 
-                assert_row_ranges(&session, table, expected_range)
-            }
+            assert_eq!(expected_ranges, &actual_ranges, "Row ranges for table {table:?} do not match expected");
         }
     }
 
-
-    fn assert_row_ranges(session: &Session, table: Table, expected_range: &RangeInclusive<u64>) {
-        let actual_range = session.get_source_row_range(table);
-        assert_eq!(
-            &actual_range, expected_range,
-            "Row range for table {:?} does not match expected",
-            table
-        );
-    }
 }
