@@ -386,20 +386,47 @@ impl CommonArgs {
     /// Mirrors `tpchgen-cli`'s `--parts`/`--part` semantics: `--parts` alone
     /// generates every part as a separate file, `--part` requires `--parts`
     /// to be set alongside it and restricts generation to just that part.
+    ///
+    /// The combination is fully validated here, before any output directory is
+    /// created, so an invalid selection such as `--parts 3 --part 4` leaves no
+    /// directories behind.
     fn part_list(&self) -> Result<Vec<Option<i32>>> {
-        match (self.part, self.parts) {
-            (Some(_), None) => Err(TpcdsError::new(
-                "The --part option requires the --parts option to be set",
-            )
-            .into()),
-            (None, Some(parts)) if parts < 1 => Err(TpcdsError::new(&format!(
+        let Some(parts) = self.parts else {
+            if self.part.is_some() {
+                return Err(TpcdsError::new(
+                    "The --part option requires the --parts option to be set",
+                )
+                .into());
+            } else {
+                return Ok(vec![None]);
+            }
+        };
+
+        if parts < 1 {
+            return Err(TpcdsError::new(&format!(
                 "Invalid --parts value '{parts}'. Expected a number greater than zero"
             ))
-            .into()),
-            (None, Some(parts)) => Ok((1..=parts).map(Some).collect()),
-            (Some(part), Some(_)) => Ok(vec![Some(part)]),
-            (None, None) => Ok(vec![None]),
+            .into());
         }
+
+        let Some(part) = self.part else {
+            return Ok((1..=parts).map(Some).collect());
+        };
+
+        if part < 1 {
+            return Err(TpcdsError::new(&format!(
+                "Invalid --part value '{part}'. Expected a number greater than zero"
+            ))
+            .into());
+        }
+        if part > parts {
+            return Err(TpcdsError::new(&format!(
+                "Invalid --part value '{part}'. Expected at most the value of --parts ({parts})"
+            ))
+            .into());
+        }
+
+        Ok(vec![Some(part)])
     }
 
     fn to_session(&self, table: Option<String>, part: Option<i32>) -> Result<Session> {
@@ -689,5 +716,42 @@ mod tests {
     fn part_list_rejects_non_positive_parts() {
         assert!(args_with_parts(Some(0), None).part_list().is_err());
         assert!(args_with_parts(Some(-1), None).part_list().is_err());
+        assert_eq!(
+            args_with_parts(Some(0), Some(1))
+                .part_list()
+                .unwrap_err()
+                .to_string(),
+            "Invalid --parts value '0'. Expected a number greater than zero"
+        );
+    }
+
+    #[test]
+    fn part_list_rejects_non_positive_part() {
+        assert_eq!(
+            args_with_parts(Some(3), Some(0))
+                .part_list()
+                .unwrap_err()
+                .to_string(),
+            "Invalid --part value '0'. Expected a number greater than zero"
+        );
+    }
+
+    #[test]
+    fn part_list_rejects_part_greater_than_parts() {
+        assert_eq!(
+            args_with_parts(Some(3), Some(4))
+                .part_list()
+                .unwrap_err()
+                .to_string(),
+            "Invalid --part value '4'. Expected at most the value of --parts (3)"
+        );
+    }
+
+    #[test]
+    fn part_list_accepts_last_part() {
+        assert_eq!(
+            args_with_parts(Some(3), Some(3)).part_list().unwrap(),
+            vec![Some(3)]
+        );
     }
 }

@@ -1174,6 +1174,65 @@ fn test_tpcgen_cli_tpcds_dat_part_without_parts_is_rejected() {
     );
 }
 
+/// Test that an invalid `--part`/`--parts` combination is rejected before any
+/// output directory is created.
+#[test]
+fn test_tpcgen_cli_tpcds_rejects_invalid_part_without_creating_output() {
+    // (--parts, --part, expected error)
+    let cases = [
+        (
+            "3",
+            "4",
+            "Invalid --part value '4'. Expected at most the value of --parts (3)",
+        ),
+        (
+            "3",
+            "0",
+            "Invalid --part value '0'. Expected a number greater than zero",
+        ),
+        (
+            "0",
+            "1",
+            "Invalid --parts value '0'. Expected a number greater than zero",
+        ),
+    ];
+
+    for format in ["dat", "csv", "parquet"] {
+        for (parts, part, expected_error) in cases {
+            let temp_dir = tempdir().expect("Failed to create temporary directory");
+            let output_dir = temp_dir.path().join("output");
+
+            let assert = cargo_bin_cmd!("tpcgen-cli")
+                .arg("tpcds")
+                .arg(format)
+                .arg("--scale-factor")
+                .arg("0.001")
+                .arg("--tables")
+                .arg("reason")
+                .arg("--output-dir")
+                .arg(&output_dir)
+                .arg("--parts")
+                .arg(parts)
+                .arg("--part")
+                .arg(part)
+                .assert()
+                .failure();
+
+            let stderr = String::from_utf8_lossy(&assert.get_output().stderr);
+            assert_eq!(
+                stderr,
+                format!("Error: {expected_error}\n"),
+                "Unexpected error for {format} --parts {parts} --part {part}"
+            );
+
+            assert!(
+                !output_dir.exists(),
+                "Invalid --part must not create output: {format} --parts {parts} --part {part}"
+            );
+        }
+    }
+}
+
 /// Test that a non-positive `--parts` is rejected.
 #[test]
 fn test_tpcgen_cli_tpcds_dat_rejects_non_positive_parts() {
