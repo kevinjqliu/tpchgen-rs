@@ -29,9 +29,8 @@ pub(super) enum TableProgress {
 /// returns are data-driven per source row).
 ///
 /// The total is independent of `--parts`: callers generating a table across
-/// several parts register it once, then split the result across parts with
-/// [`share_across_parts`] so `--parts` gets one bar per table, not one per
-/// part.
+/// several parts register it once, then split result with
+/// [`share_across_parts`].
 pub(super) fn register_table(
     table: Table,
     session: &Session,
@@ -63,9 +62,9 @@ pub(super) fn register_table(
 /// Split one registered handle into `num_parts` clones that all report to the
 /// same bar.
 ///
-/// Each part finishes independently and calls [`ProgressHandle::complete`]
-/// on its own; gate that call so the bar only reaches its "done" style once
-/// every part has completed, not after the first one.
+/// Each part finishes independently and calls [`ProgressHandle::complete`] on
+/// its own, so we need to ensure the bar only reaches its "done" style once
+/// every part has completed.
 pub(super) fn share_handle_across_parts(
     handle: ProgressHandle,
     num_parts: usize,

@@ -1,6 +1,6 @@
 //! TPC-DS Parquet output.
 
-use super::generate::part_path;
+use super::generate::output_path;
 use super::plan::TpcdsGenerationPlan;
 use super::progress::share_handle_across_parts;
 use crate::parquet::generate_parquet;
@@ -128,9 +128,7 @@ impl Parquet {
     /// are encoded, instead of waiting for one table at a time.
     ///
     /// A table split across `--parts` gets one bar for all its parts
-    /// combined, not one bar per part: every `(Table, Session)` entry is
-    /// planned first so each table's total row group count, summed across
-    /// its parts, is known before registering.
+    /// combined, not one bar per part
     pub(super) async fn generate_tables(
         &self,
         table_sessions: Vec<(Table, Session)>,
@@ -575,7 +573,7 @@ impl Parquet {
             .as_ref()
             .map(|encodings| column_encodings_for_table(table, encodings));
 
-        let path = part_path(&self.output_dir, table, "parquet", &session)?;
+        let path = output_path(&self.output_dir, table, "parquet", &session)?;
         let sources = plan
             .into_iter()
             .map(move |range| make_reader(session.clone(), *range.start(), *range.end()));

@@ -24,7 +24,7 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 /// Note that `--parts 1` is also written to a subdirectory.
 ///
 /// This function creates the per-table subdirectory as needed.
-pub(super) fn part_path(
+pub(super) fn output_path(
     output_dir: &Path,
     table: Table,
     ext: &str,
