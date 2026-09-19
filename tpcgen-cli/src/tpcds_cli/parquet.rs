@@ -1,6 +1,8 @@
 //! TPC-DS Parquet output.
 
+use super::generate::output_path;
 use super::plan::TpcdsGenerationPlan;
+use super::progress::share_handle_across_parts;
 use crate::parquet::generate_parquet;
 use crate::progress::{ProgressHandle, ProgressTracker};
 use crate::temp_path::inprogress_path;
@@ -8,6 +10,7 @@ use crate::worker_queue::WorkerQueue;
 use arrow::datatypes::SchemaRef;
 use arrow::record_batch::RecordBatchReader;
 use parquet::basic::{Compression, Encoding};
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufWriter};
 use std::path::PathBuf;
@@ -123,6 +126,9 @@ impl Parquet {
     /// budget (see [`WorkerQueue`]). Scheduling the largest tables first
     /// keeps all cores busy while the trailing row groups of each table
     /// are encoded, instead of waiting for one table at a time.
+    ///
+    /// A table split across `--parts` gets one bar for all its parts
+    /// combined, not one bar per part
     pub(super) async fn generate_tables(
         &self,
         table_sessions: Vec<(Table, Session)>,
@@ -138,19 +144,53 @@ impl Parquet {
             validate_column_encodings(&selected_tables, encodings)?;
         }
 
-        // Plan each table and pre-register the row group totals so trackers
-        // can size their bars before the first increment
-        let mut work: Vec<(Table, Session, TpcdsGenerationPlan, ProgressHandle)> = table_sessions
-            .into_iter()
-            .map(|(table, session)| {
-                let plan =
-                    TpcdsGenerationPlan::new(table, session.get_scaling(), self.row_group_bytes);
-                let progress = progress
-                    .clone()
-                    .register(table.get_name(), plan.row_group_count() as u64);
-                (table, session, plan, progress)
-            })
-            .collect();
+        // Group all sessions that contribute to the same table progress bar.
+        let mut sessions_by_table: HashMap<Table, Vec<Session>> = HashMap::new();
+        for (table, session) in table_sessions {
+            sessions_by_table.entry(table).or_default().push(session);
+        }
+
+        // Prepare each table before scheduling: plan its nonempty sessions and
+        // register one shared progress bar sized to their combined row groups.
+        let mut prepared = Vec::new();
+        for (table, sessions) in sessions_by_table {
+            let planned: Vec<(Session, TpcdsGenerationPlan)> = sessions
+                .into_iter()
+                .filter_map(|session| {
+                    let row_range = session.get_source_row_range(table);
+                    if row_range.is_empty() && session.is_partitioned() {
+                        return None;
+                    }
+                    let plan =
+                        TpcdsGenerationPlan::new_for_range(table, self.row_group_bytes, row_range);
+                    Some((session, plan))
+                })
+                .collect();
+
+            if planned.is_empty() {
+                continue;
+            }
+
+            let total_row_groups = planned
+                .iter()
+                .map(|(_, plan)| plan.row_group_count() as u64)
+                .sum();
+            let table_progress = progress
+                .clone()
+                .register(table.get_name(), total_row_groups);
+            prepared.push((table, planned, table_progress));
+        }
+
+        // Fan the table progress out so every session reports to the same bar,
+        // then pair each session with its progress to build schedulable work.
+        let mut work = Vec::new();
+        for (table, planned, table_progress) in prepared {
+            let part_progress = share_handle_across_parts(table_progress, planned.len());
+            for ((session, plan), progress) in planned.into_iter().zip(part_progress) {
+                work.push((table, session, plan, progress));
+            }
+        }
+
         progress.start();
 
         // Schedule the largest tables (most row groups) first for the best
@@ -531,9 +571,6 @@ impl Parquet {
         R: RecordBatchReader + Send + 'static,
         F: Fn(Session, u64, u64) -> R + Send + 'static,
     {
-        let table_name = table.get_name();
-        let path = self.output_dir.join(format!("{table_name}.parquet"));
-
         // Keep only the encodings for columns on this table.
         // --column-encoding usually targets a few tables, not all of them.
         let column_encodings = self
@@ -541,6 +578,7 @@ impl Parquet {
             .as_ref()
             .map(|encodings| column_encodings_for_table(table, encodings));
 
+        let path = output_path(&self.output_dir, table, "parquet", &session)?;
         let sources = plan
             .into_iter()
             .map(move |range| make_reader(session.clone(), *range.start(), *range.end()));
