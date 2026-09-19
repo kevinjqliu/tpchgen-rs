@@ -1194,9 +1194,11 @@ fn test_tpcgen_cli_tpcds_dat_rejects_non_positive_parts() {
         .failure();
 }
 
-/// Test that `--parts` on a table well under dsdgen's 1M-row split threshold
-/// (`reason`) puts the whole table in chunk 1 and generates empty files for
-/// every other chunk, following dsdgen's own small-table semantics.
+/// Test that `--parts` works for small tables.
+///
+/// The original `dsgen` has a 1M-row split threshold. For the 35-row reason table
+/// `--parts 4` puts the whole table in chunk 1 and generates empty files for
+/// every other chunk (like `dsgen` does).
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_small_table_stays_in_chunk_one() {
     let temp_dir = tempdir().expect("Failed to create temporary directory");
@@ -1215,17 +1217,18 @@ fn test_tpcgen_cli_tpcds_dat_parts_small_table_stays_in_chunk_one() {
         .assert()
         .success();
 
-    let chunk_one =
-        fs::read_to_string(temp_dir.path().join("reason/reason.1.dat")).expect("chunk 1 exists");
-    assert_eq!(chunk_one.lines().count(), 35, "chunk 1 has every row");
+    let path = temp_dir.path().join(format!("reason/reason.5.dat"));
+    assert!(!path.exists(), "Expected only 4 chunks");
 
-    for chunk in 2..=4 {
+    let expected_rows = [35, 0, 0, 0];
+    for (chunk, expected_rows) in (1..=4).zip(expected_rows.iter()) {
         let path = temp_dir.path().join(format!("reason/reason.{chunk}.dat"));
         let contents = fs::read_to_string(&path)
             .unwrap_or_else(|err| panic!("Expected {path:?} to exist: {err}"));
-        assert!(
-            contents.is_empty(),
-            "Expected chunk {chunk} of `reason` to be empty, got: {contents:?}"
+        assert_eq!(
+            contents.lines().count(),
+            *expected_rows,
+            "chunk {chunk} has every row"
         );
     }
 }
