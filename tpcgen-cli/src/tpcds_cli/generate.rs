@@ -16,16 +16,21 @@ use tpcdsgen::row::*;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 /// Return the output path for `table`'s file, following `tpchgen-cli`'s
-/// `--parts`/`--part` naming convention: a single `<table>.<ext>` file when
-/// `--parts` was not requested, otherwise `<table>/<table>.<chunk>.<ext>`
-/// (creating the per-table subdirectory as needed). `--parts 1` still
-/// nests, matching `tpchgen-cli`.
-pub(super) fn part_aware_path(
+/// `--parts`/`--part` naming convention:
+///
+/// When `--parts` was not requested creates a single `<table>.<ext>` file, otherwise
+/// written into a subdirectory like `<table>/<table>.<chunk>.<ext>`.
+///
+/// Note that `--parts 1` is also written to a subdirectory.
+///
+/// This function creates the per-table subdirectory as needed.
+pub(super) fn part_path(
     output_dir: &Path,
     table: Table,
     ext: &str,
     session: &Session,
 ) -> io::Result<PathBuf> {
+    // sub directory `<table>/<table>.<chunk>.<ext>`
     if session.is_partitioned() {
         let dir = output_dir.join(table.get_name());
         std::fs::create_dir_all(&dir)?;
@@ -35,6 +40,7 @@ pub(super) fn part_aware_path(
             session.get_chunk_number()
         )))
     } else {
+        // single `<table>.<ext>` file
         Ok(output_dir.join(format!("{}.{ext}", table.get_name())))
     }
 }
