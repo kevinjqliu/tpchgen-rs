@@ -2,9 +2,9 @@ use crate::config::{CompatMode, Scaling, Table};
 use crate::error::{InvalidOptionError, Result};
 use std::ops::RangeInclusive;
 
-/// Tables with fewer source rows than this are not split across chunks:
-/// chunk 1 generates the whole table and every other chunk generates none of
-/// it. Matches dsdgen's `tools/parallel.c` [1].
+/// Threshold above which tables are not split across chunks. For tables with
+/// fewer than this many rows, chunk 1 generates the whole table . Matches
+/// dsdgen's `tools/parallel.c` [1].
 ///
 /// [1]: https://github.com/trinodb/tpcds/blob/b594136818cc95bd6b34a352327611b329017281/src/main/java/io/trino/tpcds/Parallel.java#L28
 const SMALL_TABLE_ROW_THRESHOLD: u64 = 1_000_000;
