@@ -156,6 +156,12 @@ impl Session {
 
     /// Return the 1-based, inclusive range of `table`'s source rows generated
     /// by this session.
+    ///
+    /// Note there is a 1M row minimum for TPCDS so smaller tables may have only
+    /// a single chunk.
+    ///
+    /// A chunk with no work returns an empty range, so callers must check
+    /// [`RangeInclusive::is_empty`] before generating
     pub fn get_source_row_range(&self, table: Table) -> RangeInclusive<u64> {
         let total_rows = self.scaling.get_row_count(table.source_table());
         let (first_row, row_count) = split_work(total_rows, self.chunk_number, self.total_chunks);

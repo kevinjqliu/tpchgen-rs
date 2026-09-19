@@ -147,16 +147,17 @@ impl Parquet {
         }
 
         // Plan each table and pre-register the row group totals so trackers
-        // can size their bars before the first increment
+        // can size their bars before the first increment.
         let planned: Vec<(Table, Session, TpcdsGenerationPlan)> = table_sessions
             .into_iter()
-            .map(|(table, session)| {
-                let plan = TpcdsGenerationPlan::new_for_range(
-                    table,
-                    self.row_group_bytes,
-                    session.get_source_row_range(table),
-                );
-                (table, session, plan)
+            .filter_map(|(table, session)| {
+                let row_range = session.get_source_row_range(table);
+                if row_range.is_empty() {
+                    return None;
+                }
+                let plan =
+                    TpcdsGenerationPlan::new_for_range(table, self.row_group_bytes, row_range);
+                Some((table, session, plan))
             })
             .collect();
 

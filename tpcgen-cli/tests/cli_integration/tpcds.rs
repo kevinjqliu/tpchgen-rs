@@ -10,6 +10,7 @@ use parquet::file::metadata::ParquetMetaDataReader;
 use std::collections::BTreeSet;
 use std::fs;
 use std::fs::File;
+use std::ops::RangeInclusive;
 use std::path::{Path, PathBuf};
 use tempfile::tempdir;
 use tpcdsgen::config::{Session, SessionBuilder, Table};
@@ -1196,9 +1197,8 @@ fn test_tpcgen_cli_tpcds_dat_rejects_non_positive_parts() {
 
 /// Test that `--parts` works for small tables.
 ///
-/// The original `dsdgen` has a 1M-row split threshold. For the 35-row reason table
-/// `--parts 4` puts the whole table in chunk 1 and generates empty files for
-/// every other chunk (like `dsdgen` does).
+/// The original `dsdgen` has a 1M-row split threshold, so for the 35-row reason
+/// table `--parts 4` puts the whole table in a single chunk
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_small_table_stays_in_chunk_one() {
     let temp_dir = tempdir().expect("Failed to create temporary directory");
@@ -1217,18 +1217,16 @@ fn test_tpcgen_cli_tpcds_dat_parts_small_table_stays_in_chunk_one() {
         .assert()
         .success();
 
-    let path = temp_dir.path().join("reason/reason.5.dat");
-    assert!(!path.exists(), "Expected only 4 parts");
+    let path = temp_dir.path().join("reason/reason.1.dat");
+    let contents =
+        fs::read_to_string(&path).unwrap_or_else(|err| panic!("Expected {path:?} to exist: {err}"));
+    assert_eq!(contents.lines().count(), 35, "chunk 1 has every row");
 
-    let expected_rows = [35, 0, 0, 0];
-    for (chunk, expected_rows) in (1..=4).zip(expected_rows.iter()) {
+    for chunk in 2..=5 {
         let path = temp_dir.path().join(format!("reason/reason.{chunk}.dat"));
-        let contents = fs::read_to_string(&path)
-            .unwrap_or_else(|err| panic!("Expected {path:?} to exist: {err}"));
-        assert_eq!(
-            contents.lines().count(),
-            *expected_rows,
-            "chunk {chunk} has every row"
+        assert!(
+            !path.exists(),
+            "chunk {chunk} at path {path:?} should not exist"
         );
     }
 }
@@ -1404,19 +1402,11 @@ fn test_tpcgen_cli_tpcds_dat_parts_dbgen_version() {
     let parts_dir = tempdir().expect("Failed to create temporary directory");
     generate_parts("dat", "dbgen_version", 1.0, 4, parts_dir.path());
 
-    let expected_rows = [1, 0, 0, 0];
-    for (chunk, expected_rows) in (1..=4).zip(expected_rows.iter()) {
-        let path = parts_dir
-            .path()
-            .join(format!("dbgen_version/dbgen_version.{chunk}.dat"));
-        let contents = fs::read_to_string(&path)
-            .unwrap_or_else(|err| panic!("Expected {path:?} to exist: {err}"));
-        assert_eq!(
-            contents.lines().count(),
-            *expected_rows,
-            "chunk {chunk} has the expected number of rows"
-        );
-    }
+    let path = parts_dir.path().join("dbgen_version/dbgen_version.1.dat");
+    let contents =
+        fs::read_to_string(&path).unwrap_or_else(|err| panic!("Expected {path:?} to exist: {err}"));
+    assert_eq!(contents.lines().count(), 1, "chunk 1 holds the single row");
+    assert_empty_parts_write_no_file(parts_dir.path(), "dbgen_version", 2..=4, "dat");
 }
 
 // ----------------
@@ -1555,33 +1545,25 @@ fn test_tpcgen_cli_tpcds_csv_parts_web_site() {
 }
 
 /// See [`test_tpcgen_cli_tpcds_dat_parts_dbgen_version`]: dbgen_version's row
-/// embeds the command line, so only the part layout can be checked. Every
-/// chunk still carries the CSV header.
+/// embeds the command line, so only the part layout can be checked. The one
+/// written chunk still carries the CSV header.
 #[test]
 fn test_tpcgen_cli_tpcds_csv_parts_dbgen_version() {
     let parts_dir = tempdir().expect("Failed to create temporary directory");
     generate_parts("csv", "dbgen_version", 1.0, 4, parts_dir.path());
 
-    let expected_rows = [1, 0, 0, 0];
-    for (chunk, expected_rows) in (1..=4).zip(expected_rows.iter()) {
-        let path = parts_dir
-            .path()
-            .join(format!("dbgen_version/dbgen_version.{chunk}.csv"));
-        let contents = fs::read_to_string(&path)
-            .unwrap_or_else(|err| panic!("Expected {path:?} to exist: {err}"));
-        let mut lines = contents.lines();
-        assert!(
-            lines
-                .next()
-                .is_some_and(|header| header.starts_with("dv_version")),
-            "chunk {chunk} starts with the CSV header"
-        );
-        assert_eq!(
-            lines.count(),
-            *expected_rows,
-            "chunk {chunk} has the expected number of rows"
-        );
-    }
+    let path = parts_dir.path().join("dbgen_version/dbgen_version.1.csv");
+    let contents =
+        fs::read_to_string(&path).unwrap_or_else(|err| panic!("Expected {path:?} to exist: {err}"));
+    let mut lines = contents.lines();
+    assert!(
+        lines
+            .next()
+            .is_some_and(|header| header.starts_with("dv_version")),
+        "chunk 1 starts with the CSV header"
+    );
+    assert_eq!(lines.count(), 1, "chunk 1 holds the single row");
+    assert_empty_parts_write_no_file(parts_dir.path(), "dbgen_version", 2..=4, "csv");
 }
 
 // ----------------
@@ -1720,29 +1702,19 @@ fn test_tpcgen_cli_tpcds_parquet_parts_web_site() {
 }
 
 /// See [`test_tpcgen_cli_tpcds_dat_parts_dbgen_version`]: dbgen_version's row
-/// embeds the command line, so only the part layout can be checked. Every
-/// chunk is still a readable Parquet file with the same schema.
+/// embeds the command line, so only the part layout can be checked.
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_parts_dbgen_version() {
     let parts_dir = tempdir().expect("Failed to create temporary directory");
     generate_parts("parquet", "dbgen_version", 1.0, 4, parts_dir.path());
 
-    let mut schema = None;
-    let expected_rows = [1, 0, 0, 0];
-    for (chunk, expected_rows) in (1..=4).zip(expected_rows.iter()) {
-        let path = parts_dir
-            .path()
-            .join(format!("dbgen_version/dbgen_version.{chunk}.parquet"));
-        assert!(path.exists(), "Expected {path:?} to exist");
-        let (batch, _row_groups) = read_concatenated_parquet(&path);
-        assert_eq!(
-            batch.num_rows(),
-            *expected_rows,
-            "chunk {chunk} has the expected number of rows"
-        );
-        let schema = schema.get_or_insert_with(|| batch.schema());
-        assert_eq!(*schema, batch.schema(), "every chunk shares one schema");
-    }
+    let path = parts_dir
+        .path()
+        .join("dbgen_version/dbgen_version.1.parquet");
+    assert!(path.exists(), "Expected {path:?} to exist");
+    let (batch, _row_groups) = read_concatenated_parquet(&path);
+    assert_eq!(batch.num_rows(), 1, "chunk 1 holds the single row");
+    assert_empty_parts_write_no_file(parts_dir.path(), "dbgen_version", 2..=4, "parquet");
 }
 
 /// Run the CLI once for `table_name` in `format`, writing a single unsplit
@@ -1785,6 +1757,38 @@ fn generate_parts(
         .success();
 }
 
+/// Assert there are no files for any of the `chunks`
+fn assert_empty_parts_write_no_file(
+    parts_dir: &Path,
+    table_name: &str,
+    chunks: RangeInclusive<usize>,
+    ext: &str,
+) {
+    for chunk in chunks {
+        let path = part_path(parts_dir, table_name, chunk, ext);
+        assert!(
+            !path.exists(),
+            "chunk {chunk} generates no rows, so it must write no file: {path:?}"
+        );
+    }
+}
+
+/// Assert `table_name`'s `--parts` directory holds exactly one file for each
+/// entry in `expected_rows`.
+///
+/// For example, if `expected_rows` is `[100, 200]` this verifies that there are
+/// exactly 2 files in `parts_dir/table_name`.
+fn assert_part_file_count(parts_dir: &Path, table_name: &str, expected_rows: &[usize]) {
+    let expected_files = expected_rows.iter().filter(|rows| **rows > 0).count();
+    let num_files = fs::read_dir(parts_dir.join(table_name))
+        .map(|dir| dir.count())
+        .unwrap_or(0);
+    assert_eq!(
+        num_files, expected_files,
+        "Expected one --parts output file per non-empty part"
+    );
+}
+
 /// Path of one `--parts` chunk file for `table_name`.
 fn part_path(parts_dir: &Path, table_name: &str, chunk: usize, ext: &str) -> PathBuf {
     parts_dir.join(format!("{table_name}/{table_name}.{chunk}.{ext}"))
@@ -1793,9 +1797,11 @@ fn part_path(parts_dir: &Path, table_name: &str, chunk: usize, ext: &str) -> Pat
 /// Test that concatenating a file created with `--parts` exactly reproduces a
 /// single-file output, and that every part holds the expected number of rows.
 ///
-/// `expected_rows` has one entry per part. Tables under dsdgen's 1M row split
-/// threshold put every row in part 1 and leave the rest empty, so most tables
-/// expect `[n, 0, 0, 0]`.
+/// `expected_rows` has one entry per expected part.
+///
+/// For example, given 4 parts, and `expected_rows` is `[n, 0, 0, 0]` a single
+/// file with n rows is expected, and no files for the other three parts should
+/// exist.
 fn test_dat_parts<const PARTS: usize>(
     table_name: &str,
     scale_factor: f64,
@@ -1812,16 +1818,14 @@ fn test_dat_parts<const PARTS: usize>(
     let parts_dir = tempdir().expect("Failed to create temporary directory");
     generate_parts("dat", table_name, scale_factor, parts, parts_dir.path());
 
-    let num_files = fs::read_dir(parts_dir.path().join(table_name))
-        .expect("Failed to read generated output directory")
-        .count();
-    assert_eq!(
-        num_files, parts,
-        "Unexpected number of --parts output files"
-    );
+    assert_part_file_count(parts_dir.path(), table_name, &expected_rows);
     let mut concatenated = Vec::new();
     for (chunk, expected_rows) in (1..=parts).zip(expected_rows) {
         let path = part_path(parts_dir.path(), table_name, chunk, "dat");
+        if expected_rows == 0 {
+            assert!(!path.exists(), "an empty part must write no file: {path:?}");
+            continue;
+        }
         let contents = fs::read(&path).unwrap_or_else(|err| panic!("{path:?} exists: {err}"));
         assert_eq!(
             contents.iter().filter(|byte| **byte == b'\n').count(),
@@ -1840,8 +1844,7 @@ fn test_dat_parts<const PARTS: usize>(
 /// Test that concatenating CSV files results in the same output as a single CSV
 /// file, and that every part holds the expected number of rows.
 ///
-/// `expected_rows` counts data rows, not the header every part repeats. See
-/// [`test_dat_parts`] for why most tables expect `[n, 0, 0, 0]`.
+/// See  [`test_dat_parts`]  for details on `expected_rows`.
 fn test_csv_parts<const PARTS: usize>(
     table_name: &str,
     scale_factor: f64,
@@ -1858,13 +1861,7 @@ fn test_csv_parts<const PARTS: usize>(
     let parts_dir = tempdir().expect("Failed to create temporary directory");
     generate_parts("csv", table_name, scale_factor, parts, parts_dir.path());
 
-    let num_files = fs::read_dir(parts_dir.path().join(table_name))
-        .expect("Failed to read generated output directory")
-        .count();
-    assert_eq!(
-        num_files, parts,
-        "Unexpected number of --parts output files"
-    );
+    assert_part_file_count(parts_dir.path(), table_name, &expected_rows);
 
     let mut lines = unsplit.lines();
     let header = lines.next().expect("unsplit CSV has a header");
@@ -1875,12 +1872,16 @@ fn test_csv_parts<const PARTS: usize>(
     let mut reconstructed = String::new();
     for (chunk, expected_rows) in (1..=parts).zip(expected_rows) {
         let path = part_path(parts_dir.path(), table_name, chunk, "csv");
+        if expected_rows == 0 {
+            assert!(!path.exists(), "an empty part must write no file: {path:?}");
+            continue;
+        }
         let contents =
             fs::read_to_string(&path).unwrap_or_else(|err| panic!("{path:?} exists: {err}"));
         let mut chunk_lines = contents.lines();
         let chunk_header = chunk_lines.next().expect("every chunk has its own header");
         assert_eq!(chunk_header, header, "every chunk's header matches");
-        if chunk == 1 {
+        if reconstructed.is_empty() {
             reconstructed.push_str(header);
             reconstructed.push('\n');
         }
@@ -1907,7 +1908,7 @@ fn test_csv_parts<const PARTS: usize>(
 /// Test that concatenating the `--parts` Parquet files reproduces the unsplit
 /// Parquet output, and that every part holds the expected number of rows.
 ///
-/// See [`test_dat_parts`] for why most tables expect `[n, 0, 0, 0]`.
+/// See  [`test_dat_parts`]  for details on `expected_rows`.
 fn test_parquet_parts<const PARTS: usize>(
     table_name: &str,
     scale_factor: f64,
@@ -1924,17 +1925,15 @@ fn test_parquet_parts<const PARTS: usize>(
     let parts_dir = tempdir().expect("Failed to create temporary directory");
     generate_parts("parquet", table_name, scale_factor, parts, parts_dir.path());
 
-    let num_files = fs::read_dir(parts_dir.path().join(table_name))
-        .expect("Failed to read generated output directory")
-        .count();
-    assert_eq!(
-        num_files, parts,
-        "Unexpected number of --parts output files"
-    );
+    assert_part_file_count(parts_dir.path(), table_name, &expected_rows);
 
     let mut part_batches = vec![];
     for (chunk, expected_rows) in (1..=parts).zip(expected_rows) {
         let path = part_path(parts_dir.path(), table_name, chunk, "parquet");
+        if expected_rows == 0 {
+            assert!(!path.exists(), "an empty part must write no file: {path:?}");
+            continue;
+        }
         assert!(path.exists(), "Expected {path:?} to exist");
         let (batch, _row_groups) = read_concatenated_parquet(&path);
         assert_eq!(

@@ -203,8 +203,13 @@ fn generate_simple<G: RowGeneratorFactory, O: TableOutput>(
     let TableProgress::Single(progress) = progress else {
         unreachable!("simple table must have one progress handle")
     };
-    let mut generator = G::create();
     let row_range = session.get_source_row_range(table);
+    if row_range.is_empty() {
+        progress.complete();
+        return Ok(());
+    }
+
+    let mut generator = G::create();
     generator.skip_rows_until_starting_row_number(*row_range.start());
 
     let mut writer = output.create_writer(table, session)?;
@@ -254,8 +259,14 @@ fn generate_sales_and_returns<G: RowGeneratorFactory, O: TableOutput>(
     else {
         unreachable!("sales table must have sales and returns progress handles")
     };
-    let mut generator = G::create();
     let source_row_range = session.get_source_row_range(sales_table);
+    if source_row_range.is_empty() {
+        sales_progress.complete();
+        returns_progress.complete();
+        return Ok(());
+    }
+
+    let mut generator = G::create();
     generator.skip_rows_until_starting_row_number(*source_row_range.start());
     let last_row_number = *source_row_range.end();
 
