@@ -501,7 +501,7 @@ fn test_tpcgen_cli_tpcds_dat_multiple_table_selection_command_forms() {
         cargo_bin_cmd!("tpcgen-cli")
             .args(*form)
             .arg("--scale-factor")
-            .arg("0.001")
+            .arg("0")
             .arg("--tables")
             .arg("reason,ship_mode")
             .arg("--output-dir")
@@ -545,7 +545,7 @@ fn test_tpcgen_cli_tpcds_row_outputs_deduplicate_selected_tables() {
                 .arg("tpcds")
                 .arg(format)
                 .arg("--scale-factor")
-                .arg("0.001")
+                .arg("0")
                 .arg("--tables")
                 .arg(tables)
                 .arg("--output-dir")
@@ -600,7 +600,7 @@ fn generate_parquet_files(table_args: &[String]) -> BTreeSet<String> {
         .arg("tpcds")
         .arg("parquet")
         .arg("--scale-factor")
-        .arg("0.001");
+        .arg("0");
     for tables in table_args {
         command.arg("--tables").arg(tables);
     }
@@ -683,7 +683,7 @@ fn test_tpcgen_cli_tpcds_dat_individual_table_selection_outputs_requested_table(
             .arg("tpcds")
             .arg("dat")
             .arg("--scale-factor")
-            .arg("0.001")
+            .arg("0")
             .arg("--tables")
             .arg(table.get_name())
             .arg("--output-dir")
@@ -762,7 +762,7 @@ fn test_tpcgen_tpcds_dat_dbgen_version_command_line() {
 
 /// Test that default DAT output options generate every main TPC-DS output file.
 ///
-/// This overrides only scale factor and output directory: scale factor 0.001 keeps
+/// This overrides only scale factor and output directory: scale factor 0 keeps
 /// the integration test fast, while output directory isolates generated files.
 #[test]
 fn test_tpcgen_cli_tpcds_dat_default_options_generate_all_outputs() {
@@ -772,7 +772,7 @@ fn test_tpcgen_cli_tpcds_dat_default_options_generate_all_outputs() {
         .arg("tpcds")
         .arg("dat")
         .arg("--scale-factor")
-        .arg("0.001")
+        .arg("0")
         .arg("--output-dir")
         .arg(temp_dir.path())
         .assert()

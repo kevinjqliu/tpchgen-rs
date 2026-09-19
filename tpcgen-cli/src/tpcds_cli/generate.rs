@@ -210,7 +210,7 @@ fn generate_simple<G: RowGeneratorFactory, O: TableOutput>(
         unreachable!("simple table must have one progress handle")
     };
     let row_range = session.get_source_row_range(table);
-    if row_range.is_empty() {
+    if row_range.is_empty() && session.is_partitioned() {
         progress.complete();
         return Ok(());
     }
@@ -266,7 +266,8 @@ fn generate_sales_and_returns<G: RowGeneratorFactory, O: TableOutput>(
         unreachable!("sales table must have sales and returns progress handles")
     };
     let source_row_range = session.get_source_row_range(sales_table);
-    if source_row_range.is_empty() {
+    // See `generate_simple`: only a partitioned table skips its empty chunks.
+    if source_row_range.is_empty() && session.is_partitioned() {
         sales_progress.complete();
         returns_progress.complete();
         return Ok(());

@@ -150,7 +150,7 @@ impl Parquet {
             .into_iter()
             .filter_map(|(table, session)| {
                 let row_range = session.get_source_row_range(table);
-                if row_range.is_empty() {
+                if row_range.is_empty() && session.is_partitioned() {
                     return None;
                 }
                 let plan =
@@ -159,13 +159,22 @@ impl Parquet {
             })
             .collect();
 
+        // Sum each table's row groups over its parts, keeping the tables in
+        // the order they were requested: registration order is display order,
+        // so iterating a HashMap here would shuffle the bars on every run.
+        let mut table_order: Vec<Table> = Vec::new();
         let mut totals: HashMap<Table, u64> = HashMap::new();
         for (table, _, plan) in &planned {
-            *totals.entry(*table).or_default() += plan.row_group_count() as u64;
+            let total = totals.entry(*table).or_insert_with(|| {
+                table_order.push(*table);
+                0
+            });
+            *total += plan.row_group_count() as u64;
         }
-        let mut handles: HashMap<Table, std::vec::IntoIter<ProgressHandle>> = totals
+        let mut handles: HashMap<Table, std::vec::IntoIter<ProgressHandle>> = table_order
             .into_iter()
-            .map(|(table, total)| {
+            .map(|table| {
+                let total = totals[&table];
                 let num_parts = planned.iter().filter(|(t, _, _)| *t == table).count();
                 let handle = progress.clone().register(table.get_name(), total);
                 (
