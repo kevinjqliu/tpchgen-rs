@@ -577,15 +577,23 @@ fn test_tpcgen_cli_tpcds_row_outputs_deduplicate_selected_tables() {
                 .collect::<BTreeSet<_>>();
             assert_eq!(actual_files, expected_files);
 
+            // Each selected table is generated exactly once, however many
+            // times it was named on the command line. A sales table and its
+            // returns table are separate outputs, so both appear.
             let stderr = String::from_utf8_lossy(&assert.get_output().stderr);
-            assert_eq!(stderr.matches("Generating reason...").count(), 1);
-            for pair in ["store", "catalog", "web"] {
+            for table in [
+                "reason",
+                "store_sales",
+                "store_returns",
+                "catalog_sales",
+                "catalog_returns",
+                "web_sales",
+                "web_returns",
+            ] {
                 assert_eq!(
-                    stderr
-                        .matches(&format!("Generating {pair}_sales + {pair}_returns..."))
-                        .count(),
+                    stderr.matches(&format!("Generating {table}...")).count(),
                     1,
-                    "Expected the {pair} sales/returns generator to run once for {format} with {tables}, got stderr: {stderr}"
+                    "Expected {table} to be generated once for {format} with {tables}, got stderr: {stderr}"
                 );
             }
         }

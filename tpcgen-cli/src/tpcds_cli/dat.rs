@@ -17,8 +17,8 @@
 //! Generates TPC-DS benchmark data with byte-for-byte compatibility with the Java reference.
 
 use super::generate::{generate_table, output_path, TableOutput, TableWriter};
-use super::progress::{register_table, TableProgress};
-use crate::progress::ProgressTracker;
+use super::progress::register_table;
+use crate::progress::{ProgressHandle, ProgressTracker};
 use std::fs::File;
 use std::io;
 use std::path::PathBuf;
@@ -59,7 +59,7 @@ impl Dat {
         table: Table,
         sessions: &[Session],
         progress: Arc<dyn ProgressTracker>,
-    ) -> TableProgress {
+    ) -> ProgressHandle {
         register_table(table, sessions, progress)
     }
 
@@ -67,7 +67,7 @@ impl Dat {
         &self,
         table: Table,
         session: &Session,
-        progress: TableProgress,
+        progress: ProgressHandle,
     ) -> Result<()> {
         generate_table(self, table, session, progress)
     }
