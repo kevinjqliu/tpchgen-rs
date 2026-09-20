@@ -25,7 +25,7 @@ mod plan;
 mod progress;
 mod runner;
 
-use progress::share_across_parts;
+use progress::share_handle_across_parts;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -227,9 +227,7 @@ impl ParquetArgs {
 impl CommonArgs {
     async fn run_dat(self) -> Result<()> {
         let output = dat::Dat::new(self.output_dir.clone())?;
-        let tables = self.row_generator_tables()?;
-        self.run_output_with_tables(OutputFormat::Dat(output), tables)
-            .await
+        self.run_output(OutputFormat::Dat(output)).await
     }
 
     async fn run_parquet(
@@ -251,9 +249,7 @@ impl CommonArgs {
 
     async fn run_csv(self, delimiter: char) -> Result<()> {
         let output = csv::Csv::new(self.output_dir.clone(), delimiter);
-        let tables = self.row_generator_tables()?;
-        self.run_output_with_tables(OutputFormat::Csv(output), tables)
-            .await
+        self.run_output(OutputFormat::Csv(output)).await
     }
 
     async fn run_output(self, output_format: OutputFormat) -> Result<()> {
@@ -297,7 +293,7 @@ impl CommonArgs {
                         .collect::<Result<Vec<_>>>()?;
                     // One bar per table, shared across all its parts.
                     let table_progress = output.register_table(*table, &sessions, progress.clone());
-                    let part_progress = share_across_parts(table_progress, sessions.len());
+                    let part_progress = share_handle_across_parts(table_progress, sessions.len());
                     for (session, progress) in sessions.into_iter().zip(part_progress) {
                         table_sessions.push((*table, session, progress));
                     }
@@ -316,7 +312,7 @@ impl CommonArgs {
                         .collect::<Result<Vec<_>>>()?;
                     // One bar per table, shared across all its parts.
                     let table_progress = output.register_table(*table, &sessions, progress.clone());
-                    let part_progress = share_across_parts(table_progress, sessions.len());
+                    let part_progress = share_handle_across_parts(table_progress, sessions.len());
                     for (session, progress) in sessions.into_iter().zip(part_progress) {
                         table_sessions.push((*table, session, progress));
                     }
@@ -356,26 +352,6 @@ impl CommonArgs {
             .into_iter()
             .filter(|table| seen.insert(*table))
             .collect())
-    }
-
-    /// Return the tables to generate for the row-generator outputs (DAT and
-    /// CSV), mapping return-only selections to their sales table generators
-    /// because return files are emitted as side effects of the sales tables.
-    /// Parquet has direct return-table generators and does not need expansion.
-    fn row_generator_tables(&self) -> Result<Vec<Table>> {
-        let mut tables = Vec::new();
-        for table in self.tables()? {
-            let table = match table {
-                Table::CatalogReturns => Table::CatalogSales,
-                Table::StoreReturns => Table::StoreSales,
-                Table::WebReturns => Table::WebSales,
-                table => table,
-            };
-            if !tables.contains(&table) {
-                tables.push(table);
-            }
-        }
-        Ok(tables)
     }
 
     /// Return the list of 1-based part numbers to generate, or `[None]` when
@@ -614,64 +590,24 @@ mod tests {
     }
 
     #[test]
-    fn row_generator_tables_collapses_sales_returns_pairs_in_both_orders() {
+    fn tables_keeps_sales_and_returns_as_separate_outputs() {
+        // Each of a sales/returns pair is its own output, generated from the
+        // sales generator, so neither selection pulls in the other.
         for (sales, returns) in [
             (Table::CatalogSales, Table::CatalogReturns),
             (Table::StoreSales, Table::StoreReturns),
             (Table::WebSales, Table::WebReturns),
         ] {
             assert_eq!(
-                args_with_tables(vec![sales, returns])
-                    .row_generator_tables()
-                    .unwrap(),
-                vec![sales]
+                args_with_tables(vec![sales, returns]).tables().unwrap(),
+                vec![sales, returns]
             );
             assert_eq!(
-                args_with_tables(vec![returns, sales])
-                    .row_generator_tables()
-                    .unwrap(),
-                vec![sales]
+                args_with_tables(vec![returns]).tables().unwrap(),
+                vec![returns]
             );
-            assert_eq!(
-                args_with_tables(vec![sales])
-                    .row_generator_tables()
-                    .unwrap(),
-                vec![sales]
-            );
-            assert_eq!(
-                args_with_tables(vec![returns])
-                    .row_generator_tables()
-                    .unwrap(),
-                vec![sales]
-            );
+            assert_eq!(args_with_tables(vec![sales]).tables().unwrap(), vec![sales]);
         }
-    }
-
-    #[test]
-    fn row_generator_tables_normalizes_mixed_pairs_and_duplicates() {
-        let tables = args_with_tables(vec![
-            Table::StoreReturns,
-            Table::Reason,
-            Table::StoreSales,
-            Table::StoreReturns,
-            Table::CatalogSales,
-            Table::CatalogReturns,
-            Table::WebReturns,
-            Table::WebSales,
-            Table::Reason,
-        ])
-        .row_generator_tables()
-        .unwrap();
-
-        assert_eq!(
-            tables,
-            vec![
-                Table::StoreSales,
-                Table::Reason,
-                Table::CatalogSales,
-                Table::WebSales,
-            ]
-        );
     }
 
     fn args_with_parts(parts: Option<i32>, part: Option<i32>) -> CommonArgs {

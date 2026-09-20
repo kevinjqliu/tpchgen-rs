@@ -15,10 +15,11 @@
 //!   `--delimiter` is only safe for delimiters that no unquoted column
 //!   contains (`,`, `|`, tab, `;`).
 
+use crate::progress::ProgressHandle;
 use crate::progress::ProgressTracker;
 use crate::temp_path::inprogress_path;
 use crate::tpcds_cli::generate::{generate_table, output_path, TableOutput, TableWriter};
-use crate::tpcds_cli::progress::{register_table, TableProgress};
+use crate::tpcds_cli::progress::register_table;
 use std::fs::File;
 use std::io::{self, BufWriter, Write};
 use std::path::PathBuf;
@@ -49,7 +50,7 @@ impl Csv {
         table: Table,
         sessions: &[Session],
         progress: Arc<dyn ProgressTracker>,
-    ) -> TableProgress {
+    ) -> ProgressHandle {
         register_table(table, sessions, progress)
     }
 
@@ -58,7 +59,7 @@ impl Csv {
         &self,
         table: Table,
         session: &Session,
-        progress: TableProgress,
+        progress: ProgressHandle,
     ) -> Result<()> {
         generate_table(self, table, session, progress)
     }
