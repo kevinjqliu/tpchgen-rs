@@ -26,9 +26,9 @@ use tpcdsgen::row::{
     CustomerAddressRowGenerator, CustomerDemographicsRowGenerator, CustomerRowGenerator,
     DateDimRowGenerator, GeneratedRow, HouseholdDemographicsRowGenerator, IncomeBandRowGenerator,
     InventoryRowGenerator, ItemRowGenerator, PromotionRowGenerator, ReasonRowGenerator,
-    RowGenerator, ShipModeRowGenerator, StoreRowGenerator, StoreSalesRowGenerator,
-    TimeDimRowGenerator, WarehouseRowGenerator, WebPageRowGenerator, WebSalesRowGenerator,
-    WebSiteRowGenerator,
+    RowGenerator, ShipModeRowGenerator, StoreReturnsRowGenerator, StoreRowGenerator,
+    StoreSalesRowGenerator, TimeDimRowGenerator, WarehouseRowGenerator, WebPageRowGenerator,
+    WebSalesRowGenerator, WebSiteRowGenerator,
 };
 use tpcdsgen_arrow::{
     CallCenterArrow, CatalogPageArrow, CatalogReturnsArrow, CatalogSalesArrow,
@@ -470,7 +470,7 @@ table_test!(
 );
 table_test!(
     store_returns,
-    StoreSalesRowGenerator::new(),
+    StoreReturnsRowGenerator::new(),
     StoreReturnsArrow::new,
     Table::StoreSales,
     StoreReturns
