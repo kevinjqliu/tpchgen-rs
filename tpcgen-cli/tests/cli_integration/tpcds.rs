@@ -13,7 +13,10 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 use tempfile::tempdir;
 use tpcdsgen::config::{Session, SessionBuilder, Table};
-use tpcdsgen_arrow::{StoreReturnsArrow, StoreSalesArrow};
+use tpcdsgen_arrow::{
+    CatalogReturnsArrow, CatalogSalesArrow, StoreReturnsArrow, StoreSalesArrow, WebReturnsArrow,
+    WebSalesArrow,
+};
 
 /// Test that TPC-DS DAT generation is quiet unless logging is explicitly enabled.
 #[test]
@@ -1027,21 +1030,24 @@ fn read_concatenated_reference<R: RecordBatchReader>(mut reader: R) -> RecordBat
 /// This test ensures that the result of this row range generation is the same
 /// as generating the data in a single chunk.
 ///
-/// store_returns is generated from the store_sales generator, so this also
-/// verifies that ranging over the *sales* source rows loses or duplicates no
+/// Each returns reader uses its corresponding sales generator, so this also
+/// verifies that ranging over the sales source rows loses or duplicates no
 /// return rows at range boundaries.
 #[test]
 fn test_tpcgen_cli_tpcds_parquet_matches_single_pass_generation() {
     let temp_dir = tempdir().expect("Failed to create temporary directory");
 
-    // write parquet data using CLI
     cargo_bin_cmd!("tpcgen-cli")
         .arg("tpcds")
         .arg("parquet")
         .arg("--scale-factor")
         .arg("0.001")
         .arg("--tables")
-        .arg("store_sales,store_returns")
+        .arg(
+            "catalog_sales,catalog_returns,\
+             store_sales,store_returns,\
+             web_sales,web_returns",
+        )
         // small row groups to force several source row ranges
         .arg("--row-group-bytes")
         .arg("250000")
@@ -1050,19 +1056,33 @@ fn test_tpcgen_cli_tpcds_parquet_matches_single_pass_generation() {
         .assert()
         .success();
 
-    // Parquet data
-    let (store_sales, num_row_groups) =
-        read_concatenated_parquet(&temp_dir.path().join("store_sales.parquet"));
-    assert_eq!(num_row_groups, 24);
-    let expected = read_concatenated_reference(StoreSalesArrow::new(test_session(0.001)));
-    assert_eq!(store_sales, expected);
+    macro_rules! assert_matches_single_pass {
+        ($table:literal, $reader:ty) => {{
+            let (actual, num_row_groups) =
+                read_concatenated_parquet(&temp_dir.path().join(concat!($table, ".parquet")));
+            assert!(num_row_groups > 0, "expected at least one row group");
+            let expected = read_concatenated_reference(<$reader>::new(test_session(0.001)));
+            assert_eq!(
+                actual, expected,
+                "ranged generation differed for {}",
+                $table
+            );
+            num_row_groups
+        }};
+    }
 
-    // regenerate same data directly from arrow generator
-    let (store_returns, num_row_groups) =
-        read_concatenated_parquet(&temp_dir.path().join("store_returns.parquet"));
-    assert_eq!(num_row_groups, 3);
-    let expected = read_concatenated_reference(StoreReturnsArrow::new(test_session(0.001)));
-    assert_eq!(store_returns, expected);
+    assert_matches_single_pass!("catalog_sales", CatalogSalesArrow);
+    assert_matches_single_pass!("catalog_returns", CatalogReturnsArrow);
+    assert_eq!(
+        assert_matches_single_pass!("store_sales", StoreSalesArrow),
+        24
+    );
+    assert_eq!(
+        assert_matches_single_pass!("store_returns", StoreReturnsArrow),
+        3
+    );
+    assert_matches_single_pass!("web_sales", WebSalesArrow);
+    assert_matches_single_pass!("web_returns", WebReturnsArrow);
 }
 
 /// Test that the number of threads does not change the generated files.
