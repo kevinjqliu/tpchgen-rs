@@ -22,6 +22,7 @@ use crate::nulls::create_null_bit_map;
 use crate::random::RandomValueGenerator;
 use crate::row::store_returns_row::StoreReturnsRow;
 use crate::row::store_sales_row::StoreSalesRow;
+use crate::row::store_sales_row_generator::StoreSalesSource;
 use crate::row::{AbstractRowGenerator, GeneratedRow, RowGenerator, RowGeneratorResult};
 use crate::table::Table;
 use crate::types::generate_pricing_for_returns_table;
@@ -29,20 +30,18 @@ use crate::types::generate_pricing_for_returns_table;
 /// Percentage of returns where the same customer returns the item
 const SR_SAME_CUSTOMER: i32 = 80;
 
-pub struct StoreReturnsRowGenerator {
+pub(crate) struct StoreReturnsSource {
     abstract_generator: AbstractRowGenerator,
 }
 
-impl StoreReturnsRowGenerator {
-    pub fn new() -> Self {
-        StoreReturnsRowGenerator {
+impl StoreReturnsSource {
+    pub(crate) fn new() -> Self {
+        Self {
             abstract_generator: AbstractRowGenerator::new(Table::StoreReturns),
         }
     }
 
-    /// Generate a return row from a sales row
-    /// This is called by StoreSalesRowGenerator when a sale is returned
-    pub fn generate_row(
+    pub(crate) fn generate(
         &mut self,
         session: &Session,
         sales_row: &StoreSalesRow,
@@ -169,6 +168,29 @@ impl StoreReturnsRowGenerator {
         )
         .into())
     }
+
+    pub(crate) fn consume_remaining_seeds_for_row(&mut self) {
+        self.abstract_generator.consume_remaining_seeds_for_row();
+    }
+
+    pub(crate) fn skip_rows_until_starting_row_number(&mut self, starting_row_number: u64) {
+        self.abstract_generator
+            .skip_rows_until_starting_row_number(starting_row_number);
+    }
+}
+
+pub struct StoreReturnsRowGenerator {
+    sales_source: StoreSalesSource,
+    returns_source: StoreReturnsSource,
+}
+
+impl StoreReturnsRowGenerator {
+    pub fn new() -> Self {
+        Self {
+            sales_source: StoreSalesSource::new(),
+            returns_source: StoreReturnsSource::new(),
+        }
+    }
 }
 
 impl Default for StoreReturnsRowGenerator {
@@ -180,28 +202,35 @@ impl Default for StoreReturnsRowGenerator {
 impl RowGenerator for StoreReturnsRowGenerator {
     fn generate_row_and_child_rows(
         &mut self,
-        _row_number: u64,
-        _session: &Session,
+        row_number: u64,
+        session: &Session,
         _parent_row_generator: Option<&mut dyn RowGenerator>,
         _child_row_generator: Option<&mut dyn RowGenerator>,
     ) -> Result<RowGeneratorResult> {
-        // The store_returns table is a child of the store_sales table because you can only
-        // return things that have already been purchased. This method should only get called
-        // if we are generating the store_returns table in isolation.
-        // Otherwise store_returns is generated during the generation of the store_sales table
-        // via the generate_row method above.
-        //
-        // For now, we panic if called directly - the proper way is to generate through
-        // store_sales which calls our generate_row method.
-        panic!("StoreReturnsRowGenerator::generate_row_and_child_rows should not be called directly. Use StoreSalesRowGenerator to generate both sales and returns.");
+        let source_result = self.sales_source.generate(row_number, session)?;
+        let rows = if source_result.is_returned {
+            vec![self
+                .returns_source
+                .generate(session, &source_result.sales_row)?]
+        } else {
+            vec![]
+        };
+
+        Ok(RowGeneratorResult::new_with_multiple(
+            rows,
+            source_result.should_end_row,
+        ))
     }
 
     fn consume_remaining_seeds_for_row(&mut self) {
-        self.abstract_generator.consume_remaining_seeds_for_row();
+        self.sales_source.consume_remaining_seeds_for_row();
+        self.returns_source.consume_remaining_seeds_for_row();
     }
 
     fn skip_rows_until_starting_row_number(&mut self, starting_row_number: u64) {
-        self.abstract_generator
+        self.sales_source
+            .skip_rows_until_starting_row_number(starting_row_number);
+        self.returns_source
             .skip_rows_until_starting_row_number(starting_row_number);
     }
 }
@@ -209,10 +238,65 @@ impl RowGenerator for StoreReturnsRowGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::row::StoreSalesRowGenerator;
 
     #[test]
     fn test_store_returns_row_generator_creation() {
         let _generator = StoreReturnsRowGenerator::new();
-        // Just test that it creates successfully
+    }
+
+    #[test]
+    fn independent_returns_match_existing_paired_output() {
+        let mut sales_generator = StoreSalesRowGenerator::new();
+        let mut returns_generator = StoreReturnsRowGenerator::new();
+        let session = Session::default();
+        let mut return_count = 0;
+        let mut empty_count = 0;
+
+        for row_number in 1..=20 {
+            loop {
+                let sales = sales_generator
+                    .generate_row_and_child_rows(row_number, &session, None, None)
+                    .unwrap();
+                let returns = returns_generator
+                    .generate_row_and_child_rows(row_number, &session, None, None)
+                    .unwrap();
+
+                assert_eq!(sales.should_end_row(), returns.should_end_row());
+                let Some(GeneratedRow::StoreSales(sales_row)) = sales.get_rows().first() else {
+                    panic!("paired generator must emit a sales row first")
+                };
+                assert_eq!(
+                    sales.get_rows()[1..]
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>(),
+                    returns
+                        .get_rows()
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>()
+                );
+                if let Some(GeneratedRow::StoreReturns(return_row)) = returns.get_rows().first() {
+                    return_count += 1;
+                    assert_eq!(
+                        return_row.get_sr_ticket_number(),
+                        sales_row.get_ss_ticket_number()
+                    );
+                    assert_eq!(return_row.get_sr_item_sk(), sales_row.get_ss_sold_item_sk());
+                } else {
+                    empty_count += 1;
+                }
+
+                if sales.should_end_row() {
+                    sales_generator.consume_remaining_seeds_for_row();
+                    returns_generator.consume_remaining_seeds_for_row();
+                    break;
+                }
+            }
+        }
+
+        assert!(return_count > 0);
+        assert!(empty_count > 0);
     }
 }

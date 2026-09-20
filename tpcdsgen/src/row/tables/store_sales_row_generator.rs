@@ -21,7 +21,7 @@ use crate::join_key_utils::generate_join_key;
 use crate::nulls::create_null_bit_map;
 use crate::permutations::{get_permutation_entry, make_permutation};
 use crate::random::RandomValueGenerator;
-use crate::row::store_returns_row_generator::StoreReturnsRowGenerator;
+use crate::row::store_returns_row_generator::StoreReturnsSource;
 use crate::row::store_sales_row::StoreSalesRow;
 use crate::row::{AbstractRowGenerator, GeneratedRow, RowGenerator, RowGeneratorResult};
 use crate::slowly_changing_dimension_utils::match_surrogate_key;
@@ -81,24 +81,28 @@ impl OrderInfo {
     }
 }
 
-pub struct StoreSalesRowGenerator {
+pub(crate) struct StoreSalesSourceResult {
+    pub(crate) sales_row: StoreSalesRow,
+    pub(crate) is_returned: bool,
+    pub(crate) should_end_row: bool,
+}
+
+pub(crate) struct StoreSalesSource {
     abstract_generator: AbstractRowGenerator,
     item_permutation: Option<Vec<i32>>,
     remaining_line_items: i32,
     order_info: OrderInfo,
     item_index: i32,
-    store_returns_generator: StoreReturnsRowGenerator,
 }
 
-impl StoreSalesRowGenerator {
-    pub fn new() -> Self {
-        StoreSalesRowGenerator {
+impl StoreSalesSource {
+    pub(crate) fn new() -> Self {
+        Self {
             abstract_generator: AbstractRowGenerator::new(Table::StoreSales),
             item_permutation: None,
             remaining_line_items: 0,
             order_info: OrderInfo::default(),
             item_index: 0,
-            store_returns_generator: StoreReturnsRowGenerator::new(),
         }
     }
 
@@ -203,22 +207,12 @@ impl StoreSalesRowGenerator {
     fn is_last_row_in_order(&self) -> bool {
         self.remaining_line_items == 0
     }
-}
 
-impl Default for StoreSalesRowGenerator {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl RowGenerator for StoreSalesRowGenerator {
-    fn generate_row_and_child_rows(
+    pub(crate) fn generate(
         &mut self,
         row_number: u64,
         session: &Session,
-        _parent_row_generator: Option<&mut dyn RowGenerator>,
-        _child_row_generator: Option<&mut dyn RowGenerator>,
-    ) -> Result<RowGeneratorResult> {
+    ) -> Result<StoreSalesSourceResult> {
         use StoreSalesGeneratorColumn::*;
 
         let scaling = session.get_scaling();
@@ -302,52 +296,86 @@ impl RowGenerator for StoreSalesRowGenerator {
             ss_pricing,
         );
 
-        // Check if this sale gets returned (10% return rate)
-        // We check and generate the return BEFORE moving the sales row to avoid cloning
+        // Check if this sale gets returned (10% return rate).
         let stream = self
             .abstract_generator
             .get_random_number_stream(&SrIsReturned);
         let random_int = RandomValueGenerator::generate_uniform_random_int(0, 99, stream);
 
-        // Generate return row if applicable (using reference before we move sales_row)
-        // Note: In Java's --table store_sales mode, returns are NOT generated.
-        // This code generates returns (like Java's --table store_returns mode).
-        // The consume_remaining_seeds_for_row() is called separately in the binary.
-        let return_row = if random_int < SR_RETURN_PCT {
-            Some(
-                self.store_returns_generator
-                    .generate_row(session, &store_sales_row)?,
-            )
+        self.remaining_line_items -= 1;
+
+        Ok(StoreSalesSourceResult {
+            sales_row: store_sales_row,
+            is_returned: random_int < SR_RETURN_PCT,
+            should_end_row: self.is_last_row_in_order(),
+        })
+    }
+
+    pub(crate) fn consume_remaining_seeds_for_row(&mut self) {
+        self.abstract_generator.consume_remaining_seeds_for_row();
+    }
+
+    pub(crate) fn skip_rows_until_starting_row_number(&mut self, starting_row_number: u64) {
+        self.abstract_generator
+            .skip_rows_until_starting_row_number(starting_row_number);
+    }
+}
+
+pub struct StoreSalesRowGenerator {
+    source: StoreSalesSource,
+    returns_source: StoreReturnsSource,
+}
+
+impl StoreSalesRowGenerator {
+    pub fn new() -> Self {
+        Self {
+            source: StoreSalesSource::new(),
+            returns_source: StoreReturnsSource::new(),
+        }
+    }
+}
+
+impl Default for StoreSalesRowGenerator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl RowGenerator for StoreSalesRowGenerator {
+    fn generate_row_and_child_rows(
+        &mut self,
+        row_number: u64,
+        session: &Session,
+        _parent_row_generator: Option<&mut dyn RowGenerator>,
+        _child_row_generator: Option<&mut dyn RowGenerator>,
+    ) -> Result<RowGeneratorResult> {
+        let result = self.source.generate(row_number, session)?;
+        let return_row = if result.is_returned {
+            Some(self.returns_source.generate(session, &result.sales_row)?)
         } else {
             None
         };
-
-        // Now move (not clone) the sales row into the result
-        let mut generated_rows: Vec<GeneratedRow> = Vec::with_capacity(2);
-        generated_rows.push(store_sales_row.into());
-
-        if let Some(ret_row) = return_row {
-            generated_rows.push(ret_row);
+        let mut rows: Vec<GeneratedRow> = Vec::with_capacity(2);
+        rows.push(result.sales_row.into());
+        if let Some(return_row) = return_row {
+            rows.push(return_row);
         }
 
-        self.remaining_line_items -= 1;
-
         Ok(RowGeneratorResult::new_with_multiple(
-            generated_rows,
-            self.is_last_row_in_order(),
+            rows,
+            result.should_end_row,
         ))
     }
 
     fn consume_remaining_seeds_for_row(&mut self) {
-        self.abstract_generator.consume_remaining_seeds_for_row();
-        self.store_returns_generator
-            .consume_remaining_seeds_for_row();
+        self.source.consume_remaining_seeds_for_row();
+        self.returns_source.consume_remaining_seeds_for_row();
     }
 
     fn skip_rows_until_starting_row_number(&mut self, starting_row_number: u64) {
-        self.abstract_generator
+        self.source
             .skip_rows_until_starting_row_number(starting_row_number);
-        self.store_returns_generator
+        self.returns_source
             .skip_rows_until_starting_row_number(starting_row_number);
     }
 }
@@ -361,8 +389,8 @@ mod tests {
     #[test]
     fn test_store_sales_row_generator_creation() {
         let generator = StoreSalesRowGenerator::new();
-        assert!(generator.item_permutation.is_none());
-        assert_eq!(generator.remaining_line_items, 0);
+        assert!(generator.source.item_permutation.is_none());
+        assert_eq!(generator.source.remaining_line_items, 0);
     }
 
     #[test]
