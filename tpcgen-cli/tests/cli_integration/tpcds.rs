@@ -1050,7 +1050,7 @@ fn test_tpcgen_cli_tpcds_parquet_matches_single_pass_generation() {
         )
         // small row groups to force several source row ranges
         .arg("--row-group-bytes")
-        .arg("250000")
+        .arg("10000")
         .arg("--output-dir")
         .arg(temp_dir.path())
         .assert()
@@ -1060,27 +1060,24 @@ fn test_tpcgen_cli_tpcds_parquet_matches_single_pass_generation() {
         ($table:literal, $reader:ty) => {{
             let (actual, num_row_groups) =
                 read_concatenated_parquet(&temp_dir.path().join(concat!($table, ".parquet")));
-            assert!(num_row_groups > 0, "expected at least one row group");
+            assert!(
+                num_row_groups > 1,
+                "expected multiple row groups for {}",
+                $table
+            );
             let expected = read_concatenated_reference(<$reader>::new(test_session(0.001)));
             assert_eq!(
                 actual, expected,
                 "ranged generation differed for {}",
                 $table
             );
-            num_row_groups
         }};
     }
 
     assert_matches_single_pass!("catalog_sales", CatalogSalesArrow);
     assert_matches_single_pass!("catalog_returns", CatalogReturnsArrow);
-    assert_eq!(
-        assert_matches_single_pass!("store_sales", StoreSalesArrow),
-        24
-    );
-    assert_eq!(
-        assert_matches_single_pass!("store_returns", StoreReturnsArrow),
-        3
-    );
+    assert_matches_single_pass!("store_sales", StoreSalesArrow);
+    assert_matches_single_pass!("store_returns", StoreReturnsArrow);
     assert_matches_single_pass!("web_sales", WebSalesArrow);
     assert_matches_single_pass!("web_returns", WebReturnsArrow);
 }
