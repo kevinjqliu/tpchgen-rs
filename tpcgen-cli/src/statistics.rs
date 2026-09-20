@@ -1,4 +1,4 @@
-//! Statistics reporter for TPCH data generation.
+//! Statistics reporter for data generation
 
 use log::{debug, info};
 use std::time::Instant;
