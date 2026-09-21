@@ -5,6 +5,7 @@ use crate::parquet::parse_column_encoding_pair;
 #[cfg(feature = "indicatif-progress")]
 use crate::progress::IndicatifProgress;
 use crate::progress::{no_op_progress_tracker, ProgressTracker};
+use crate::tpcds_cli::dat::Dat;
 use crate::tpch_cli::{Compression, Encoding, DEFAULT_PARQUET_ROW_GROUP_BYTES};
 use clap::builder::TypedValueParser;
 use clap::{ArgAction, Args, Subcommand};
@@ -25,9 +26,13 @@ mod plan;
 mod progress;
 mod runner;
 
-use progress::share_handle_across_parts;
-
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+
+/// Target size of the in memory buffers for DAT and CSV output
+///
+/// Changing this value this trades off scheduling granularity against peak
+/// memory use.
+const DEFAULT_TEXT_CHUNK_SIZE_BYTES: i64 = 8 * 1024 * 1024;
 
 enum OutputFormat {
     Dat(dat::Dat),
@@ -117,15 +122,6 @@ struct ParquetArgs {
     )]
     row_group_bytes: i64,
 
-    /// The number of threads for parallel generation, defaults to the number of CPUs
-    #[arg(
-        short,
-        long,
-        default_value_t = num_cpus::get(),
-        value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..)
-    )]
-    num_threads: usize,
-
     /// Per-column Parquet encodings (overrides writer defaults).
     ///
     /// Format: `COLUMN=ENCODING[,COLUMN=ENCODING...]`
@@ -169,6 +165,15 @@ pub struct CommonArgs {
     /// Which part(ition) to generate (1-based). If not specified, generates all parts
     #[arg(long)]
     part: Option<i32>,
+
+    /// The number of threads for parallel generation, defaults to the number of CPUs
+    #[arg(
+        short,
+        long,
+        default_value_t = num_cpus::get(),
+        value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..)
+    )]
+    num_threads: usize,
 
     /// Verbose output
     ///
@@ -214,113 +219,89 @@ impl CsvArgs {
 impl ParquetArgs {
     async fn run(self) -> Result<()> {
         self.common
-            .run_parquet(
-                self.compression,
-                self.row_group_bytes,
-                self.num_threads,
-                self.column_encoding,
-            )
+            .run_parquet(self.compression, self.row_group_bytes, self.column_encoding)
             .await
     }
 }
 
 impl CommonArgs {
     async fn run_dat(self) -> Result<()> {
-        let output = dat::Dat::new(self.output_dir.clone())?;
-        self.run_output(OutputFormat::Dat(output)).await
+        let output = Dat::new(
+            self.output_dir.clone(),
+            self.compat,
+            DEFAULT_TEXT_CHUNK_SIZE_BYTES,
+        )?;
+        let output_format = OutputFormat::Dat(output);
+        self.run_output(output_format).await
     }
 
     async fn run_parquet(
         self,
         compression: Compression,
         row_group_bytes: i64,
-        num_threads: usize,
         column_encoding: Option<Vec<(String, Encoding)>>,
     ) -> Result<()> {
         let output = parquet::Parquet::new(
             self.output_dir.clone(),
             compression,
             row_group_bytes,
-            num_threads,
             column_encoding,
         );
-        self.run_output(OutputFormat::Parquet(output)).await
+        let output_format = OutputFormat::Parquet(output);
+        self.run_output(output_format).await
     }
 
     async fn run_csv(self, delimiter: char) -> Result<()> {
-        let output = csv::Csv::new(self.output_dir.clone(), delimiter);
-        self.run_output(OutputFormat::Csv(output)).await
+        let output = csv::Csv::new(
+            self.output_dir.clone(),
+            delimiter,
+            DEFAULT_TEXT_CHUNK_SIZE_BYTES,
+        );
+        let output_format = OutputFormat::Csv(output);
+        self.run_output(output_format).await
     }
 
+    /// Generate every requested table, in every requested part, as
+    /// `output_format`.
+    ///
+    /// Each `(table, part)` pair becomes a [`Session`] describing the source
+    /// rows it covers; the output splits those rows into chunks it generates
+    /// in parallel.
     async fn run_output(self, output_format: OutputFormat) -> Result<()> {
-        let tables = self.tables()?;
-        self.run_output_with_tables(output_format, tables).await
-    }
-
-    async fn run_output_with_tables(
-        self,
-        output_format: OutputFormat,
-        tables: Vec<Table>,
-    ) -> Result<()> {
+        let num_threads = self.num_threads;
         let (progress, log_writer) = self.progress_tracker();
         configure_logging(self.verbose, self.quiet, log_writer);
 
+        let tables = self.tables()?;
         let parts = self.part_list()?;
 
         std::fs::create_dir_all(&self.output_dir)?;
 
+        // Every output generates all of its tables in one call so that
+        // multiple tables can be generated concurrently
+        let mut table_sessions = Vec::with_capacity(tables.len() * parts.len());
+        for table in &tables {
+            for &part in &parts {
+                let session = self.to_session(Some(table.get_name().to_string()), part)?;
+                table_sessions.push((*table, session));
+            }
+        }
+
         match output_format {
-            // Parquet generates all tables in one call so that multiple
-            // tables can be generated concurrently
-            OutputFormat::Parquet(output) => {
-                let mut table_sessions = Vec::with_capacity(tables.len() * parts.len());
-                for table in &tables {
-                    for &part in &parts {
-                        let session = self.to_session(Some(table.get_name().to_string()), part)?;
-                        table_sessions.push((*table, session));
-                    }
-                }
+            OutputFormat::Dat(output) => {
                 output
-                    .generate_tables(table_sessions, progress.clone())
+                    .generate_tables(table_sessions, num_threads, progress.clone())
                     .await?;
             }
-            OutputFormat::Dat(output) => {
-                let mut table_sessions = Vec::with_capacity(tables.len() * parts.len());
-                for table in &tables {
-                    let sessions = parts
-                        .iter()
-                        .map(|&part| self.to_session(Some(table.get_name().to_string()), part))
-                        .collect::<Result<Vec<_>>>()?;
-                    // One bar per table, shared across all its parts.
-                    let table_progress = output.register_table(*table, &sessions, progress.clone());
-                    let part_progress = share_handle_across_parts(table_progress, sessions.len());
-                    for (session, progress) in sessions.into_iter().zip(part_progress) {
-                        table_sessions.push((*table, session, progress));
-                    }
-                }
-                progress.start();
-                for (table, session, progress) in table_sessions {
-                    output.generate_table(table, &session, progress)?;
-                }
-            }
             OutputFormat::Csv(output) => {
-                let mut table_sessions = Vec::with_capacity(tables.len() * parts.len());
-                for table in &tables {
-                    let sessions = parts
-                        .iter()
-                        .map(|&part| self.to_session(Some(table.get_name().to_string()), part))
-                        .collect::<Result<Vec<_>>>()?;
-                    // One bar per table, shared across all its parts.
-                    let table_progress = output.register_table(*table, &sessions, progress.clone());
-                    let part_progress = share_handle_across_parts(table_progress, sessions.len());
-                    for (session, progress) in sessions.into_iter().zip(part_progress) {
-                        table_sessions.push((*table, session, progress));
-                    }
-                }
-                progress.start();
-                for (table, session, progress) in table_sessions {
-                    output.generate_table(table, &session, progress)?;
-                }
+                output
+                    .generate_tables(table_sessions, num_threads, progress.clone())
+                    .await?;
+            }
+            OutputFormat::Parquet(output) => {
+                output
+                    .generate_tables(table_sessions, num_threads, progress.clone())
+                    .await?;
             }
         }
 
@@ -558,6 +539,7 @@ mod tests {
             compat: CompatMode::Trino,
             parts: None,
             part: None,
+            num_threads: 1,
             verbose: false,
             quiet: false,
             progress_bars_enabled: false,

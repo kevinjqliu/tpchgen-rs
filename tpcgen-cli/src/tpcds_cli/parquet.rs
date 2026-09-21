@@ -1,7 +1,7 @@
 //! TPC-DS Parquet output.
 
 use super::generate::output_path;
-use super::plan::TpcdsGenerationPlan;
+use super::plan::{ChunkFormat, TpcdsGenerationPlan};
 use super::runner::{plan_tables, run_plans, PlannedTable};
 use crate::parquet::generate_parquet;
 use crate::progress::{ProgressHandle, ProgressTracker};
@@ -21,6 +21,9 @@ use tpcdsgen_arrow::{
     PromotionArrow, ReasonArrow, ShipModeArrow, StoreArrow, StoreReturnsArrow, StoreSalesArrow,
     TimeDimArrow, WarehouseArrow, WebPageArrow, WebReturnsArrow, WebSalesArrow, WebSiteArrow,
 };
+
+/// Parquet files can have at most 32767 row groups
+pub(super) const MAX_ROW_GROUPS: u64 = 32767;
 
 fn table_schema(table: Table) -> SchemaRef {
     match table {
@@ -96,7 +99,6 @@ pub(super) struct Parquet {
     output_dir: PathBuf,
     compression: Compression,
     row_group_bytes: i64,
-    num_threads: usize,
     column_encodings: Option<Vec<(String, Encoding)>>,
 }
 
@@ -105,14 +107,12 @@ impl Parquet {
         output_dir: PathBuf,
         compression: Compression,
         row_group_bytes: i64,
-        num_threads: usize,
         column_encodings: Option<Vec<(String, Encoding)>>,
     ) -> Self {
         Self {
             output_dir,
             compression,
             row_group_bytes,
-            num_threads,
             column_encodings,
         }
     }
@@ -121,6 +121,7 @@ impl Parquet {
     pub(super) async fn generate_tables(
         &self,
         table_sessions: Vec<(Table, Session)>,
+        num_threads: usize,
         progress: Arc<dyn ProgressTracker>,
     ) -> io::Result<()> {
         // Reject a --column-encoding column that matches no selected table
@@ -133,11 +134,16 @@ impl Parquet {
             validate_column_encodings(&selected_tables, encodings)?;
         }
 
-        let work = plan_tables(table_sessions, self.row_group_bytes, &progress);
+        let work = plan_tables(
+            table_sessions,
+            self.row_group_bytes,
+            ChunkFormat::Parquet,
+            &progress,
+        );
         progress.start();
 
         let this = self.clone();
-        run_plans(work, self.num_threads, move |planned, num_threads| {
+        run_plans(work, num_threads, move |planned, num_threads| {
             let this = this.clone();
             async move { this.generate_table(planned, num_threads).await }
         })
