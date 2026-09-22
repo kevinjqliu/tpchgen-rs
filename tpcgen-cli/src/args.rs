@@ -24,6 +24,6 @@ mod tests {
             parse_positive_bytes("-1"),
             Err("must be greater than zero".to_string())
         );
-        assert!(parse_positive_bytes("9223372036854775808").is_err());
+        assert!(parse_positive_bytes(&(i64::MAX as u64 + 1).to_string()).is_err());
     }
 }
