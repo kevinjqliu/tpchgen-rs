@@ -1,4 +1,6 @@
-use super::test_helpers::{expect_column_encoding, expect_row_group_sizes, RowGroups};
+use super::test_helpers::{
+    assert_stdout_matches_file_output, expect_column_encoding, expect_row_group_sizes, RowGroups,
+};
 use arrow::array::RecordBatch;
 use arrow::compute::concat_batches;
 use arrow::datatypes::{DataType, TimeUnit};
@@ -1629,4 +1631,25 @@ fn test_parquet_parts(table_name: &str, scale_factor: f64, parts: usize, expecte
         reconstructed, unsplit,
         "Expected concatenated --parts Parquet batches to match the unsplit Parquet batch"
     );
+}
+
+/// `tpcds --stdout` with no subcommand writes the default DAT output to stdout.
+#[test]
+fn test_tpcgen_cli_tpcds_stdout_matches_file_output_default() {
+    assert_stdout_matches_file_output("tpcds", None, "reason", "dat");
+}
+
+#[test]
+fn test_tpcgen_cli_tpcds_stdout_matches_file_output_dat() {
+    assert_stdout_matches_file_output("tpcds", Some("dat"), "reason", "dat");
+}
+
+#[test]
+fn test_tpcgen_cli_tpcds_stdout_matches_file_output_csv() {
+    assert_stdout_matches_file_output("tpcds", Some("csv"), "reason", "csv");
+}
+
+#[test]
+fn test_tpcgen_cli_tpcds_stdout_matches_file_output_parquet() {
+    assert_stdout_matches_file_output("tpcds", Some("parquet"), "reason", "parquet");
 }
