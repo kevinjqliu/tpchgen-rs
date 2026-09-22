@@ -26,7 +26,10 @@ fn test_tpcgen_cli_requires_command() {
 #[test]
 fn test_parquet_rejects_non_positive_row_group_bytes() {
     for (benchmark, table) in [("tpch", "region"), ("tpcds", "reason")] {
-        for value in ["0", "-1"] {
+        for (value, error) in [
+            ("0", "must be greater than zero"),
+            ("-1", "invalid digit found in string"),
+        ] {
             let temp_dir = tempfile::tempdir().expect("Failed to create temporary directory");
             let output_dir = temp_dir.path().join("output");
 
@@ -46,7 +49,7 @@ fn test_parquet_rejects_non_positive_row_group_bytes() {
                 .code(2)
                 .stdout("")
                 .stderr(predicates::str::contains(format!(
-                    "error: invalid value '{value}' for '--row-group-bytes <ROW_GROUP_BYTES>': must be greater than zero"
+                    "error: invalid value '{value}' for '--row-group-bytes <ROW_GROUP_BYTES>': {error}"
                 )));
 
             assert!(
