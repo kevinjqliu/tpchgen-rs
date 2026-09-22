@@ -35,7 +35,7 @@ fn test_tpcgen_cli_tpch_command_forms() {
         (&["tpch", "csv"], &["--delimiter", "|"], "part.csv"),
         (
             &["tpch", "parquet"],
-            &["--compression", "SNAPPY", "--row-group-bytes", "1000000"],
+            &["--compression", "SNAPPY", "--row-group-bytes", "1MB"],
             "part.parquet",
         ),
     ];

@@ -31,10 +31,13 @@ chunk, but add scheduling overhead. Larger chunks reduce that overhead but may
 use more memory and expose less parallelism.
 
 ```shell
-tpcgen-cli tpcds dat -s 10 --chunk-bytes 67108864 --output-dir /tmp/tpcds
-tpcgen-cli tpcds csv -s 10 --chunk-bytes 67108864 --output-dir /tmp/tpcds
+tpcgen-cli tpcds dat -s 10 --chunk-bytes 64MiB --output-dir /tmp/tpcds
+tpcgen-cli tpcds csv -s 10 --chunk-bytes 64MiB --output-dir /tmp/tpcds
 ```
 
 The value is a planning target, not a memory limit or output file size. It does
 not split files or change their contents. TPC-DS Parquet generation uses the
 separate `--row-group-bytes` option.
+
+`--chunk-bytes` accepts raw byte counts or human-readable sizes, such as `8mb`
+or `8MiB`.

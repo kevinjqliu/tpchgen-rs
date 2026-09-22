@@ -69,6 +69,7 @@ struct DatArgs {
     /// Approximate target size in bytes of each in-memory generation chunk
     ///
     /// Smaller chunks reduce peak memory but increase scheduling overhead.
+    /// Supports raw byte counts and human-readable sizes.
     #[arg(
         long,
         default_value_t = DEFAULT_TEXT_CHUNK_SIZE_BYTES,
@@ -85,6 +86,7 @@ struct CsvArgs {
     /// Approximate target size in bytes of each in-memory generation chunk
     ///
     /// Smaller chunks reduce peak memory but increase scheduling overhead.
+    /// Supports raw byte counts and human-readable sizes.
     #[arg(
         long,
         default_value_t = DEFAULT_TEXT_CHUNK_SIZE_BYTES,
@@ -135,6 +137,7 @@ struct ParquetArgs {
     /// groups under this limit.
     ///
     /// Typical values range from 10MB to 100MB.
+    /// Supports raw byte counts and human-readable sizes.
     #[arg(
         long,
         default_value_t = DEFAULT_PARQUET_ROW_GROUP_BYTES,
