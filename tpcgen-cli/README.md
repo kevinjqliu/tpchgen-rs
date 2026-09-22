@@ -20,15 +20,21 @@ tpcgen-cli tpcds csv -s 1 --output-dir /tmp/tpcds
 tpcgen-cli tpcds csv -s 1 --delimiter='\t' --output-dir /tmp/tpcds
 ```
 
-TPC-DS DAT and CSV generation buffers output in parallel chunks. Use
-`--chunk-bytes` to tune their approximate in-memory target size in bytes
-(default: `8388608`, or 8 MiB). Smaller chunks reduce peak memory but increase
-scheduling overhead:
+## TPC-DS text chunk sizing
+
+TPC-DS DAT and CSV output is generated in parallel, using in-memory chunks.
+`--chunk-bytes` sets the approximate target size of each chunk in bytes. The
+default is `8388608` (8 MiB).
+
+Smaller chunks provide finer scheduling granularity and use less memory per
+chunk, but add scheduling overhead. Larger chunks reduce that overhead but may
+use more memory and expose less parallelism.
 
 ```shell
 tpcgen-cli tpcds dat -s 10 --chunk-bytes 67108864 --output-dir /tmp/tpcds
 tpcgen-cli tpcds csv -s 10 --chunk-bytes 67108864 --output-dir /tmp/tpcds
 ```
 
-This setting does not split output files or change their contents. Parquet
-generation uses the separate `--row-group-bytes` option.
+The value is a planning target, not a memory limit or output file size. It does
+not split files or change their contents. TPC-DS Parquet generation uses the
+separate `--row-group-bytes` option.
