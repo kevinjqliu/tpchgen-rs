@@ -251,7 +251,6 @@ struct ParquetArgs {
     /// groups under this limit.
     ///
     /// Typical values range from 10MB to 100MB.
-    /// Supports raw byte counts and human-readable sizes.
     #[arg(
         long,
         default_value_t = DEFAULT_PARQUET_ROW_GROUP_BYTES,

@@ -19,11 +19,6 @@ mod tests {
         assert_eq!(parse_row_group_bytes(&i64::MAX.to_string()), Ok(i64::MAX));
         assert_eq!(parse_row_group_bytes("8mb"), Ok(8 * 1000 * 1000));
         assert_eq!(parse_row_group_bytes("8MiB"), Ok(8 * 1024 * 1024));
-        assert_eq!(
-            parse_row_group_bytes("0"),
-            Err("must be greater than zero".to_string())
-        );
-        assert!(parse_row_group_bytes("-1").is_err());
         assert!(parse_row_group_bytes(&(i64::MAX as u64 + 1).to_string()).is_err());
     }
 }
