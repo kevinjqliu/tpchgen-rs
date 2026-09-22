@@ -13,9 +13,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn positive_bytes_enforces_i64_range() {
+    fn positive_bytes_enforces_valid_range() {
         assert_eq!(parse_positive_bytes("1"), Ok(1));
         assert_eq!(parse_positive_bytes(&i64::MAX.to_string()), Ok(i64::MAX));
+        assert_eq!(
+            parse_positive_bytes("0"),
+            Err("must be greater than zero".to_string())
+        );
+        assert_eq!(
+            parse_positive_bytes("-1"),
+            Err("must be greater than zero".to_string())
+        );
         assert!(parse_positive_bytes("9223372036854775808").is_err());
     }
 }

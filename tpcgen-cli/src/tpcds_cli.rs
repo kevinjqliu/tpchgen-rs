@@ -28,10 +28,10 @@ mod runner;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-/// Target size of the in memory buffers for DAT and CSV output
+/// Target size of the in-memory buffers for DAT and CSV output.
 ///
-/// Changing this value this trades off scheduling granularity against peak
-/// memory use.
+/// Changing this value trades off scheduling granularity against peak memory
+/// use.
 const DEFAULT_TEXT_CHUNK_SIZE_BYTES: i64 = 8 * 1024 * 1024;
 
 enum OutputFormat {
@@ -65,12 +65,32 @@ enum Commands {
 struct DatArgs {
     #[command(flatten)]
     common: CommonArgs,
+
+    /// Approximate target size in bytes of each in-memory generation chunk
+    ///
+    /// Smaller chunks reduce peak memory but increase scheduling overhead.
+    #[arg(
+        long,
+        default_value_t = DEFAULT_TEXT_CHUNK_SIZE_BYTES,
+        value_parser = parse_positive_bytes
+    )]
+    chunk_bytes: i64,
 }
 
 #[derive(Args)]
 struct CsvArgs {
     #[command(flatten)]
     common: CommonArgs,
+
+    /// Approximate target size in bytes of each in-memory generation chunk
+    ///
+    /// Smaller chunks reduce peak memory but increase scheduling overhead.
+    #[arg(
+        long,
+        default_value_t = DEFAULT_TEXT_CHUNK_SIZE_BYTES,
+        value_parser = parse_positive_bytes
+    )]
+    chunk_bytes: i64,
 
     /// CSV delimiter character (default: ',')
     ///
@@ -206,13 +226,13 @@ impl Cli {
 
 impl DatArgs {
     async fn run(self) -> Result<()> {
-        self.common.run_dat().await
+        self.common.run_dat(self.chunk_bytes).await
     }
 }
 
 impl CsvArgs {
     async fn run(self) -> Result<()> {
-        self.common.run_csv(self.delimiter).await
+        self.common.run_csv(self.delimiter, self.chunk_bytes).await
     }
 }
 
@@ -225,12 +245,8 @@ impl ParquetArgs {
 }
 
 impl CommonArgs {
-    async fn run_dat(self) -> Result<()> {
-        let output = Dat::new(
-            self.output_dir.clone(),
-            self.compat,
-            DEFAULT_TEXT_CHUNK_SIZE_BYTES,
-        )?;
+    async fn run_dat(self, chunk_bytes: i64) -> Result<()> {
+        let output = Dat::new(self.output_dir.clone(), self.compat, chunk_bytes)?;
         let output_format = OutputFormat::Dat(output);
         self.run_output(output_format).await
     }
@@ -251,12 +267,8 @@ impl CommonArgs {
         self.run_output(output_format).await
     }
 
-    async fn run_csv(self, delimiter: char) -> Result<()> {
-        let output = csv::Csv::new(
-            self.output_dir.clone(),
-            delimiter,
-            DEFAULT_TEXT_CHUNK_SIZE_BYTES,
-        );
+    async fn run_csv(self, delimiter: char, chunk_bytes: i64) -> Result<()> {
+        let output = csv::Csv::new(self.output_dir.clone(), delimiter, chunk_bytes);
         let output_format = OutputFormat::Csv(output);
         self.run_output(output_format).await
     }
