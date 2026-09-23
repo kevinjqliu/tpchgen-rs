@@ -76,3 +76,11 @@ jobs:
       run: |
         cd tpcgen-cli
         ./scripts/tpcds/compare-all-tables.sh --compat c
+
+    # Scale factor 4 has different internal chunk boundaries  than scale factor
+    # 1, testing different boundary conditions. This is a regression test for
+    # https://github.com/datafusion-contrib/tpcgen-rs/pull/478
+    - name: Run conformance tests (Rust --compat c, scale factor 4)
+      run: |
+        cd tpcgen-cli
+        ./scripts/tpcds/compare-all-tables.sh --compat c --scale 4 --quiet
