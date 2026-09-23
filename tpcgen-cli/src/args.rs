@@ -51,7 +51,13 @@ mod tests {
             parse_row_group_bytes("-1"),
             Err("must be greater than zero".to_string())
         );
+        assert_eq!(
+            parse_row_group_bytes("0MB"),
+            Err("must be greater than zero".to_string())
+        );
         assert!(parse_row_group_bytes(&(i64::MAX as u64 + 1).to_string()).is_err());
+        assert!(parse_row_group_bytes("18446744073709551615KB").is_err());
+        assert!(parse_row_group_bytes("MiB").is_err());
         assert!(parse_row_group_bytes("1.5MB").is_err());
         assert!(parse_row_group_bytes("8watts").is_err());
     }
