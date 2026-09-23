@@ -11,29 +11,29 @@ pub(crate) fn parse_row_group_bytes(value: &str) -> Result<i64, String> {
         .unwrap_or(value.len());
     let (number, suffix) = value.split_at(number_end);
 
-    let multiplier = match suffix.to_ascii_lowercase().as_str() {
-        "" | "b" => 1,
-        "k" | "kb" => 1_000,
-        "ki" | "kib" => 1 << 10,
-        "m" | "mb" => 1_000_000,
-        "mi" | "mib" => 1 << 20,
-        "g" | "gb" => 1_000_000_000,
-        "gi" | "gib" => 1 << 30,
-        "t" | "tb" => 1_000_000_000_000,
-        "ti" | "tib" => 1_u64 << 40,
-        _ => return Err(format!("unknown byte unit '{suffix}'")),
-    };
-
-    let bytes = number
-        .parse::<u64>()
-        .map_err(|error| error.to_string())?
-        .checked_mul(multiplier)
-        .ok_or_else(|| "byte value is too large".to_string())?;
-    if bytes == 0 {
+    let number = number.parse::<i64>().map_err(|error| error.to_string())?;
+    if number == 0 {
         return Err("must be greater than zero".to_string());
     }
 
-    i64::try_from(bytes).map_err(|err| err.to_string())
+    let suffix = suffix.to_ascii_lowercase();
+    let prefix = suffix.strip_suffix('b').unwrap_or(&suffix);
+    let multiplier = match prefix {
+        "" => 1,
+        "k" => 1_000,
+        "ki" => 1 << 10,
+        "m" => 1_000_000,
+        "mi" => 1 << 20,
+        "g" => 1_000_000_000,
+        "gi" => 1 << 30,
+        "t" => 1_000_000_000_000,
+        "ti" => 1_i64 << 40,
+        _ => return Err(format!("unknown byte unit '{suffix}'")),
+    };
+
+    number
+        .checked_mul(multiplier)
+        .ok_or_else(|| "byte value is too large".to_string())
 }
 
 #[cfg(test)]
@@ -56,7 +56,7 @@ mod tests {
             Err("must be greater than zero".to_string())
         );
         assert!(parse_row_group_bytes(&(i64::MAX as u64 + 1).to_string()).is_err());
-        assert!(parse_row_group_bytes("18446744073709551615KB").is_err());
+        assert!(parse_row_group_bytes("9223372036854775807KB").is_err());
         assert!(parse_row_group_bytes("MiB").is_err());
         assert!(parse_row_group_bytes("1.5MB").is_err());
         assert!(parse_row_group_bytes("8watts").is_err());
