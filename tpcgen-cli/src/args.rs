@@ -1,10 +1,13 @@
 //! Shared command-line argument parsing.
 
+/// Parses a positive byte count using case-insensitive GNU size suffixes.
+///
+/// * `KB`, `MB`, `GB`, `TB`: powers of 1000
+/// * `K`, `M`, `G`, `T` and `KiB`, `MiB`, `GiB`, `TiB`: powers of 1024
 pub(crate) fn parse_row_group_bytes(value: &str) -> Result<i64, String> {
     if value.starts_with('-') {
         return Err("must be greater than zero".to_string());
     }
-    let value = value.strip_prefix('+').unwrap_or(value);
 
     let number_end = value
         .find(|character: char| !character.is_ascii_digit())
@@ -16,18 +19,16 @@ pub(crate) fn parse_row_group_bytes(value: &str) -> Result<i64, String> {
         return Err("must be greater than zero".to_string());
     }
 
-    let suffix = suffix.to_ascii_lowercase();
-    let prefix = suffix.strip_suffix('b').unwrap_or(&suffix);
-    let multiplier = match prefix {
-        "" => 1,
-        "k" => 1_000,
-        "ki" => 1 << 10,
-        "m" => 1_000_000,
-        "mi" => 1 << 20,
-        "g" => 1_000_000_000,
-        "gi" => 1 << 30,
-        "t" => 1_000_000_000_000,
-        "ti" => 1_i64 << 40,
+    let multiplier = match suffix.to_ascii_lowercase().as_str() {
+        "" | "b" => 1,
+        "kb" => 1_000,
+        "k" | "kib" => 1 << 10,
+        "mb" => 1_000_000,
+        "m" | "mib" => 1 << 20,
+        "gb" => 1_000_000_000,
+        "g" | "gib" => 1 << 30,
+        "tb" => 1_000_000_000_000,
+        "t" | "tib" => 1_i64 << 40,
         _ => return Err(format!("unknown byte unit '{suffix}'")),
     };
 
@@ -43,9 +44,9 @@ mod tests {
     #[test]
     fn row_group_bytes_parses_and_validates_values() {
         assert_eq!(parse_row_group_bytes("1"), Ok(1));
-        assert_eq!(parse_row_group_bytes("+1"), Ok(1));
         assert_eq!(parse_row_group_bytes(&i64::MAX.to_string()), Ok(i64::MAX));
         assert_eq!(parse_row_group_bytes("8mb"), Ok(8 * 1000 * 1000));
+        assert_eq!(parse_row_group_bytes("8M"), Ok(8 * 1024 * 1024));
         assert_eq!(parse_row_group_bytes("8MiB"), Ok(8 * 1024 * 1024));
         assert_eq!(
             parse_row_group_bytes("-1"),
@@ -56,9 +57,10 @@ mod tests {
             Err("must be greater than zero".to_string())
         );
         assert!(parse_row_group_bytes(&(i64::MAX as u64 + 1).to_string()).is_err());
-        assert!(parse_row_group_bytes("9223372036854775807KB").is_err());
+        assert!(parse_row_group_bytes(&format!("{}KB", i64::MAX)).is_err());
         assert!(parse_row_group_bytes("MiB").is_err());
         assert!(parse_row_group_bytes("1.5MB").is_err());
+        assert!(parse_row_group_bytes("+1").is_err());
         assert!(parse_row_group_bytes("8watts").is_err());
     }
 }
