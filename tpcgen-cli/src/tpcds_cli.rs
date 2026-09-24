@@ -560,6 +560,20 @@ mod tests {
     use super::*;
 
     #[test]
+    fn format_specific_options_are_grouped_in_help() {
+        crate::args::assert_format_options_grouped(
+            Commands::augment_subcommands(clap::Command::new("tpcds")),
+            CommonArgs::augment_args(clap::Command::new("common")),
+            |format| match format {
+                "dat" => "DAT Options",
+                "csv" => "CSV Options",
+                "parquet" => "Parquet Options",
+                other => panic!("add a help heading for the `{other}` subcommand"),
+            },
+        );
+    }
+
+    #[test]
     fn parquet_row_group_bytes_default_matches_constant() {
         let command = Cli::augment_args(clap::Command::new("tpcds"));
         let matches = command.try_get_matches_from(["tpcds", "parquet"]).unwrap();

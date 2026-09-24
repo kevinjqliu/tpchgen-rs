@@ -422,6 +422,21 @@ impl ParquetArgs {
 mod tests {
     use super::*;
 
+    #[test]
+    fn format_specific_options_are_grouped_in_help() {
+        use clap::{Args, Subcommand};
+        crate::args::assert_format_options_grouped(
+            Commands::augment_subcommands(clap::Command::new("tpch")),
+            CommonArgs::augment_args(clap::Command::new("common")),
+            |format| match format {
+                "tbl" => "TBL Options",
+                "csv" => "CSV Options",
+                "parquet" => "Parquet Options",
+                other => panic!("add a help heading for the `{other}` subcommand"),
+            },
+        );
+    }
+
     fn args_with_tables(tables: Vec<Table>) -> CommonArgs {
         CommonArgs {
             scale_factor: 1.0,
