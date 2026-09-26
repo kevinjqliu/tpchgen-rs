@@ -62,6 +62,7 @@ fn test_tpcgen_cli_tpcds_dat_verbose_enables_status_logging() {
         .arg("reason")
         .arg("--output-dir")
         .arg(temp_dir.path())
+        .args(["--num-threads", "1", "--no-progress"])
         .arg("-v")
         .env("RUST_LOG", "warn")
         .assert()
@@ -83,11 +84,11 @@ fn test_tpcgen_cli_tpcds_dat_verbose_enables_status_logging() {
         "Expected TPC-DS startup log with default compatibility mode, got stderr: {stderr}"
     );
     assert!(
-        stderr.contains("Writing") && stderr.contains("reason.dat using"),
+        stderr.contains("Writing table reason (SF=0.001, 1 chunk) to reason.dat using 1 thread\n"),
         "Expected TPC-DS table start log, got stderr: {stderr}"
     );
     assert!(
-        stderr.contains("Generated") && stderr.contains("reason.dat"),
+        stderr.contains("Generated table reason to reason.dat"),
         "Expected TPC-DS table completion log, got stderr: {stderr}"
     );
     assert!(
@@ -143,6 +144,7 @@ fn test_tpcgen_cli_tpcds_parquet_verbose_enables_logging() {
         .arg(temp_dir.path())
         .args(["--parts", "1", "--compat", "c"])
         .args(["--compression", "ZSTD(1)", "--row-group-bytes", "1000000"])
+        .args(["--num-threads", "1", "--no-progress"])
         .arg("-v")
         .env_remove("RUST_LOG")
         .assert()
@@ -174,6 +176,17 @@ fn test_tpcgen_cli_tpcds_parquet_verbose_enables_logging() {
             .is_some_and(|line| line.ends_with(settings)),
         "Expected Parquet settings immediately after startup summary, got stderr: {stderr}"
     );
+    assert!(
+        stderr.contains(
+            "Writing table reason (SF=0.001, 1 chunk) (part 1/1) to reason.1.parquet using 1 thread\n"
+        ),
+        "Expected explicit partition start log, got stderr: {stderr}"
+    );
+    assert!(
+        stderr.contains("Generated table reason (part 1/1) to reason.1.parquet"),
+        "Expected explicit partition completion log, got stderr: {stderr}"
+    );
+    assert!(temp_dir.path().join("reason/reason.1.parquet").is_file());
 }
 
 #[test]
@@ -1270,8 +1283,12 @@ fn test_tpcgen_cli_tpcds_dat_parts_small_table_stays_in_chunk_one() {
         .arg(temp_dir.path())
         .arg("--parts")
         .arg("4")
+        .arg("--verbose")
         .assert()
-        .success();
+        .success()
+        .stderr(predicates::str::contains(
+            "Generated table reason (part 1/4) to reason.1.dat",
+        ));
 
     let path = temp_dir.path().join("reason/reason.1.dat");
     let contents =
@@ -1285,6 +1302,28 @@ fn test_tpcgen_cli_tpcds_dat_parts_small_table_stays_in_chunk_one() {
             "chunk {chunk} at path {path:?} should not exist"
         );
     }
+}
+
+#[test]
+fn test_tpcgen_cli_tpcds_empty_partition_is_explained() {
+    let temp_dir = tempdir().expect("Failed to create temporary directory");
+    let output = cargo_bin_cmd!("tpcgen-cli")
+        .args(["tpcds", "dat", "--tables", "reason", "-s", "0.001"])
+        .args(["--parts", "2", "--part", "2", "--verbose"])
+        .arg("--output-dir")
+        .arg(temp_dir.path())
+        .assert()
+        .success()
+        .stdout("");
+
+    let stderr = String::from_utf8_lossy(&output.get_output().stderr);
+    assert!(
+        stderr.contains("Skipping table reason (part 2/2): no source rows in this partition"),
+        "{stderr}"
+    );
+    assert!(!stderr.contains("Writing table"), "{stderr}");
+    assert!(!stderr.contains("Generated table"), "{stderr}");
+    assert_eq!(fs::read_dir(temp_dir.path()).unwrap().count(), 0);
 }
 
 /// Test that `--parts 1` puts the output in the `parts` directory,
@@ -1667,6 +1706,7 @@ fn assert_tpcds_no_overwrite(format: &str) {
         ])
         .arg("--output-dir")
         .arg(temp_dir.path())
+        .arg("--verbose")
         .assert()
         .success();
 
@@ -1676,10 +1716,42 @@ fn assert_tpcds_no_overwrite(format: &str) {
         stderr.contains(&warning),
         "Expected {warning:?}, got stderr: {stderr}"
     );
+    assert!(stderr.contains("Writing table reason"), "{stderr}");
+    assert!(!stderr.contains("Generated table"), "{stderr}");
     assert_eq!(fs::read(&path).unwrap(), b"existing output");
     let mut inprogress_path = path.into_os_string();
     inprogress_path.push(".inprogress");
     assert!(!Path::new(&inprogress_path).exists());
+}
+
+#[test]
+fn test_tpcgen_cli_tpcds_failed_write_has_no_completion_log() {
+    for format in ["dat", "parquet"] {
+        let temp_dir = tempdir().expect("Failed to create temporary directory");
+        fs::create_dir(temp_dir.path().join(format!("reason.{format}.inprogress"))).unwrap();
+
+        let output = cargo_bin_cmd!("tpcgen-cli")
+            .args([
+                "tpcds",
+                format,
+                "--tables",
+                "reason",
+                "-s",
+                "0.001",
+                "--verbose",
+            ])
+            .arg("--output-dir")
+            .arg(temp_dir.path())
+            .assert()
+            .failure()
+            .stdout("");
+
+        let stderr = String::from_utf8_lossy(&output.get_output().stderr);
+        assert!(stderr.contains("Writing table reason"), "{stderr}");
+        assert!(stderr.contains("Failed to create"), "{stderr}");
+        assert!(!stderr.contains("Generated table"), "{stderr}");
+        assert!(!temp_dir.path().join(format!("reason.{format}")).exists());
+    }
 }
 
 /// Test that `--overwrite` regenerates an existing DAT file
