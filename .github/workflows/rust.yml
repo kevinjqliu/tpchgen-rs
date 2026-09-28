@@ -29,7 +29,7 @@ jobs:
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Run cargo-clippy
-        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+        run: cargo clippy --locked --workspace --all-targets -- -D warnings
       - name: Check
         run: cargo check --locked --verbose --workspace --all-targets
       - name: Check tpchgen-cli without default features
@@ -65,6 +65,8 @@ jobs:
       # not supported by nextest and are covered by the job above)
       - name: All Tests (workspace)
         run: cargo nextest run --locked --workspace
+      - name: Tests for arrow crates with arrow 59
+        run: cargo test --locked -p tpchgen-arrow -p tpcdsgen-arrow --no-default-features --features arrow_59
 
   # documentation build
   docs:

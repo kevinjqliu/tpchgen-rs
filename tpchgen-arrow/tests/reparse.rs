@@ -14,6 +14,7 @@ use tpchgen::generators::{
     OrderGenerator, Part, PartGenerator, PartSupp, PartSuppGenerator, Region, RegionGenerator,
     Supplier, SupplierGenerator,
 };
+use tpchgen_arrow::arrow;
 use tpchgen_arrow::{
     CustomerArrow, LineItemArrow, NationArrow, OrderArrow, PartArrow, PartSuppArrow, RegionArrow,
     SupplierArrow,
@@ -166,7 +167,7 @@ impl Test {
     /// Parse the provided data into an Arrow RecordBatch
     fn parse(&self, data: &[u8], schema: &SchemaRef, batch_size: usize) -> RecordBatch {
         let builder =
-            arrow_csv::reader::ReaderBuilder::new(Arc::clone(schema)).with_batch_size(batch_size);
+            arrow::csv::reader::ReaderBuilder::new(Arc::clone(schema)).with_batch_size(batch_size);
 
         let builder = match self {
             Test::TBL => builder.with_header(false).with_delimiter(b'|'),

@@ -30,6 +30,7 @@ use tpcdsgen::row::{
     TimeDimRowGenerator, WarehouseRowGenerator, WebPageRowGenerator, WebSalesRowGenerator,
     WebSiteRowGenerator,
 };
+use tpcdsgen_arrow::arrow;
 use tpcdsgen_arrow::{
     CallCenterArrow, CatalogPageArrow, CatalogReturnsArrow, CatalogSalesArrow,
     CustomerAddressArrow, CustomerArrow, CustomerDemographicsArrow, DateDimArrow,
@@ -108,7 +109,7 @@ impl Format {
     ) -> impl Iterator<Item = RecordBatch> + 'a {
         let null_re = regex::Regex::new("^$").unwrap();
         let builder =
-            arrow_csv::reader::ReaderBuilder::new(Arc::clone(schema)).with_null_regex(null_re);
+            arrow::csv::reader::ReaderBuilder::new(Arc::clone(schema)).with_null_regex(null_re);
         let builder = match self {
             Format::Dat => builder
                 .with_delimiter(DAT_SEPARATOR as u8)
