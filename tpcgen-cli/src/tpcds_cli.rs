@@ -199,6 +199,9 @@ pub struct CommonArgs {
     compat: CompatMode,
 
     /// Number of part(itions) to generate. If not specified creates a single file per table
+    ///
+    /// Small tables (under 1M rows) are not split (matching dsdgen):
+    /// all rows go to part 1, so fewer files than requested may be written.
     #[arg(short, long)]
     parts: Option<i32>,
 
