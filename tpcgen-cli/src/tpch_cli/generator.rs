@@ -273,9 +273,7 @@ impl TpchGenerator {
         let config = self.config;
         let progress_tracker = self.progress_tracker;
 
-        // Create output directory if it doesn't exist and we are not writing to stdout
         let base_location = OutputLocation::new(config.stdout, config.output_dir, config.overwrite);
-        base_location.create_dir_all()?;
 
         // Determine which tables to generate
         let tables: Vec<Table> = if let Some(tables) = config.tables {
@@ -332,7 +330,7 @@ impl TpchGenerator {
                 column_encodings: config.parquet_column_encodings,
             },
             config.parquet_row_group_bytes,
-            base_location,
+            base_location.clone(),
             config.csv_delimiter,
         );
 
@@ -348,6 +346,9 @@ impl TpchGenerator {
         TextPool::get_or_init_default();
         let elapsed = start.elapsed();
         info!("Created static distributions and text pools in {elapsed:.2?}");
+
+        // Create output directory if it doesn't exist and we are not writing to stdout
+        base_location.create_dir_all()?;
 
         let runner = PlanRunner::new(output_plans, config.num_threads)
             .with_progress_tracker(progress_tracker);
@@ -554,6 +555,22 @@ mod tests {
             column_encodings_for_table(Table::Nation, &encodings),
             Vec::new()
         );
+    }
+
+    #[tokio::test]
+    async fn invalid_plan_does_not_create_output_dir() {
+        let temp = tempfile::tempdir().unwrap();
+        let output_dir = temp.path().join("output");
+
+        let result = TpchGenerator::builder()
+            .with_output_dir(&output_dir)
+            .with_scale_factor(f64::NAN)
+            .build()
+            .generate()
+            .await;
+
+        assert!(result.is_err());
+        assert!(!output_dir.exists());
     }
 
     #[tokio::test]

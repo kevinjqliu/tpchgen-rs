@@ -1,7 +1,7 @@
 use super::{Compression, Encoding, OutputFormat, Table, TpchGenerator, TpchGeneratorBuilder};
 use crate::args::{
     default_num_threads, parse_delimiter, parse_row_group_bytes, parse_scale_factor,
-    validate_partition_options,
+    validate_partition_options, MAX_BENCHMARK_SCALE_FACTOR,
 };
 use crate::logging::configure_logging;
 use crate::parquet::parse_column_encoding_pair;
@@ -9,6 +9,7 @@ use crate::parquet::parse_column_encoding_pair;
 use crate::progress::IndicatifProgress;
 use clap::builder::TypedValueParser;
 use clap::{ArgAction, Parser};
+use log::warn;
 use std::collections::HashSet;
 use std::io;
 #[cfg(feature = "indicatif-progress")]
@@ -86,7 +87,7 @@ enum Commands {
 
 #[derive(clap::Args)]
 struct CommonArgs {
-    /// Scale factor to create (supported range: 0 through 100000, inclusive)
+    /// Scale factor to create
     #[arg(short, long, default_value_t = 1., value_parser = parse_scale_factor)]
     scale_factor: f64,
 
@@ -183,6 +184,13 @@ impl CommonArgs {
         );
         #[cfg(not(feature = "indicatif-progress"))]
         configure_logging(self.verbose, self.quiet, None);
+
+        if self.scale_factor > MAX_BENCHMARK_SCALE_FACTOR {
+            warn!(
+                "Scale factor {} exceeds the TPC-H maximum of {}; generated data may not be valid",
+                self.scale_factor, MAX_BENCHMARK_SCALE_FACTOR
+            );
+        }
 
         #[cfg(feature = "indicatif-progress")]
         if let Some(progress) = progress {
