@@ -173,7 +173,7 @@ fn test_tpcgen_cli_tpcds_parquet_verbose_enables_logging() {
     assert!(
         stderr
             .lines()
-            .nth(1)
+            .nth(2)
             .is_some_and(|line| line.ends_with(settings)),
         "Expected Parquet settings immediately after startup summary, got stderr: {stderr}"
     );
