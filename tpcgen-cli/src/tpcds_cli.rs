@@ -181,6 +181,19 @@ struct ParquetArgs {
         help_heading = "Parquet Options"
     )]
     column_encoding: Option<Vec<(String, Encoding)>>,
+
+    /// Write Parquet field IDs (true or false).
+    ///
+    /// When true, each column gets a field ID equal to its 1-based position.
+    #[arg(
+        long,
+        default_value_t = true,
+        action = ArgAction::Set,
+        value_name = "BOOL",
+        hide_possible_values = true,
+        help_heading = "Parquet Options"
+    )]
+    field_ids: bool,
 }
 
 #[derive(Args)]
@@ -276,7 +289,12 @@ impl CsvArgs {
 impl ParquetArgs {
     async fn run(self) -> Result<()> {
         self.common
-            .run_parquet(self.compression, self.row_group_bytes, self.column_encoding)
+            .run_parquet(
+                self.compression,
+                self.row_group_bytes,
+                self.column_encoding,
+                self.field_ids,
+            )
             .await
     }
 }
@@ -297,12 +315,14 @@ impl CommonArgs {
         compression: Compression,
         row_group_bytes: i64,
         column_encoding: Option<Vec<(String, Encoding)>>,
+        field_ids: bool,
     ) -> Result<()> {
         let output = parquet::Parquet::new(
             self.base_location()?,
             compression,
             row_group_bytes,
             column_encoding,
+            field_ids,
         );
         let output_format = OutputFormat::Parquet(output);
         self.run_output(output_format).await
