@@ -46,27 +46,6 @@ impl DatField<&'static str> {
     }
 }
 
-/// A DAT field that prints the literal `NULL` for NULL columns instead of an
-/// empty string — a quirk of the Java call_center and household_demographics
-/// rows that we preserve for byte-for-byte compatibility.
-pub(crate) struct NullLiteralField<T>(Option<T>);
-
-impl<T: fmt::Display> fmt::Display for NullLiteralField<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self.0 {
-            Some(value) => value.fmt(f),
-            None => f.write_str("NULL"),
-        }
-    }
-}
-
-impl<T> NullLiteralField<T> {
-    /// DAT field printing the literal `NULL` when the row's null bit is set.
-    pub(crate) fn new(value: T, is_null: bool) -> Self {
-        NullLiteralField((!is_null).then_some(value))
-    }
-}
-
 /// A double-quoted CSV field: formats the value wrapped in `"`, or nothing
 /// when the column is NULL.
 ///
@@ -88,28 +67,6 @@ impl<T: fmt::Display> fmt::Display for CsvQuoted<T> {
         match &self.0 {
             Some(value) => write!(f, "\"{value}\""),
             None => Ok(()),
-        }
-    }
-}
-
-/// A quoted CSV field that prints the literal `NULL` (unquoted) for NULL
-/// columns — the CSV counterpart of [`NullLiteralField`], keeping the CSV
-/// values identical to the DAT values for the call_center quirk columns.
-pub(crate) struct CsvQuotedNullLiteral<T>(Option<T>);
-
-impl<T> CsvQuotedNullLiteral<T> {
-    /// Quoted CSV field printing the literal `NULL` when the row's null bit
-    /// is set.
-    pub(crate) fn new(value: T, is_null: bool) -> Self {
-        CsvQuotedNullLiteral((!is_null).then_some(value))
-    }
-}
-
-impl<T: fmt::Display> fmt::Display for CsvQuotedNullLiteral<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self.0 {
-            Some(value) => write!(f, "\"{value}\""),
-            None => f.write_str("NULL"),
         }
     }
 }

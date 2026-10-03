@@ -1,4 +1,4 @@
-use crate::row::table_row::{DatField, NullLiteralField};
+use crate::row::table_row::DatField;
 use crate::types::{Address, Date, Decimal};
 use std::fmt;
 
@@ -169,53 +169,52 @@ impl CallCenterRow {
         )
     }
 
-    /// DAT field printing the literal `NULL` when the null bit is set.
-    pub(crate) fn nulled<T>(&self, value: T, column_position: i32) -> NullLiteralField<T> {
-        NullLiteralField::new(value, self.is_null(column_position))
+    /// DAT field that is empty when the null bit is set.
+    pub(crate) fn field<T>(&self, value: T, column_position: i32) -> DatField<T> {
+        DatField::new(value, self.is_null(column_position))
     }
 }
 
 /// Formats the row as a DAT line: `|`-separated values with a trailing
-/// separator (no newline); NULL values/numerics print the literal `NULL`
-/// (a Java quirk preserved for byte-for-byte compatibility).
+/// separator and empty fields for NULL columns (no newline).
 impl fmt::Display for CallCenterRow {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|",
-            self.nulled(self.cc_call_center_sk, 0),
-            self.nulled(&self.cc_call_center_id, 1),
+            self.field(self.cc_call_center_sk, 0),
+            self.field(&self.cc_call_center_id, 1),
             self.date_field(self.cc_rec_start_date_id, 2),
             self.date_field(self.cc_rec_end_date_id, 3),
             self.key_field(self.cc_closed_date_id, 4),
             self.key_field(self.cc_open_date_id, 5),
-            self.nulled(&self.cc_name, 6),
-            self.nulled(&self.cc_class, 7),
-            self.nulled(self.cc_employees, 8),
-            self.nulled(self.cc_sq_ft, 9),
-            self.nulled(&self.cc_hours, 10),
-            self.nulled(&self.cc_manager, 11),
-            self.nulled(self.cc_market_id, 12),
-            self.nulled(&self.cc_market_class, 13),
-            self.nulled(&self.cc_market_desc, 14),
-            self.nulled(&self.cc_market_manager, 15),
-            self.nulled(self.cc_division_id, 16),
-            self.nulled(&self.cc_division_name, 17),
-            self.nulled(self.cc_company, 18),
-            self.nulled(&self.cc_company_name, 19),
-            self.nulled(self.cc_address.get_street_number(), 20),
-            self.nulled(self.cc_address.get_street_name(), 21),
-            self.nulled(self.cc_address.get_street_type(), 22),
-            self.nulled(self.cc_address.get_suite_number(), 23),
-            self.nulled(self.cc_address.get_city(), 24),
-            self.nulled(self.cc_address.get_county().unwrap_or(""), 25),
-            self.nulled(self.cc_address.get_state(), 26),
+            self.field(&self.cc_name, 6),
+            self.field(&self.cc_class, 7),
+            self.field(self.cc_employees, 8),
+            self.field(self.cc_sq_ft, 9),
+            self.field(&self.cc_hours, 10),
+            self.field(&self.cc_manager, 11),
+            self.field(self.cc_market_id, 12),
+            self.field(&self.cc_market_class, 13),
+            self.field(&self.cc_market_desc, 14),
+            self.field(&self.cc_market_manager, 15),
+            self.field(self.cc_division_id, 16),
+            self.field(&self.cc_division_name, 17),
+            self.field(self.cc_company, 18),
+            self.field(&self.cc_company_name, 19),
+            self.field(self.cc_address.get_street_number(), 20),
+            self.field(self.cc_address.get_street_name(), 21),
+            self.field(self.cc_address.get_street_type(), 22),
+            self.field(self.cc_address.get_suite_number(), 23),
+            self.field(self.cc_address.get_city(), 24),
+            self.field(self.cc_address.get_county().unwrap_or(""), 25),
+            self.field(self.cc_address.get_state(), 26),
             // Note: unlike other tables the call_center zip is not zero-padded,
             // matching the Java format_numeric handling.
-            self.nulled(self.cc_address.get_zip(), 27),
-            self.nulled(self.cc_address.get_country(), 28),
-            self.nulled(self.cc_address.get_gmt_offset(), 29),
-            self.nulled(self.cc_tax_percentage, 30),
+            self.field(self.cc_address.get_zip(), 27),
+            self.field(self.cc_address.get_country(), 28),
+            self.field(self.cc_address.get_gmt_offset(), 29),
+            self.field(self.cc_tax_percentage, 30),
         )
     }
 }

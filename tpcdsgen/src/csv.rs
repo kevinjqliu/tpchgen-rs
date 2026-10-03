@@ -30,7 +30,7 @@
 
 use crate::config::Table;
 use crate::row::dbgen_version_row::TimeOfDay;
-use crate::row::table_row::{CsvQuoted, CsvQuotedNullLiteral, DatField, NullLiteralField};
+use crate::row::table_row::{CsvQuoted, DatField};
 use crate::row::{
     CallCenterRow, CatalogPageRow, CatalogReturnsRow, CatalogSalesRow, CustomerAddressRow,
     CustomerDemographicsRow, CustomerRow, DateDimRow, DbgenVersionRow, GeneratedRow,
@@ -112,39 +112,39 @@ impl Display for CallCenterCsv<'_> {
         write!(
             f,
             "{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}{d}{}",
-            row.nulled(row.cc_call_center_sk, 0),
-            row.nulled(&row.cc_call_center_id, 1),
+            row.field(row.cc_call_center_sk, 0),
+            row.field(&row.cc_call_center_id, 1),
             row.date_field(row.cc_rec_start_date_id, 2),
             row.date_field(row.cc_rec_end_date_id, 3),
             row.key_field(row.cc_closed_date_id, 4),
             row.key_field(row.cc_open_date_id, 5),
-            row.nulled(&row.cc_name, 6),
-            row.nulled(&row.cc_class, 7),
-            row.nulled(row.cc_employees, 8),
-            row.nulled(row.cc_sq_ft, 9),
-            row.nulled(&row.cc_hours, 10),
-            row.nulled(&row.cc_manager, 11),
-            row.nulled(row.cc_market_id, 12),
-            CsvQuotedNullLiteral::new(&row.cc_market_class, row.is_null(13)),
-            CsvQuotedNullLiteral::new(&row.cc_market_desc, row.is_null(14)),
-            row.nulled(&row.cc_market_manager, 15),
-            row.nulled(row.cc_division_id, 16),
-            row.nulled(&row.cc_division_name, 17),
-            row.nulled(row.cc_company, 18),
-            row.nulled(&row.cc_company_name, 19),
-            row.nulled(row.cc_address.get_street_number(), 20),
-            row.nulled(row.cc_address.get_street_name(), 21),
-            row.nulled(row.cc_address.get_street_type(), 22),
-            row.nulled(row.cc_address.get_suite_number(), 23),
-            row.nulled(row.cc_address.get_city(), 24),
-            row.nulled(row.cc_address.get_county().unwrap_or(""), 25),
-            row.nulled(row.cc_address.get_state(), 26),
+            row.field(&row.cc_name, 6),
+            row.field(&row.cc_class, 7),
+            row.field(row.cc_employees, 8),
+            row.field(row.cc_sq_ft, 9),
+            row.field(&row.cc_hours, 10),
+            row.field(&row.cc_manager, 11),
+            row.field(row.cc_market_id, 12),
+            CsvQuoted::new(&row.cc_market_class, row.is_null(13)),
+            CsvQuoted::new(&row.cc_market_desc, row.is_null(14)),
+            row.field(&row.cc_market_manager, 15),
+            row.field(row.cc_division_id, 16),
+            row.field(&row.cc_division_name, 17),
+            row.field(row.cc_company, 18),
+            row.field(&row.cc_company_name, 19),
+            row.field(row.cc_address.get_street_number(), 20),
+            row.field(row.cc_address.get_street_name(), 21),
+            row.field(row.cc_address.get_street_type(), 22),
+            row.field(row.cc_address.get_suite_number(), 23),
+            row.field(row.cc_address.get_city(), 24),
+            row.field(row.cc_address.get_county().unwrap_or(""), 25),
+            row.field(row.cc_address.get_state(), 26),
             // Note: unlike other tables the call_center zip is not zero-padded,
             // matching format_numeric in get_values.
-            row.nulled(row.cc_address.get_zip(), 27),
-            row.nulled(row.cc_address.get_country(), 28),
-            row.nulled(row.cc_address.get_gmt_offset(), 29),
-            row.nulled(row.cc_tax_percentage, 30),
+            row.field(row.cc_address.get_zip(), 27),
+            row.field(row.cc_address.get_country(), 28),
+            row.field(row.cc_address.get_gmt_offset(), 29),
+            row.field(row.cc_tax_percentage, 30),
         )
     }
 }
@@ -814,11 +814,11 @@ impl Display for HouseholdDemographicsCsv<'_> {
         write!(
             f,
             "{}{d}{}{d}{}{d}{}{d}{}",
-            NullLiteralField::new(row.hd_demo_sk, row.is_null(0)),
-            NullLiteralField::new(row.hd_income_band_sk, row.is_null(1)),
-            NullLiteralField::new(&row.hd_buy_potential, row.is_null(2)),
-            NullLiteralField::new(row.hd_dep_count, row.is_null(3)),
-            NullLiteralField::new(row.hd_vehicle_count, row.is_null(4)),
+            DatField::new(row.hd_demo_sk, row.is_null(0)),
+            DatField::new(row.hd_income_band_sk, row.is_null(1)),
+            DatField::new(&row.hd_buy_potential, row.is_null(2)),
+            DatField::new(row.hd_dep_count, row.is_null(3)),
+            DatField::new(row.hd_vehicle_count, row.is_null(4)),
         )
     }
 }

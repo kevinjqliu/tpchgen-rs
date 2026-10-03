@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-use crate::row::table_row::NullLiteralField;
+use crate::row::table_row::DatField;
 use std::fmt;
 
 /// Household Demographics row data structure (HouseholdDemographicsRow)
@@ -69,18 +69,17 @@ impl HouseholdDemographicsRow {
 }
 
 /// Formats the row as a DAT line: `|`-separated values with a trailing
-/// separator (no newline); NULL values/numerics print the literal `NULL`
-/// (a Java quirk preserved for byte-for-byte compatibility).
+/// separator and empty fields for NULL columns (no newline).
 impl fmt::Display for HouseholdDemographicsRow {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "{}|{}|{}|{}|{}|",
-            NullLiteralField::new(self.hd_demo_sk, self.is_null(0)),
-            NullLiteralField::new(self.hd_income_band_sk, self.is_null(1)),
-            NullLiteralField::new(&self.hd_buy_potential, self.is_null(2)),
-            NullLiteralField::new(self.hd_dep_count, self.is_null(3)),
-            NullLiteralField::new(self.hd_vehicle_count, self.is_null(4)),
+            DatField::new(self.hd_demo_sk, self.is_null(0)),
+            DatField::new(self.hd_income_band_sk, self.is_null(1)),
+            DatField::new(&self.hd_buy_potential, self.is_null(2)),
+            DatField::new(self.hd_dep_count, self.is_null(3)),
+            DatField::new(self.hd_vehicle_count, self.is_null(4)),
         )
     }
 }
@@ -237,7 +236,7 @@ mod tests {
         let values = dat_values(&row);
         assert_eq!(values[0], "1"); // hd_demo_sk not null
         assert_eq!(values[1], "5"); // hd_income_band_sk not null
-        assert_eq!(values[2], "NULL"); // hd_buy_potential is null
+        assert_eq!(values[2], ""); // hd_buy_potential is null
         assert_eq!(values[3], "3"); // hd_dep_count not null
         assert_eq!(values[4], "2"); // hd_vehicle_count not null
     }
