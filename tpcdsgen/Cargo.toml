@@ -1,11 +1,13 @@
 [package]
 name = "tpcdsgen"
-authors = ["clflushopt", "alamb"]
-description = "Blazing fast pure Rust zero dependency TPC-DS data generation library."
-repository = { workspace = true }
-readme = "README.md"
 version = { workspace = true }
 rust-version = { workspace = true }
-edition = "2021"
-license = { workspace = true }
+edition = { workspace = true }
+authors = { workspace = true }
+description = "Blazing fast pure Rust zero dependency TPC-DS data generation library."
+keywords = ["tpcds", "benchmark", "data-generator", "dsdgen", "olap"]
+categories = ["database", "development-tools::profiling", "development-tools::testing"]
+repository = { workspace = true }
 homepage = "https://github.com/datafusion-contrib/tpcgen-rs/tree/main/tpcdsgen"
+readme = "README.md"
+license = { workspace = true }

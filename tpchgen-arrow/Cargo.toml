@@ -3,8 +3,10 @@ name = "tpchgen-arrow"
 version = { workspace = true }
 rust-version = { workspace = true }
 edition = "2024"
-authors = ["clflushopt", "alamb"]
+authors = { workspace = true }
 description = "TPC-H data generator into Apache Arrow format"
+keywords = ["tpch", "benchmark", "data-generator", "arrow", "olap"]
+categories = ["database", "development-tools::profiling", "development-tools::testing"]
 repository = { workspace = true }
 homepage = "https://github.com/datafusion-contrib/tpcgen-rs/tree/main/tpchgen-arrow"
 readme = "README.md"
