@@ -6,7 +6,12 @@ use crate::column::Table;
 /// (because those get derived from other columns).
 ///
 /// GeneratorColumn
-pub trait GeneratorColumn: Send + Sync {
+pub trait GeneratorColumn: Send + Sync + 'static {
+    /// All generator columns of the table, in global column number order
+    fn values() -> &'static [Self]
+    where
+        Self: Sized;
+
     /// Get the table this generator column belongs to
     fn get_table(&self) -> Table;
 
@@ -29,6 +34,10 @@ mod tests {
     }
 
     impl GeneratorColumn for TestGeneratorColumn {
+        fn values() -> &'static [Self] {
+            &[]
+        }
+
         fn get_table(&self) -> Table {
             self.table
         }
