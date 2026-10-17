@@ -119,9 +119,9 @@ The suites do not cover everything:
   Other tables rely on the writer path being shared.
 - CI verifies TPC-DS at scale factor 1 in both compat modes, scale factor 4
   against C, and, in the full pass, scale factor 2 for C.
-- The reparse tests run in Trino compat mode only, since that is
-  `Session::default()`. The `--compat c` corrections are covered at the `.dat`
-  level but not through the Arrow, CSV and Parquet paths.
+- The reparse tests run in C compat mode only, since that is
+  `Session::default()`. The `--compat trino` differences are covered at the
+  `.dat` level but not through the Arrow, CSV and Parquet paths.
 - The step from text back to Arrow uses the `arrow-csv` reader as its parser, so
   a bug in that reader that exactly mirrored a bug in our Arrow generators would
   not be caught.

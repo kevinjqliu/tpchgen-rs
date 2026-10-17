@@ -89,7 +89,7 @@ impl Session {
     pub const DEFAULT_CHUNK_NUMBER: i32 = 1;
     pub const DEFAULT_TOTAL_CHUNKS: i32 = 1;
     pub const DEFAULT_PARTITIONED: bool = false;
-    pub const DEFAULT_COMPAT: CompatMode = CompatMode::Trino;
+    pub const DEFAULT_COMPAT: CompatMode = CompatMode::C;
 
     /// Convert this session into a builder initialized with its current values.
     pub fn into_builder(self) -> SessionBuilder {
@@ -527,7 +527,7 @@ mod tests {
 
     #[test]
     fn test_reason_ranges() {
-        RowSizeTest::new(Table::Reason, &[1..=35, 1..=0, 1..=0]).run();
+        RowSizeTest::new(Table::Reason, &[1..=75, 1..=0, 1..=0]).run();
     }
 
     #[test]

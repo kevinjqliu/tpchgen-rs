@@ -16,7 +16,7 @@ use std::fs;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use tempfile::tempdir;
-use tpcdsgen::config::{CompatMode, Session, SessionBuilder, Table};
+use tpcdsgen::config::{Session, SessionBuilder, Table};
 use tpcdsgen_arrow::{ItemArrow, StoreReturnsArrow, StoreSalesArrow};
 
 /// Test that TPC-DS DAT generation is quiet unless logging is explicitly enabled.
@@ -976,7 +976,6 @@ fn test_tpcgen_cli_tpcds_csv_default_options_generate_all_outputs() {
 fn test_session(scale_factor: f64) -> Session {
     SessionBuilder::new()
         .with_scale_factor(scale_factor)
-        .with_compat_mode(CompatMode::C)
         .build()
         .expect("valid session")
 }
