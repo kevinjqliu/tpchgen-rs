@@ -16,7 +16,7 @@ use std::fs;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use tempfile::tempdir;
-use tpcdsgen::config::{Session, SessionBuilder, Table};
+use tpcdsgen::config::{CompatMode, Session, SessionBuilder, Table};
 use tpcdsgen_arrow::{ItemArrow, StoreReturnsArrow, StoreSalesArrow};
 
 /// Test that TPC-DS DAT generation is quiet unless logging is explicitly enabled.
@@ -81,7 +81,7 @@ fn test_tpcgen_cli_tpcds_dat_verbose_enables_status_logging() {
         "Expected verbose mode setup log, got stderr: {stderr}"
     );
     assert!(
-        stderr.contains("Generating TPC-DS (SF=0.001, format=dat, compat=trino, tables=1,"),
+        stderr.contains("Generating TPC-DS (SF=0.001, format=dat, compat=c, tables=1,"),
         "Expected TPC-DS startup log with default compatibility mode, got stderr: {stderr}"
     );
     assert!(
@@ -127,7 +127,7 @@ fn test_tpcgen_cli_tpcds_parquet_single_table() {
         .expect("Failed to build Parquet reader")
         .map(|batch| batch.expect("Failed to read Parquet batch").num_rows())
         .sum::<usize>();
-    assert_eq!(row_count, 35);
+    assert_eq!(row_count, 75);
 }
 
 #[test]
@@ -858,8 +858,8 @@ fn test_tpcgen_cli_tpcds_csv_single_table() {
     );
     assert_eq!(
         lines.len(),
-        36,
-        "Expected CSV header plus 35 reason rows at scale factor 1"
+        76,
+        "Expected CSV header plus 75 reason rows at scale factor 1"
     );
     assert!(
         lines.iter().all(|line| !line.ends_with(',')),
@@ -976,6 +976,7 @@ fn test_tpcgen_cli_tpcds_csv_default_options_generate_all_outputs() {
 fn test_session(scale_factor: f64) -> Session {
     SessionBuilder::new()
         .with_scale_factor(scale_factor)
+        .with_compat_mode(CompatMode::C)
         .build()
         .expect("valid session")
 }
@@ -1292,7 +1293,7 @@ fn test_tpcgen_cli_tpcds_dat_rejects_non_positive_parts() {
 
 /// Test that `--parts` works for small tables.
 ///
-/// The original `dsdgen` has a 1M-row split threshold, so for the 35-row reason
+/// The original `dsdgen` has a 1M-row split threshold, so for the 75-row reason
 /// table `--parts 4` puts the whole table in a single chunk
 #[test]
 fn test_tpcgen_cli_tpcds_dat_parts_small_table_stays_in_chunk_one() {
@@ -1319,7 +1320,7 @@ fn test_tpcgen_cli_tpcds_dat_parts_small_table_stays_in_chunk_one() {
     let path = temp_dir.path().join("reason/reason.1.dat");
     let contents =
         fs::read_to_string(&path).unwrap_or_else(|err| panic!("Expected {path:?} to exist: {err}"));
-    assert_eq!(contents.lines().count(), 35, "chunk 1 has every row");
+    assert_eq!(contents.lines().count(), 75, "chunk 1 has every row");
 
     for chunk in 2..=5 {
         let path = temp_dir.path().join(format!("reason/reason.{chunk}.dat"));

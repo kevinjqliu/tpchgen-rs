@@ -201,7 +201,7 @@ ac61de9604337e791f1bdbcef8f0cdcc21b01514  tpch-dbgen/region.tbl
 
 There are two reference implementations to check against.
 
-For the Trino Java port (`--compat trino`, the default), build it once and
+For the Trino Java port (`--compat trino`), build it once and
 generate its reference data:
 
 ```sh
