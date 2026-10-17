@@ -446,7 +446,10 @@ impl CommonArgs {
 
     /// Return the tables that should be generated.
     fn tables(&self) -> Result<Vec<Table>> {
-        let tables = self.tables.clone().unwrap_or_else(Table::main_tables);
+        let tables = self
+            .tables
+            .clone()
+            .unwrap_or_else(|| Table::values().to_vec());
         let mut seen = HashSet::new();
         Ok(tables
             .into_iter()
@@ -492,22 +495,13 @@ impl CommonArgs {
 }
 
 fn parse_table(table: &str) -> Result<Table> {
-    let parsed = table.parse::<Table>().map_err(|_| {
+    table.parse::<Table>().map_err(|_| {
         TpcdsError::new(&format!(
             "unknown table '{table}'. Expected one of: {}",
             expected_table_names()
         ))
-    })?;
-
-    if parsed.is_main_table() {
-        Ok(parsed)
-    } else {
-        Err(TpcdsError::new(&format!(
-            "unknown table '{table}'. Expected one of: {}",
-            expected_table_names()
-        ))
-        .into())
-    }
+        .into()
+    })
 }
 
 /// Parses a TPC-DS table name, and supplies the list of table names (with
@@ -538,7 +532,7 @@ impl TypedValueParser for TableValueParser {
     fn possible_values(
         &self,
     ) -> Option<Box<dyn Iterator<Item = clap::builder::PossibleValue> + '_>> {
-        Some(Box::new(Table::main_tables().into_iter().map(|table| {
+        Some(Box::new(Table::values().iter().map(|&table| {
             clap::builder::PossibleValue::new(table.get_name()).help(table_help(table))
         })))
     }
@@ -572,13 +566,11 @@ fn table_help(table: Table) -> &'static str {
         Table::WebSales => "Web sales fact",
         Table::WebSite => "Web site dimension",
         Table::DbgenVersion => "Metadata about the generator run",
-        // source tables are not selectable on the command line
-        _ => "",
     }
 }
 
 fn expected_table_names() -> String {
-    Table::main_tables()
+    Table::values()
         .iter()
         .map(Table::get_name)
         .collect::<Vec<_>>()
@@ -644,8 +636,8 @@ mod tests {
     }
 
     #[test]
-    fn every_main_table_has_help_text() {
-        for table in Table::main_tables() {
+    fn every_table_has_help_text() {
+        for &table in Table::values() {
             assert!(
                 !table_help(table).is_empty(),
                 "{table} is missing a --help description"
