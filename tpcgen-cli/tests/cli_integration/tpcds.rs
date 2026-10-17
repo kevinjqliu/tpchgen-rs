@@ -749,7 +749,7 @@ fn test_tpcgen_cli_tpcds_dat_compat_mode() {
         .arg("tpcds")
         .arg("dat")
         .arg("--compat")
-        .arg("c")
+        .arg("trino")
         .arg("--scale-factor")
         .arg("1")
         .arg("--tables")
@@ -763,8 +763,8 @@ fn test_tpcgen_cli_tpcds_dat_compat_mode() {
         fs::read_to_string(temp_dir.path().join("reason.dat")).expect("Failed to read DAT file");
     assert_eq!(
         contents.lines().count(),
-        75,
-        "Expected C compatibility mode to use C dsdgen reason table cardinality"
+        35,
+        "Expected Trino compatibility mode to use Trino reason table cardinality"
     );
 }
 
