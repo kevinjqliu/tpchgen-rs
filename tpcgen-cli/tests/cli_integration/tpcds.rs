@@ -143,7 +143,7 @@ fn test_tpcgen_cli_tpcds_parquet_verbose_enables_logging() {
         .arg("reason")
         .arg("--output-dir")
         .arg(temp_dir.path())
-        .args(["--parts", "1", "--compat", "c"])
+        .args(["--parts", "1", "--compat", "trino"])
         .args(["--compression", "ZSTD(1)", "--row-group-bytes", "1000000"])
         .args(["--num-threads", "1", "--no-progress"])
         .arg("-v")
@@ -163,7 +163,7 @@ fn test_tpcgen_cli_tpcds_parquet_verbose_enables_logging() {
         "Unexpected RUST_LOG override notice, got stderr: {stderr}"
     );
     assert!(
-        stderr.contains("Generating TPC-DS (SF=0.001, format=parquet, compat=c, tables=1,")
+        stderr.contains("Generating TPC-DS (SF=0.001, format=parquet, compat=trino, tables=1,")
             && stderr.contains(", parts=1 (all)) to"),
         "Expected TPC-DS startup log with compatibility mode and partition selection, got stderr: {stderr}"
     );
