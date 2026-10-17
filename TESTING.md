@@ -210,7 +210,7 @@ generate its reference data:
 shasum tpcgen-cli/tests/fixtures/tpcds/scale-1-trino/*.dat
 ```
 
-For the C `dsdgen` reference (`--compat c`), the data is pre-generated and
+For the C `dsdgen` reference (`--compat c`, the default), the data is pre-generated and
 published in [alamb/tpcds-data], so no build is needed:
 
 ```sh
