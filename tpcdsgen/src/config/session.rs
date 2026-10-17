@@ -349,6 +349,7 @@ mod tests {
         assert!(!session.generate_only_one_table());
         assert!(session.is_sexist());
         assert_eq!(session.get_chunk_number(), 1);
+        assert_eq!(session.get_compat_mode(), CompatMode::C);
         assert_eq!(session.command_line_arguments(), None);
     }
 
