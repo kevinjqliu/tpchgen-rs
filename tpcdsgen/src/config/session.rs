@@ -360,7 +360,7 @@ mod tests {
             .with_no_sexism(true)
             .with_chunk_number(2)
             .with_total_chunks(4)
-            .with_compat_mode(CompatMode::C)
+            .with_compat_mode(CompatMode::Trino)
             .with_command_line_arguments("tpcgen-cli tpcds --scale-factor 2")
             .build()
             .unwrap();
@@ -370,7 +370,7 @@ mod tests {
         assert!(!session.is_sexist());
         assert_eq!(session.get_chunk_number(), 2);
         assert_eq!(session.get_total_chunks(), 4);
-        assert_eq!(session.get_compat_mode(), CompatMode::C);
+        assert_eq!(session.get_compat_mode(), CompatMode::Trino);
         assert_eq!(
             session.command_line_arguments(),
             Some("tpcgen-cli tpcds --scale-factor 2")
