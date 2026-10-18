@@ -27,7 +27,14 @@ use std::sync::Arc;
     // --help output
     long_about = LONG_ABOUT,
     after_long_help = examples("tpchgen-cli"),
-    mut_subcommands = format_examples("tpchgen-cli"),
+    mut_subcommand("csv", |cmd| cmd.after_long_help(r#"Examples:
+  # Generate tab-delimited CSV files:
+  tpchgen-cli csv --delimiter='\t' --output-dir=/tmp/tpch
+"#)),
+    mut_subcommand("parquet", |cmd| cmd.after_long_help(r#"Examples:
+  # Use ZSTD compression and 128 MB row groups:
+  tpchgen-cli parquet --compression='ZSTD(1)' --row-group-bytes=128MB --output-dir=/tmp/tpch
+"#)),
     args_conflicts_with_subcommands = true
 )]
 pub struct Cli {
@@ -63,28 +70,6 @@ Examples:
   {bin} csv --tables=nation --stdout | head
 "#
     )
-}
-
-/// Adds format `--help` examples that invoke `bin` to each format subcommand
-pub fn format_examples(bin: &str) -> impl FnMut(clap::Command) -> clap::Command + '_ {
-    move |cmd| {
-        let examples = match cmd.get_name() {
-            "csv" => format!(
-                r#"Examples:
-  # Generate tab-delimited CSV files:
-  {bin} csv --delimiter='\t' --output-dir=/tmp/tpch
-"#
-            ),
-            "parquet" => format!(
-                r#"Examples:
-  # Use ZSTD compression and 128 MB row groups:
-  {bin} parquet --compression='ZSTD(1)' --row-group-bytes=128MB --output-dir=/tmp/tpch
-"#
-            ),
-            _ => return cmd,
-        };
-        cmd.after_long_help(examples)
-    }
 }
 
 #[derive(clap::Subcommand)]

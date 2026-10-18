@@ -33,7 +33,14 @@ struct Cli {
 enum Command {
     #[command(
         after_long_help = tpcgen_cli::tpch_cli::examples("tpcgen-cli tpch"),
-        mut_subcommands = tpcgen_cli::tpch_cli::format_examples("tpcgen-cli tpch")
+        mut_subcommand("csv", |cmd| cmd.after_long_help(r#"Examples:
+  # Generate tab-delimited CSV files:
+  tpcgen-cli tpch csv --delimiter='\t' --output-dir=/tmp/tpch
+"#)),
+        mut_subcommand("parquet", |cmd| cmd.after_long_help(r#"Examples:
+  # Use ZSTD compression and 128 MB row groups:
+  tpcgen-cli tpch parquet --compression='ZSTD(1)' --row-group-bytes=128MB --output-dir=/tmp/tpch
+"#))
     )]
     Tpch(TpchCli),
     Tpcds(TpcdsCli),
