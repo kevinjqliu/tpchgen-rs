@@ -25,16 +25,17 @@ use std::sync::Arc;
     // -h output
     about = "TPC-H Data Generator",
     // --help output
-    long_about = LONG_ABOUT,
-    after_long_help = examples("tpchgen-cli"),
-    mut_subcommand("csv", |cmd| cmd.after_long_help(r#"Examples:
+    long_about = long_about("tpchgen-cli"),
+    mut_subcommand("csv", |cmd| cmd.long_about(r#"Generate CSV output
+
+Examples:
   # Generate tab-delimited CSV files:
-  tpchgen-cli csv --delimiter='\t' --output-dir=/tmp/tpch
-"#)),
-    mut_subcommand("parquet", |cmd| cmd.after_long_help(r#"Examples:
+  tpchgen-cli csv --delimiter='\t' --output-dir=/tmp/tpch"#)),
+    mut_subcommand("parquet", |cmd| cmd.long_about(r#"Generate Apache Parquet output
+
+Examples:
   # Use ZSTD compression and 128 MB row groups:
-  tpchgen-cli parquet --compression='ZSTD(1)' --row-group-bytes=128MB --output-dir=/tmp/tpch
-"#)),
+  tpchgen-cli parquet --compression='ZSTD(1)' --row-group-bytes=128MB --output-dir=/tmp/tpch"#)),
     args_conflicts_with_subcommands = true
 )]
 pub struct Cli {
@@ -45,19 +46,17 @@ pub struct Cli {
     args: CommonArgs,
 }
 
-/// `--help` text
-const LONG_ABOUT: &str = r#"
+/// `--help` text with examples that invoke `bin` (`tpchgen-cli` or
+/// `tpcgen-cli tpch`)
+pub fn long_about(bin: &str) -> String {
+    format!(
+        r#"
 TPC-H Data Generator (https://github.com/datafusion-contrib/tpcgen-rs)
 
 By default each table is written to a single file named <output_dir>/<table>.<format>
 
 If `--parts` option is specified, each table is written to a subdirectory in
-multiple files named <output_dir>/<table>/<table>.<part>.<format>"#;
-
-/// `--help` examples that invoke `bin` (`tpchgen-cli` or `tpcgen-cli tpch`)
-pub fn examples(bin: &str) -> String {
-    format!(
-        r#"Each format has additional options, see '{bin} <COMMAND> --help'.
+multiple files named <output_dir>/<table>/<table>.<part>.<format>
 
 Examples:
   # Generate all tables at scale factor 1 (about 1 GB) in TBL format:
@@ -66,9 +65,7 @@ Examples:
   # Split the lineitem table into 10 Parquet files and generate only part 1:
   {bin} parquet -s 10 --tables=lineitem --parts=10 --part=1 --output-dir=/tmp/tpch
 
-  # Write the nation table as CSV to stdout:
-  {bin} csv --tables=nation --stdout | head
-"#
+Each format has additional options, see '{bin} <COMMAND> --help'."#
     )
 }
 

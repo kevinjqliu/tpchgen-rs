@@ -13,8 +13,7 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 #[command(
     about = "TPC-H and TPC-DS data generator",
     long_about = r#"
-TPC-H and TPC-DS data generator (https://github.com/datafusion-contrib/tpcgen-rs)"#,
-    after_long_help = r#"See 'tpcgen-cli <COMMAND> --help' for more options and examples.
+TPC-H and TPC-DS data generator (https://github.com/datafusion-contrib/tpcgen-rs)
 
 Examples:
   # Generate all TPC-H tables at scale factor 1:
@@ -22,7 +21,11 @@ Examples:
 
   # Generate all TPC-DS tables at scale factor 1:
   tpcgen-cli tpcds -s 1 --output-dir=/tmp/tpcds
-"#
+
+  # TPC-H Apache Parquet data (Scale Factor 100, single table, 10 files per table):
+  tpcgen-cli tpch parquet -s 100 --tables=lineitem --parts=10 --output-dir=/tmp/tpch
+
+See 'tpcgen-cli <COMMAND> --help' for more options and examples."#
 )]
 struct Cli {
     #[command(subcommand)]
@@ -32,15 +35,17 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     #[command(
-        after_long_help = tpcgen_cli::tpch_cli::examples("tpcgen-cli tpch"),
-        mut_subcommand("csv", |cmd| cmd.after_long_help(r#"Examples:
+        long_about = tpcgen_cli::tpch_cli::long_about("tpcgen-cli tpch"),
+        mut_subcommand("csv", |cmd| cmd.long_about(r#"Generate CSV output
+
+Examples:
   # Generate tab-delimited CSV files:
-  tpcgen-cli tpch csv --delimiter='\t' --output-dir=/tmp/tpch
-"#)),
-        mut_subcommand("parquet", |cmd| cmd.after_long_help(r#"Examples:
+  tpcgen-cli tpch csv --delimiter='\t' --output-dir=/tmp/tpch"#)),
+        mut_subcommand("parquet", |cmd| cmd.long_about(r#"Generate Apache Parquet output
+
+Examples:
   # Use ZSTD compression and 128 MB row groups:
-  tpcgen-cli tpch parquet --compression='ZSTD(1)' --row-group-bytes=128MB --output-dir=/tmp/tpch
-"#))
+  tpcgen-cli tpch parquet --compression='ZSTD(1)' --row-group-bytes=128MB --output-dir=/tmp/tpch"#))
     )]
     Tpch(TpchCli),
     Tpcds(TpcdsCli),

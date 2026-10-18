@@ -68,8 +68,7 @@ TPC-DS Data Generator (https://github.com/datafusion-contrib/tpcgen-rs)
 By default each table is written to a single file named <output_dir>/<table>.<format>
 
 If `--parts` option is specified, each table is written to a subdirectory in
-multiple files named <output_dir>/<table>/<table>.<part>.<format>"#,
-    after_long_help = r#"Each format has additional options, see 'tpcgen-cli tpcds <COMMAND> --help'.
+multiple files named <output_dir>/<table>/<table>.<part>.<format>
 
 Examples:
   # Generate all tables at scale factor 1 (about 1 GB) in DAT format:
@@ -78,12 +77,7 @@ Examples:
   # Split the store_sales table into 10 Parquet files and generate only part 1:
   tpcgen-cli tpcds parquet -s 10 --tables=store_sales --parts=10 --part=1 --output-dir=/tmp/tpcds
 
-  # Match the output of the Trino Java implementation:
-  tpcgen-cli tpcds --compat=trino --output-dir=/tmp/tpcds
-
-  # Write the reason table as CSV to stdout:
-  tpcgen-cli tpcds csv --tables=reason --stdout | head
-"#,
+Each format has additional options, see 'tpcgen-cli tpcds <COMMAND> --help'."#,
     args_conflicts_with_subcommands = true
 )]
 pub struct Cli {
@@ -99,16 +93,18 @@ enum Commands {
     /// Generate DAT (pipe-delimited) output (default format)
     Dat(DatArgs),
     /// Generate CSV output
-    #[command(after_long_help = r#"Examples:
+    #[command(long_about = r#"Generate CSV output
+
+Examples:
   # Generate tab-delimited CSV files:
-  tpcgen-cli tpcds csv --delimiter='\t' --output-dir=/tmp/tpcds
-"#)]
+  tpcgen-cli tpcds csv --delimiter='\t' --output-dir=/tmp/tpcds"#)]
     Csv(CsvArgs),
     /// Generate Apache Parquet output
-    #[command(after_long_help = r#"Examples:
+    #[command(long_about = r#"Generate Apache Parquet output
+
+Examples:
   # Use ZSTD compression and 128 MB row groups:
-  tpcgen-cli tpcds parquet --compression='ZSTD(1)' --row-group-bytes=128MB --output-dir=/tmp/tpcds
-"#)]
+  tpcgen-cli tpcds parquet --compression='ZSTD(1)' --row-group-bytes=128MB --output-dir=/tmp/tpcds"#)]
     Parquet(ParquetArgs),
 }
 
