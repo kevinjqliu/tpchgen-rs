@@ -74,10 +74,12 @@ Examples:
   # Generate all tables at scale factor 1 (about 1 GB) in DAT format:
   tpcgen-cli tpcds -s 1 --output-dir=/tmp/tpcds
 
-  # Split the store_sales table into 10 Parquet files and generate only part 1:
-  tpcgen-cli tpcds parquet -s 10 --tables=store_sales --parts=10 --part=1 --output-dir=/tmp/tpcds
+  # Generate the store_sales table at scale factor 100 in 10 Apache Parquet files to
+  # /tmp/tpcds/store_sales:
+  tpcgen-cli tpcds parquet -s 100 --tables=store_sales --parts=10 --output-dir=/tmp/tpcds
 
 Each format has additional options, see 'tpcgen-cli tpcds <COMMAND> --help'."#,
+    mut_subcommands = format_long_about,
     args_conflicts_with_subcommands = true
 )]
 pub struct Cli {
@@ -88,23 +90,35 @@ pub struct Cli {
     args: DatArgs,
 }
 
+/// Format `--help` text with examples
+fn format_long_about(cmd: clap::Command) -> clap::Command {
+    let long_about = match cmd.get_name() {
+        "csv" => {
+            r#"Generate CSV output
+
+Examples:
+  # Generate tab-delimited CSV files:
+  tpcgen-cli tpcds csv --delimiter='\t' --output-dir=/tmp/tpcds"#
+        }
+        "parquet" => {
+            r#"Generate Apache Parquet output
+
+Examples:
+  # Generate Apache Parquet files with ZSTD compression and 128 MB row groups:
+  tpcgen-cli tpcds parquet --compression='ZSTD(1)' --row-group-bytes=128MB --output-dir=/tmp/tpcds"#
+        }
+        _ => return cmd,
+    };
+    cmd.long_about(long_about)
+}
+
 #[derive(Subcommand)]
 enum Commands {
     /// Generate DAT (pipe-delimited) output (default format)
     Dat(DatArgs),
     /// Generate CSV output
-    #[command(long_about = r#"Generate CSV output
-
-Examples:
-  # Generate tab-delimited CSV files:
-  tpcgen-cli tpcds csv --delimiter='\t' --output-dir=/tmp/tpcds"#)]
     Csv(CsvArgs),
     /// Generate Apache Parquet output
-    #[command(long_about = r#"Generate Apache Parquet output
-
-Examples:
-  # Use ZSTD compression and 128 MB row groups:
-  tpcgen-cli tpcds parquet --compression='ZSTD(1)' --row-group-bytes=128MB --output-dir=/tmp/tpcds"#)]
     Parquet(ParquetArgs),
 }
 

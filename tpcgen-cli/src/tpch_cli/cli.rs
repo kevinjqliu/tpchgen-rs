@@ -60,7 +60,7 @@ Examples:
   # /tmp/tpch/lineitem:
   {bin} parquet -s 100 --tables=lineitem --parts=10 --output-dir=/tmp/tpch
 
-  # Split the lineitem table into 10 Parquet files and generate only part 1:
+  # Generate only part 1 of the lineitem table split into 10 Parquet files:
   {bin} parquet -s 10 --tables=lineitem --parts=10 --part=1 --output-dir=/tmp/tpch
 
 Each format has additional options, see '{bin} <COMMAND> --help'."#
@@ -83,7 +83,7 @@ Examples:
                 r#"Generate Apache Parquet output
 
 Examples:
-  # Use ZSTD compression and 128 MB row groups:
+  # Generate Apache Parquet files with ZSTD compression and 128 MB row groups:
   {bin} parquet --compression='ZSTD(1)' --row-group-bytes=128MB --output-dir=/tmp/tpch"#
             ),
             _ => return cmd,
