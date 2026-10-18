@@ -13,21 +13,15 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 #[command(
     about = "TPC-H and TPC-DS data generator",
     long_about = r#"
-TPC-H and TPC-DS data generator (https://github.com/datafusion-contrib/tpcgen-rs)
+TPC-H and TPC-DS data generator (https://github.com/datafusion-contrib/tpcgen-rs)"#,
+    after_long_help = r#"See 'tpcgen-cli <COMMAND> --help' for more options and examples.
 
-Examples
+Examples:
+  # Generate all TPC-H tables at scale factor 1:
+  tpcgen-cli tpch -s 1 --output-dir=/tmp/tpch
 
-# TPC-H TBL data (Scale Factor 1):
-
-tpcgen-cli tpch --output-dir=/tmp/tpch
-
-# TPC-DS CSV data (Scale Factor 1):
-
-tpcgen-cli tpcds csv --output-dir=/tmp/tpcds
-
-# TPC-H Apache Parquet data (Scale Factor 100, single table, 10 files per table):
-
-tpcgen-cli tpch parquet -s 100 --tables=lineitem --parts=10 --output-dir=/tmp/tpch
+  # Generate all TPC-DS tables at scale factor 1:
+  tpcgen-cli tpcds -s 1 --output-dir=/tmp/tpcds
 "#
 )]
 struct Cli {
@@ -37,7 +31,10 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    #[command(long_about = tpcgen_cli::tpch_cli::long_about("tpcgen-cli tpch"))]
+    #[command(
+        after_long_help = tpcgen_cli::tpch_cli::examples("tpcgen-cli tpch"),
+        mut_subcommands = tpcgen_cli::tpch_cli::format_examples("tpcgen-cli tpch")
+    )]
     Tpch(TpchCli),
     Tpcds(TpcdsCli),
 }
