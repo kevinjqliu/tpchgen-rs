@@ -26,7 +26,6 @@ use std::sync::Arc;
     about = "TPC-H Data Generator",
     // --help output
     long_about = long_about("tpchgen-cli"),
-    mut_subcommands = format_long_about("tpchgen-cli"),
     args_conflicts_with_subcommands = true
 )]
 pub struct Cli {
@@ -67,28 +66,15 @@ Each format has additional options, see '{bin} <COMMAND> --help'."#
     )
 }
 
-/// Format `--help` text with examples that invoke `bin` (`tpchgen-cli` or
-/// `tpcgen-cli tpch`)
+/// Rewrite the `tpchgen-cli` examples in each format's `--help` text to
+/// invoke `bin` (e.g. `tpcgen-cli tpch`)
 pub fn format_long_about(bin: &str) -> impl FnMut(clap::Command) -> clap::Command + '_ {
-    move |cmd| {
-        let long_about = match cmd.get_name() {
-            "csv" => format!(
-                r#"Generate CSV output
-
-Examples:
-  # Generate scale factor one in CSV format with tab delimiter:
-  {bin} csv -s 1 --delimiter='\t' --output-dir=/tmp/tpch"#
-            ),
-            "parquet" => format!(
-                r#"Generate Apache Parquet output
-
-Examples:
-  # Generate all tables in Apache Parquet format with ZSTD compression and 128 MB row groups:
-  {bin} parquet --compression='ZSTD(1)' --row-group-bytes=128MB --output-dir=/tmp/tpch"#
-            ),
-            _ => return cmd,
-        };
-        cmd.long_about(long_about)
+    move |cmd| match cmd.get_long_about() {
+        Some(long_about) => {
+            let long_about = long_about.to_string().replace("tpchgen-cli", bin);
+            cmd.long_about(long_about)
+        }
+        None => cmd,
     }
 }
 
@@ -97,8 +83,18 @@ enum Commands {
     /// Generate TBL (pipe-delimited) output (default format)
     Tbl(TblArgs),
     /// Generate CSV output
+    #[command(long_about = r#"Generate CSV output
+
+Examples:
+  # Generate scale factor one in CSV format with tab delimiter:
+  tpchgen-cli csv -s 1 --delimiter='\t' --output-dir=/tmp/tpch"#)]
     Csv(CsvArgs),
     /// Generate Apache Parquet output
+    #[command(long_about = r#"Generate Apache Parquet output
+
+Examples:
+  # Generate all tables in Apache Parquet format with ZSTD compression and 128 MB row groups:
+  tpchgen-cli parquet --compression='ZSTD(1)' --row-group-bytes=128MB --output-dir=/tmp/tpch"#)]
     Parquet(ParquetArgs),
 }
 
