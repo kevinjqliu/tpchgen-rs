@@ -26,16 +26,7 @@ use std::sync::Arc;
     about = "TPC-H Data Generator",
     // --help output
     long_about = long_about("tpchgen-cli"),
-    mut_subcommand("csv", |cmd| cmd.long_about(r#"Generate CSV output
-
-Examples:
-  # Generate tab-delimited CSV files:
-  tpchgen-cli csv --delimiter='\t' --output-dir=/tmp/tpch"#)),
-    mut_subcommand("parquet", |cmd| cmd.long_about(r#"Generate Apache Parquet output
-
-Examples:
-  # Use ZSTD compression and 128 MB row groups:
-  tpchgen-cli parquet --compression='ZSTD(1)' --row-group-bytes=128MB --output-dir=/tmp/tpch"#)),
+    mut_subcommands = format_long_about("tpchgen-cli"),
     args_conflicts_with_subcommands = true
 )]
 pub struct Cli {
@@ -62,11 +53,43 @@ Examples:
   # Generate all tables at scale factor 1 (about 1 GB) in TBL format:
   {bin} -s 1 --output-dir=/tmp/tpch
 
+  # Generate all tables in CSV format:
+  {bin} csv -s 1 --output-dir=/tmp/tpch
+
+  # Generate the lineitem table at scale factor 100 in 10 Apache Parquet files to
+  # /tmp/tpch/lineitem:
+  {bin} parquet -s 100 --tables=lineitem --parts=10 --output-dir=/tmp/tpch
+
   # Split the lineitem table into 10 Parquet files and generate only part 1:
   {bin} parquet -s 10 --tables=lineitem --parts=10 --part=1 --output-dir=/tmp/tpch
 
 Each format has additional options, see '{bin} <COMMAND> --help'."#
     )
+}
+
+/// Format `--help` text with examples that invoke `bin` (`tpchgen-cli` or
+/// `tpcgen-cli tpch`)
+pub fn format_long_about(bin: &str) -> impl FnMut(clap::Command) -> clap::Command + '_ {
+    move |cmd| {
+        let long_about = match cmd.get_name() {
+            "csv" => format!(
+                r#"Generate CSV output
+
+Examples:
+  # Generate tab-delimited CSV files:
+  {bin} csv --delimiter='\t' --output-dir=/tmp/tpch"#
+            ),
+            "parquet" => format!(
+                r#"Generate Apache Parquet output
+
+Examples:
+  # Use ZSTD compression and 128 MB row groups:
+  {bin} parquet --compression='ZSTD(1)' --row-group-bytes=128MB --output-dir=/tmp/tpch"#
+            ),
+            _ => return cmd,
+        };
+        cmd.long_about(long_about)
+    }
 }
 
 #[derive(clap::Subcommand)]

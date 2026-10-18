@@ -16,11 +16,11 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 TPC-H and TPC-DS data generator (https://github.com/datafusion-contrib/tpcgen-rs)
 
 Examples:
-  # Generate all TPC-H tables at scale factor 1:
-  tpcgen-cli tpch -s 1 --output-dir=/tmp/tpch
+  # TPC-H TBL data (Scale Factor 1):
+  tpcgen-cli tpch --output-dir=/tmp/tpch
 
-  # Generate all TPC-DS tables at scale factor 1:
-  tpcgen-cli tpcds -s 1 --output-dir=/tmp/tpcds
+  # TPC-DS CSV data (Scale Factor 1):
+  tpcgen-cli tpcds csv --output-dir=/tmp/tpcds
 
   # TPC-H Apache Parquet data (Scale Factor 100, single table, 10 files per table):
   tpcgen-cli tpch parquet -s 100 --tables=lineitem --parts=10 --output-dir=/tmp/tpch
@@ -36,16 +36,7 @@ struct Cli {
 enum Command {
     #[command(
         long_about = tpcgen_cli::tpch_cli::long_about("tpcgen-cli tpch"),
-        mut_subcommand("csv", |cmd| cmd.long_about(r#"Generate CSV output
-
-Examples:
-  # Generate tab-delimited CSV files:
-  tpcgen-cli tpch csv --delimiter='\t' --output-dir=/tmp/tpch"#)),
-        mut_subcommand("parquet", |cmd| cmd.long_about(r#"Generate Apache Parquet output
-
-Examples:
-  # Use ZSTD compression and 128 MB row groups:
-  tpcgen-cli tpch parquet --compression='ZSTD(1)' --row-group-bytes=128MB --output-dir=/tmp/tpch"#))
+        mut_subcommands = tpcgen_cli::tpch_cli::format_long_about("tpcgen-cli tpch")
     )]
     Tpch(TpchCli),
     Tpcds(TpcdsCli),
