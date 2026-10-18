@@ -71,14 +71,14 @@ If `--parts` option is specified, each table is written to a subdirectory in
 multiple files named <output_dir>/<table>/<table>.<part>.<format>
 
 Examples:
-  # DAT data (Scale Factor 1, about 1 GB):
+  # Generate all tables at scale factor 1 (1GB) in DAT format (default) to /tmp/tpcds directory:
   tpcgen-cli tpcds -s 1 --output-dir=/tmp/tpcds
 
-  # Apache Parquet data (Scale Factor 100, single table, 10 files per table):
+  # Generate the store_sales table at scale factor 100 in 10 Apache Parquet files to
+  # /tmp/tpcds/store_sales:
   tpcgen-cli tpcds parquet -s 100 --tables=store_sales --parts=10 --output-dir=/tmp/tpcds
 
 Each format has additional options, see 'tpcgen-cli tpcds <COMMAND> --help'."#,
-    mut_subcommands = format_long_about,
     args_conflicts_with_subcommands = true
 )]
 pub struct Cli {
@@ -89,35 +89,23 @@ pub struct Cli {
     args: DatArgs,
 }
 
-/// Format `--help` text with examples
-fn format_long_about(cmd: clap::Command) -> clap::Command {
-    let long_about = match cmd.get_name() {
-        "csv" => {
-            r#"Generate CSV output
-
-Examples:
-  # Tab-delimited CSV data:
-  tpcgen-cli tpcds csv --delimiter='\t' --output-dir=/tmp/tpcds"#
-        }
-        "parquet" => {
-            r#"Generate Apache Parquet output
-
-Examples:
-  # Apache Parquet data (ZSTD compression, 128 MB row groups):
-  tpcgen-cli tpcds parquet --compression='ZSTD(1)' --row-group-bytes=128MB --output-dir=/tmp/tpcds"#
-        }
-        _ => return cmd,
-    };
-    cmd.long_about(long_about)
-}
-
 #[derive(Subcommand)]
 enum Commands {
     /// Generate DAT (pipe-delimited) output (default format)
     Dat(DatArgs),
     /// Generate CSV output
+    #[command(long_about = r#"Generate CSV output
+
+Examples:
+  # Generate scale factor one in CSV format with tab delimiter:
+  tpcgen-cli tpcds csv -s 1 --delimiter='\t' --output-dir=/tmp/tpcds"#)]
     Csv(CsvArgs),
     /// Generate Apache Parquet output
+    #[command(long_about = r#"Generate Apache Parquet output
+
+Examples:
+  # Generate all tables in Apache Parquet format with ZSTD compression and 128 MB row groups:
+  tpcgen-cli tpcds parquet --compression='ZSTD(1)' --row-group-bytes=128MB --output-dir=/tmp/tpcds"#)]
     Parquet(ParquetArgs),
 }
 
