@@ -34,10 +34,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    #[command(
-        long_about = tpcgen_cli::tpch_cli::long_about("tpcgen-cli tpch"),
-        mut_subcommands = tpcgen_cli::tpch_cli::format_long_about("tpcgen-cli tpch")
-    )]
+    #[command(long_about = tpcgen_cli::tpch_cli::long_about("tpcgen-cli tpch"))]
     Tpch(TpchCli),
     Tpcds(TpcdsCli),
 }

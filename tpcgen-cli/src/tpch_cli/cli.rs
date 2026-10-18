@@ -66,18 +66,6 @@ Each format has additional options, see '{bin} <COMMAND> --help'."#
     )
 }
 
-/// Rewrite the `tpchgen-cli` examples in each format's `--help` text to
-/// invoke `bin` (e.g. `tpcgen-cli tpch`)
-pub fn format_long_about(bin: &str) -> impl FnMut(clap::Command) -> clap::Command + '_ {
-    move |cmd| match cmd.get_long_about() {
-        Some(long_about) => {
-            let long_about = long_about.to_string().replace("tpchgen-cli", bin);
-            cmd.long_about(long_about)
-        }
-        None => cmd,
-    }
-}
-
 #[derive(clap::Subcommand)]
 enum Commands {
     /// Generate TBL (pipe-delimited) output (default format)
@@ -87,14 +75,14 @@ enum Commands {
 
 Examples:
   # Generate scale factor one in CSV format with tab delimiter:
-  tpchgen-cli csv -s 1 --delimiter='\t' --output-dir=/tmp/tpch"#)]
+  tpcgen-cli tpch csv -s 1 --delimiter='\t' --output-dir=/tmp/tpch"#)]
     Csv(CsvArgs),
     /// Generate Apache Parquet output
     #[command(long_about = r#"Generate Apache Parquet output
 
 Examples:
   # Generate all tables in Apache Parquet format with ZSTD compression and 128 MB row groups:
-  tpchgen-cli parquet --compression='ZSTD(1)' --row-group-bytes=128MB --output-dir=/tmp/tpch"#)]
+  tpcgen-cli tpch parquet --compression='ZSTD(1)' --row-group-bytes=128MB --output-dir=/tmp/tpch"#)]
     Parquet(ParquetArgs),
 }
 
