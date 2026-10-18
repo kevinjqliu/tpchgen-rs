@@ -71,11 +71,10 @@ If `--parts` option is specified, each table is written to a subdirectory in
 multiple files named <output_dir>/<table>/<table>.<part>.<format>
 
 Examples:
-  # Generate all tables at scale factor 1 (about 1 GB) in DAT format:
+  # DAT data (Scale Factor 1, about 1 GB):
   tpcgen-cli tpcds -s 1 --output-dir=/tmp/tpcds
 
-  # Generate the store_sales table at scale factor 100 in 10 Apache Parquet files to
-  # /tmp/tpcds/store_sales:
+  # Apache Parquet data (Scale Factor 100, single table, 10 files per table):
   tpcgen-cli tpcds parquet -s 100 --tables=store_sales --parts=10 --output-dir=/tmp/tpcds
 
 Each format has additional options, see 'tpcgen-cli tpcds <COMMAND> --help'."#,
@@ -97,14 +96,14 @@ fn format_long_about(cmd: clap::Command) -> clap::Command {
             r#"Generate CSV output
 
 Examples:
-  # Generate tab-delimited CSV files:
+  # Tab-delimited CSV data:
   tpcgen-cli tpcds csv --delimiter='\t' --output-dir=/tmp/tpcds"#
         }
         "parquet" => {
             r#"Generate Apache Parquet output
 
 Examples:
-  # Generate Apache Parquet files with ZSTD compression and 128 MB row groups:
+  # Apache Parquet data (ZSTD compression, 128 MB row groups):
   tpcgen-cli tpcds parquet --compression='ZSTD(1)' --row-group-bytes=128MB --output-dir=/tmp/tpcds"#
         }
         _ => return cmd,

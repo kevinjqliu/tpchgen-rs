@@ -50,17 +50,16 @@ If `--parts` option is specified, each table is written to a subdirectory in
 multiple files named <output_dir>/<table>/<table>.<part>.<format>
 
 Examples:
-  # Generate all tables at scale factor 1 (about 1 GB) in TBL format:
+  # TBL data (Scale Factor 1, about 1 GB):
   {bin} -s 1 --output-dir=/tmp/tpch
 
-  # Generate all tables in CSV format:
+  # CSV data (Scale Factor 1):
   {bin} csv -s 1 --output-dir=/tmp/tpch
 
-  # Generate the lineitem table at scale factor 100 in 10 Apache Parquet files to
-  # /tmp/tpch/lineitem:
+  # Apache Parquet data (Scale Factor 100, single table, 10 files per table):
   {bin} parquet -s 100 --tables=lineitem --parts=10 --output-dir=/tmp/tpch
 
-  # Generate only part 1 of the lineitem table split into 10 Parquet files:
+  # Apache Parquet data (Scale Factor 10, single table, part 1 of 10 files):
   {bin} parquet -s 10 --tables=lineitem --parts=10 --part=1 --output-dir=/tmp/tpch
 
 Each format has additional options, see '{bin} <COMMAND> --help'."#
@@ -76,14 +75,14 @@ pub fn format_long_about(bin: &str) -> impl FnMut(clap::Command) -> clap::Comman
                 r#"Generate CSV output
 
 Examples:
-  # Generate tab-delimited CSV files:
+  # Tab-delimited CSV data:
   {bin} csv --delimiter='\t' --output-dir=/tmp/tpch"#
             ),
             "parquet" => format!(
                 r#"Generate Apache Parquet output
 
 Examples:
-  # Generate Apache Parquet files with ZSTD compression and 128 MB row groups:
+  # Apache Parquet data (ZSTD compression, 128 MB row groups):
   {bin} parquet --compression='ZSTD(1)' --row-group-bytes=128MB --output-dir=/tmp/tpch"#
             ),
             _ => return cmd,

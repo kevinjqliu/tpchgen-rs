@@ -16,13 +16,13 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 TPC-H and TPC-DS data generator (https://github.com/datafusion-contrib/tpcgen-rs)
 
 Examples:
-  # Generate TPC-H TBL data (Scale Factor 1):
+  # TPC-H TBL data (Scale Factor 1):
   tpcgen-cli tpch --output-dir=/tmp/tpch
 
-  # Generate TPC-DS CSV data (Scale Factor 1):
+  # TPC-DS CSV data (Scale Factor 1):
   tpcgen-cli tpcds csv --output-dir=/tmp/tpcds
 
-  # Generate TPC-H Apache Parquet data (Scale Factor 100, single table, 10 files per table):
+  # TPC-H Apache Parquet data (Scale Factor 100, single table, 10 files per table):
   tpcgen-cli tpch parquet -s 100 --tables=lineitem --parts=10 --output-dir=/tmp/tpch
 
 See 'tpcgen-cli <COMMAND> --help' for more options and examples."#
